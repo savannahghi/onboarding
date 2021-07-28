@@ -186,10 +186,11 @@ type FakeOnboardingRepository struct {
 	SaveCoverAutolinkingEventsFn    func(ctx context.Context, input *dto.CoverLinkingEvent) (*dto.CoverLinkingEvent, error)
 
 	//roles
-	CreateRoleFn        func(ctx context.Context, role profileutils.Role) (*profileutils.Role, error)
-	UpdateRoleDetailsFn func(ctx context.Context, role profileutils.Role) error
-	GetRolesByIDsFn     func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error)
-	GetRoleByIDFn       func(ctx context.Context, roleID string) (*profileutils.Role, error)
+	CreateRoleFn            func(ctx context.Context, profileID string, role dto.RoleInput) (*profileutils.Role, error)
+	UpdateRoleDetailsFn     func(ctx context.Context, profileID string, role profileutils.Role) (*profileutils.Role, error)
+	GetRolesByIDsFn         func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error)
+	GetRoleByIDFn           func(ctx context.Context, roleID string) (*profileutils.Role, error)
+	CheckIfRoleNameExistsFn func(ctx context.Context, name string) (bool, error)
 }
 
 // GetSupplierProfileByID ...
@@ -903,17 +904,19 @@ func (f *FakeOnboardingRepository) SaveCoverAutolinkingEvents(
 //CreateRole ...
 func (f *FakeOnboardingRepository) CreateRole(
 	ctx context.Context,
-	role profileutils.Role,
+	profileID string,
+	input dto.RoleInput,
 ) (*profileutils.Role, error) {
-	return f.CreateRoleFn(ctx, role)
+	return f.CreateRoleFn(ctx, profileID, input)
 }
 
 //UpdateRoleDetails ...
 func (f *FakeOnboardingRepository) UpdateRoleDetails(
 	ctx context.Context,
+	profileID string,
 	role profileutils.Role,
-) error {
-	return f.UpdateRoleDetailsFn(ctx, role)
+) (*profileutils.Role, error) {
+	return f.UpdateRoleDetailsFn(ctx, profileID, role)
 }
 
 //GetRoleByID ...
@@ -930,4 +933,9 @@ func (f *FakeOnboardingRepository) GetRolesByIDs(
 	roleIDs []string,
 ) (*[]profileutils.Role, error) {
 	return f.GetRolesByIDsFn(ctx, roleIDs)
+}
+
+// CheckIfRoleNameExists ...
+func (f *FakeOnboardingRepository) CheckIfRoleNameExists(ctx context.Context, name string) (bool, error) {
+	return f.CheckIfRoleNameExistsFn(ctx, name)
 }
