@@ -16,7 +16,6 @@ import (
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 
@@ -79,7 +78,7 @@ func TestParseKYCAsMap(t *testing.T) {
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
 	edi := edi.NewEdiService(ediClient, repo, engage)
 	erp := erp.NewAccounting()
-	chrg := chargemaster.NewChargeMasterUseCasesImpl()
+
 	// hubspot usecases
 	hubspotService := hubspot.NewHubSpotService()
 	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
@@ -105,12 +104,11 @@ func TestParseKYCAsMap(t *testing.T) {
 	profile := NewProfileUseCase(repo, ext, engage, ps, crmExt)
 
 	supplier := SupplierUseCasesImpl{
-		repo:         repo,
-		profile:      profile,
-		erp:          erp,
-		chargemaster: chrg,
-		engagement:   engage,
-		messaging:    mes,
+		repo:       repo,
+		profile:    profile,
+		erp:        erp,
+		engagement: engage,
+		messaging:  mes,
 	}
 
 	tests := []struct {

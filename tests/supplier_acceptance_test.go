@@ -2748,19 +2748,6 @@ func TestSupplierSetDefaultLocation_acceptance(t *testing.T) {
 			wantStatus: http.StatusOK,
 			wantErr:    true,
 		},
-		{
-			name: "Happy Case - Setup supplier location with a valid locationID",
-			args: args{
-				query: map[string]interface{}{
-					"query": graphqlMutation,
-					"variables": map[string]interface{}{
-						"input": testChargeMasterBranchID,
-					},
-				},
-			},
-			wantStatus: http.StatusOK,
-			wantErr:    true, // TODO: Check on `EDI`
-		},
 	}
 
 	for _, tt := range tests {

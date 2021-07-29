@@ -13,7 +13,6 @@ import (
 	"github.com/savannahghi/converterandformatter"
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
-	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
@@ -5286,677 +5285,674 @@ func TestSupplierUseCasesImpl_CreateSupplierAccount(t *testing.T) {
 	}
 }
 
-func TestSupplierUseCasesImpl_SupplierSetDefaultLocation(t *testing.T) {
-	ctx := context.Background()
-
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
-		return
-	}
-	testChargeMasterBranchID := "94294577-6b27-4091-9802-1ce0f2ce4153"
-
-	cursor := "1234"
-	edges := &dto.BranchEdge{
-		Cursor: &cursor,
-		Node: &domain.Branch{
-			ID:                    testChargeMasterBranchID,
-			Name:                  "BRANCH-NAME",
-			OrganizationSladeCode: "PRO-1234",
-			BranchSladeCode:       "1",
-		},
-	}
-
-	newEdges := []*dto.BranchEdge{}
-	newEdges = append(newEdges, edges)
-
-	type args struct {
-		ctx        context.Context
-		locationID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "valid:set_default_location_with_a_valid_locationID",
-			args: args{
-				ctx:        ctx,
-				locationID: testChargeMasterBranchID,
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid:set_default_location_with_an_invalid_locationID",
-			args: args{
-				ctx:        ctx,
-				locationID: "invalid-location-id",
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid:fail_to_get_logged_in_user",
-			args: args{
-				ctx:        ctx,
-				locationID: testChargeMasterBranchID,
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid:supplier_not_found",
-			args: args{
-				ctx:        ctx,
-				locationID: testChargeMasterBranchID,
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid:_unable_to_get_user_profile_by_uid",
-			args: args{
-				ctx:        ctx,
-				locationID: testChargeMasterBranchID,
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid:_unable_to_find_branch",
-			args: args{
-				ctx:        ctx,
-				locationID: testChargeMasterBranchID,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.name == "valid:set_default_location_with_a_valid_locationID" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "83d3479d-e902-4aab-a27d-6d5067454daf", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "93ca42bb-5cfc-4499-b137-2df4d67b4a21",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: uid,
-							},
-						},
-					}, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "83d3479d-e902-4aab-a27d-6d5067454daf", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "94294577-6b27-4091-9802-1ce0f2ce4153",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: "f4f39af7-91bd-42b3af-315a4e",
-							},
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
-						ProfileID: &profileID,
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
-					}, nil
-				}
-
-				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
-					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-					return &dto.BranchConnection{
-						Edges: newEdges,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
-				}
-
-				fakeRepo.UpdateSupplierProfileFn = func(ctx context.Context, profileID string, data *profileutils.Supplier) error {
-					return nil
-				}
-
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "400d-8716--91bd-42b3af315a4e",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: "f4f39af7-91bd-42b3af-315a4e",
-							},
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
-						ProfileID: &profileID,
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
-					}, nil
-				}
-
-			}
-
-			if tt.name == "invalid:set_default_location_with_an_invalid_locationID" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "93ca42bb-5cfc-4499-b137-2df4d67b4a21",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: uid,
-							},
-						},
-					}, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "400d-8716--91bd-42b3af315a4e",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: "f4f39af7-91bd-42b3af-315a4e",
-							},
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
-						ProfileID: &profileID,
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
-					}, nil
-				}
-
-				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
-					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-					return &dto.BranchConnection{
-						Edges: newEdges,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
-				}
-
-				fakeRepo.UpdateSupplierProfileFn = func(ctx context.Context, profileID string, data *profileutils.Supplier) error {
-					return fmt.Errorf("fail to get the location")
-				}
-			}
-
-			if tt.name == "invalid:fail_to_get_logged_in_user" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "", fmt.Errorf("unable to get logged in user")
-				}
-			}
-
-			if tt.name == "invalid:supplier_not_found" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "93ca42bb-5cfc-4499-b137-2df4d67b4a21",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: uid,
-							},
-						},
-					}, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "400d-8716--91bd-42b3af315a4e",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: "f4f39af7-91bd-42b3af-315a4e",
-							},
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return nil, fmt.Errorf("supplier not found")
-
-				}
-			}
-
-			if tt.name == "invalid:_unable_to_get_user_profile_by_uid" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "FSO798-AD3", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return nil, fmt.Errorf("unable to get profile")
-				}
-			}
-
-			if tt.name == "invalid:_unable_to_find_branch" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "93ca42bb-5cfc-4499-b137-2df4d67b4a21",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: uid,
-							},
-						},
-					}, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "400d-8716--91bd-42b3af315a4e",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: "f4f39af7-91bd-42b3af-315a4e",
-							},
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
-						ProfileID: &profileID,
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
-					}, nil
-				}
-
-				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
-					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-					return nil, fmt.Errorf("unable to find branch")
-				}
-			}
-
-			_, err := i.Supplier.SupplierSetDefaultLocation(tt.args.ctx, tt.args.locationID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"SupplierUseCasesImpl.SupplierSetDefaultLocation() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("error expected got %v", err)
-					return
-				}
-			}
-
-			if !tt.wantErr {
-				if err != nil {
-					t.Errorf("error not expected got %v", err)
-					return
-				}
-			}
-		})
-	}
-}
-
-func TestSupplierUseCasesImpl_FetchSupplierAllowedLocations(t *testing.T) {
-	ctx := context.Background()
-
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
-		return
-	}
-
-	testChargeMasterParentOrgId := "83d3479d-e902-4aab-a27d-6d5067454daf"
-	testChargeMasterBranchID := "94294577-6b27-4091-9802-1ce0f2ce4153"
-
-	sladeCode := "1"
-	cursor := "4567"
-	edges := &dto.BranchEdge{
-		Cursor: &cursor,
-		Node: &domain.Branch{
-			ID:                    testChargeMasterParentOrgId,
-			Name:                  "BRANCH-NAME",
-			OrganizationSladeCode: "PRO-1234",
-			BranchSladeCode:       sladeCode,
-		},
-	}
-	newEdges := []*dto.BranchEdge{}
-	newEdges = append(newEdges, edges)
-
-	// The Node ID is different from the supplier Location ID
-	// This helps to test all cases
-	payload2 := &dto.BranchEdge{
-		Cursor: &cursor,
-		Node: &domain.Branch{
-			ID:                    testChargeMasterBranchID,
-			Name:                  "BRANCH-NAME",
-			OrganizationSladeCode: "PRO-1234",
-			BranchSladeCode:       sladeCode,
-		},
-	}
-	newPayload := []*dto.BranchEdge{}
-	newPayload = append(newPayload, payload2)
-
-	type args struct {
-		ctx context.Context
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "valid:supplier_allowed_location_found",
-			args: args{
-				ctx: ctx,
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid:supplier_location_found",
-			args: args{
-				ctx: ctx,
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid:nil_supplier_location",
-			args: args{
-				ctx: ctx,
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid:fail_to_find_branch",
-			args: args{
-				ctx: ctx,
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid:logged_in_user_not_found",
-			args: args{
-				ctx: ctx,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			if tt.name == "valid:supplier_allowed_location_found" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "400d-8716--91bd-42b3af315a4e",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: "f4f39af7-91bd-42b3af-315a4e",
-							},
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
-						ProfileID: &profileID,
-						Location: &profileutils.Location{
-							ID:              testChargeMasterParentOrgId,
-							Name:            "BRANCH-NAME",
-							BranchSladeCode: &sladeCode,
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
-						Location: &profileutils.Location{
-							ID:              testChargeMasterParentOrgId,
-							Name:            "BRANCH-NAME",
-							BranchSladeCode: &sladeCode,
-						},
-					}, nil
-				}
-
-				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
-					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-					return &dto.BranchConnection{
-						Edges: newEdges,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
-				}
-			}
-
-			if tt.name == "valid:supplier_location_found" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "400d-8716--91bd-42b3af315a4e",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: "f4f39af7-91bd-42b3af-315a4e",
-							},
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
-						ProfileID: &profileID,
-						Location: &profileutils.Location{
-							ID:              testChargeMasterParentOrgId,
-							Name:            "BRANCH-NAME",
-							BranchSladeCode: &sladeCode,
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
-						Location: &profileutils.Location{
-							ID:              testChargeMasterParentOrgId,
-							Name:            "BRANCH-NAME",
-							BranchSladeCode: &sladeCode,
-						},
-					}, nil
-				}
-
-				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
-					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-					return &dto.BranchConnection{
-						Edges: newPayload,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
-				}
-			}
-
-			if tt.name == "valid:nil_supplier_location" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "400d-8716--91bd-42b3af315a4e",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: "f4f39af7-91bd-42b3af-315a4e",
-							},
-						},
-					}, nil
-				}
-
-				// Here we dont pass a location
-				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
-						ProfileID: &profileID,
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
-					}, nil
-				}
-
-				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
-					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-					return &dto.BranchConnection{
-						Edges: newPayload,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
-				}
-			}
-
-			if tt.name == "invalid:fail_to_find_branch" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "7e2aea-d29f2c", nil
-				}
-
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID: "400d-8716--91bd-42b3af315a4e",
-						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
-							{
-								UID: "f4f39af7-91bd-42b3af-315a4e",
-							},
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
-						ProfileID: &profileID,
-						Location: &profileutils.Location{
-							ID:              testChargeMasterParentOrgId,
-							Name:            "BRANCH-NAME",
-							BranchSladeCode: &sladeCode,
-						},
-					}, nil
-				}
-
-				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{
-						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
-						Location: &profileutils.Location{
-							ID:              testChargeMasterParentOrgId,
-							Name:            "BRANCH-NAME",
-							BranchSladeCode: &sladeCode,
-						},
-					}, nil
-				}
-
-				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
-					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-					return &dto.BranchConnection{
-						Edges: newEdges,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, fmt.Errorf("failed to find branch")
-				}
-			}
-
-			if tt.name == "invalid:logged_in_user_not_found" {
-				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
-					return "", fmt.Errorf("user not found")
-				}
-			}
-
-			_, err := i.Supplier.FetchSupplierAllowedLocations(tt.args.ctx)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"SupplierUseCasesImpl.FetchSupplierAllowedLocations() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("error expected got %v", err)
-					return
-				}
-			}
-
-			if !tt.wantErr {
-				if err != nil {
-					t.Errorf("error not expected got %v", err)
-					return
-				}
-			}
-		})
-	}
-}
+// TODO: refactor after removing chargemaster
+// func TestSupplierUseCasesImpl_SupplierSetDefaultLocation(t *testing.T) {
+// 	ctx := context.Background()
+
+// 	i, err := InitializeFakeOnboardingInteractor()
+// 	if err != nil {
+// 		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
+// 		return
+// 	}
+
+// 	cursor := "1234"
+// 	edges := &dto.BranchEdge{
+// 		Cursor: &cursor,
+// 		Node: &domain.Branch{
+// 			ID:                    testChargeMasterBranchID,
+// 			Name:                  "BRANCH-NAME",
+// 			OrganizationSladeCode: "PRO-1234",
+// 			BranchSladeCode:       "1",
+// 		},
+// 	}
+
+// 	newEdges := []*dto.BranchEdge{}
+// 	newEdges = append(newEdges, edges)
+
+// 	type args struct {
+// 		ctx        context.Context
+// 		locationID string
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		args    args
+// 		wantErr bool
+// 	}{
+// 		{
+// 			name: "valid:set_default_location_with_a_valid_locationID",
+// 			args: args{
+// 				ctx:        ctx,
+// 				locationID: testChargeMasterBranchID,
+// 			},
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "invalid:set_default_location_with_an_invalid_locationID",
+// 			args: args{
+// 				ctx:        ctx,
+// 				locationID: "invalid-location-id",
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "invalid:fail_to_get_logged_in_user",
+// 			args: args{
+// 				ctx:        ctx,
+// 				locationID: testChargeMasterBranchID,
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "invalid:supplier_not_found",
+// 			args: args{
+// 				ctx:        ctx,
+// 				locationID: testChargeMasterBranchID,
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "invalid:_unable_to_get_user_profile_by_uid",
+// 			args: args{
+// 				ctx:        ctx,
+// 				locationID: testChargeMasterBranchID,
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "invalid:_unable_to_find_branch",
+// 			args: args{
+// 				ctx:        ctx,
+// 				locationID: testChargeMasterBranchID,
+// 			},
+// 			wantErr: true,
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			if tt.name == "valid:set_default_location_with_a_valid_locationID" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "83d3479d-e902-4aab-a27d-6d5067454daf", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "93ca42bb-5cfc-4499-b137-2df4d67b4a21",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: uid,
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "83d3479d-e902-4aab-a27d-6d5067454daf", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "94294577-6b27-4091-9802-1ce0f2ce4153",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: "f4f39af7-91bd-42b3af-315a4e",
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
+// 						ProfileID: &profileID,
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
+// 					}, nil
+// 				}
+
+// 				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
+// 					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
+// 					return &dto.BranchConnection{
+// 						Edges: newEdges,
+// 						PageInfo: &firebasetools.PageInfo{
+// 							HasNextPage: false,
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.UpdateSupplierProfileFn = func(ctx context.Context, profileID string, data *profileutils.Supplier) error {
+// 					return nil
+// 				}
+
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "400d-8716--91bd-42b3af315a4e",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: "f4f39af7-91bd-42b3af-315a4e",
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
+// 						ProfileID: &profileID,
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
+// 					}, nil
+// 				}
+
+// 			}
+
+// 			if tt.name == "invalid:set_default_location_with_an_invalid_locationID" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "93ca42bb-5cfc-4499-b137-2df4d67b4a21",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: uid,
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "400d-8716--91bd-42b3af315a4e",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: "f4f39af7-91bd-42b3af-315a4e",
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
+// 						ProfileID: &profileID,
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
+// 					}, nil
+// 				}
+
+// 				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
+// 					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
+// 					return &dto.BranchConnection{
+// 						Edges: newEdges,
+// 						PageInfo: &firebasetools.PageInfo{
+// 							HasNextPage: false,
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.UpdateSupplierProfileFn = func(ctx context.Context, profileID string, data *profileutils.Supplier) error {
+// 					return fmt.Errorf("fail to get the location")
+// 				}
+// 			}
+
+// 			if tt.name == "invalid:fail_to_get_logged_in_user" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "", fmt.Errorf("unable to get logged in user")
+// 				}
+// 			}
+
+// 			if tt.name == "invalid:supplier_not_found" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "93ca42bb-5cfc-4499-b137-2df4d67b4a21",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: uid,
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "400d-8716--91bd-42b3af315a4e",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: "f4f39af7-91bd-42b3af-315a4e",
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+// 					return nil, fmt.Errorf("supplier not found")
+
+// 				}
+// 			}
+
+// 			if tt.name == "invalid:_unable_to_get_user_profile_by_uid" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "FSO798-AD3", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return nil, fmt.Errorf("unable to get profile")
+// 				}
+// 			}
+
+// 			if tt.name == "invalid:_unable_to_find_branch" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "93ca42bb-5cfc-4499-b137-2df4d67b4a21",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: uid,
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "400d-8716--91bd-42b3af315a4e",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: "f4f39af7-91bd-42b3af-315a4e",
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
+// 						ProfileID: &profileID,
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
+// 					}, nil
+// 				}
+
+// 				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
+// 					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
+// 					return nil, fmt.Errorf("unable to find branch")
+// 				}
+// 			}
+
+// 			_, err := i.Supplier.SupplierSetDefaultLocation(tt.args.ctx, tt.args.locationID)
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf(
+// 					"SupplierUseCasesImpl.SupplierSetDefaultLocation() error = %v, wantErr %v",
+// 					err,
+// 					tt.wantErr,
+// 				)
+// 				return
+// 			}
+
+// 			if tt.wantErr {
+// 				if err == nil {
+// 					t.Errorf("error expected got %v", err)
+// 					return
+// 				}
+// 			}
+
+// 			if !tt.wantErr {
+// 				if err != nil {
+// 					t.Errorf("error not expected got %v", err)
+// 					return
+// 				}
+// 			}
+// 		})
+// 	}
+// }
+
+// func TestSupplierUseCasesImpl_FetchSupplierAllowedLocations(t *testing.T) {
+// 	ctx := context.Background()
+
+// 	i, err := InitializeFakeOnboardingInteractor()
+// 	if err != nil {
+// 		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
+// 		return
+// 	}
+
+// 	sladeCode := "1"
+// 	cursor := "4567"
+// 	edges := &dto.BranchEdge{
+// 		Cursor: &cursor,
+// 		Node: &domain.Branch{
+// 			ID:                    testChargeMasterParentOrgId,
+// 			Name:                  "BRANCH-NAME",
+// 			OrganizationSladeCode: "PRO-1234",
+// 			BranchSladeCode:       sladeCode,
+// 		},
+// 	}
+// 	newEdges := []*dto.BranchEdge{}
+// 	newEdges = append(newEdges, edges)
+
+// 	// The Node ID is different from the supplier Location ID
+// 	// This helps to test all cases
+// 	payload2 := &dto.BranchEdge{
+// 		Cursor: &cursor,
+// 		Node: &domain.Branch{
+// 			ID:                    testChargeMasterBranchID,
+// 			Name:                  "BRANCH-NAME",
+// 			OrganizationSladeCode: "PRO-1234",
+// 			BranchSladeCode:       sladeCode,
+// 		},
+// 	}
+// 	newPayload := []*dto.BranchEdge{}
+// 	newPayload = append(newPayload, payload2)
+
+// 	type args struct {
+// 		ctx context.Context
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		args    args
+// 		wantErr bool
+// 	}{
+// 		{
+// 			name: "valid:supplier_allowed_location_found",
+// 			args: args{
+// 				ctx: ctx,
+// 			},
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "valid:supplier_location_found",
+// 			args: args{
+// 				ctx: ctx,
+// 			},
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "valid:nil_supplier_location",
+// 			args: args{
+// 				ctx: ctx,
+// 			},
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "invalid:fail_to_find_branch",
+// 			args: args{
+// 				ctx: ctx,
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "invalid:logged_in_user_not_found",
+// 			args: args{
+// 				ctx: ctx,
+// 			},
+// 			wantErr: true,
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+
+// 			if tt.name == "valid:supplier_allowed_location_found" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "400d-8716--91bd-42b3af315a4e",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: "f4f39af7-91bd-42b3af-315a4e",
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
+// 						ProfileID: &profileID,
+// 						Location: &profileutils.Location{
+// 							ID:              testChargeMasterParentOrgId,
+// 							Name:            "BRANCH-NAME",
+// 							BranchSladeCode: &sladeCode,
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
+// 						Location: &profileutils.Location{
+// 							ID:              testChargeMasterParentOrgId,
+// 							Name:            "BRANCH-NAME",
+// 							BranchSladeCode: &sladeCode,
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
+// 					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
+// 					return &dto.BranchConnection{
+// 						Edges: newEdges,
+// 						PageInfo: &firebasetools.PageInfo{
+// 							HasNextPage: false,
+// 						},
+// 					}, nil
+// 				}
+// 			}
+
+// 			if tt.name == "valid:supplier_location_found" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "400d-8716--91bd-42b3af315a4e",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: "f4f39af7-91bd-42b3af-315a4e",
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
+// 						ProfileID: &profileID,
+// 						Location: &profileutils.Location{
+// 							ID:              testChargeMasterParentOrgId,
+// 							Name:            "BRANCH-NAME",
+// 							BranchSladeCode: &sladeCode,
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
+// 						Location: &profileutils.Location{
+// 							ID:              testChargeMasterParentOrgId,
+// 							Name:            "BRANCH-NAME",
+// 							BranchSladeCode: &sladeCode,
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
+// 					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
+// 					return &dto.BranchConnection{
+// 						Edges: newPayload,
+// 						PageInfo: &firebasetools.PageInfo{
+// 							HasNextPage: false,
+// 						},
+// 					}, nil
+// 				}
+// 			}
+
+// 			if tt.name == "valid:nil_supplier_location" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "400d-8716--91bd-42b3af315a4e",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: "f4f39af7-91bd-42b3af-315a4e",
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				// Here we dont pass a location
+// 				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
+// 						ProfileID: &profileID,
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
+// 					}, nil
+// 				}
+
+// 				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
+// 					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
+// 					return &dto.BranchConnection{
+// 						Edges: newPayload,
+// 						PageInfo: &firebasetools.PageInfo{
+// 							HasNextPage: false,
+// 						},
+// 					}, nil
+// 				}
+// 			}
+
+// 			if tt.name == "invalid:fail_to_find_branch" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "7e2aea-d29f2c", nil
+// 				}
+
+// 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+// 					return &profileutils.UserProfile{
+// 						ID: "400d-8716--91bd-42b3af315a4e",
+// 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
+// 							{
+// 								UID: "f4f39af7-91bd-42b3af-315a4e",
+// 							},
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByProfileIDFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						ID:        "42b3af315a4e-f4f39af7-5b64-4c2f-91bd",
+// 						ProfileID: &profileID,
+// 						Location: &profileutils.Location{
+// 							ID:              testChargeMasterParentOrgId,
+// 							Name:            "BRANCH-NAME",
+// 							BranchSladeCode: &sladeCode,
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeRepo.GetSupplierProfileByUIDFn = func(ctx context.Context, uid string) (*profileutils.Supplier, error) {
+// 					return &profileutils.Supplier{
+// 						SupplierID: "8716-7e2ae-5cf354a2-1d3e-ad29f2c-400d",
+// 						Location: &profileutils.Location{
+// 							ID:              testChargeMasterParentOrgId,
+// 							Name:            "BRANCH-NAME",
+// 							BranchSladeCode: &sladeCode,
+// 						},
+// 					}, nil
+// 				}
+
+// 				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
+// 					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
+// 					return &dto.BranchConnection{
+// 						Edges: newEdges,
+// 						PageInfo: &firebasetools.PageInfo{
+// 							HasNextPage: false,
+// 						},
+// 					}, fmt.Errorf("failed to find branch")
+// 				}
+// 			}
+
+// 			if tt.name == "invalid:logged_in_user_not_found" {
+// 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+// 					return "", fmt.Errorf("user not found")
+// 				}
+// 			}
+
+// 			_, err := i.Supplier.FetchSupplierAllowedLocations(tt.args.ctx)
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf(
+// 					"SupplierUseCasesImpl.FetchSupplierAllowedLocations() error = %v, wantErr %v",
+// 					err,
+// 					tt.wantErr,
+// 				)
+// 				return
+// 			}
+
+// 			if tt.wantErr {
+// 				if err == nil {
+// 					t.Errorf("error expected got %v", err)
+// 					return
+// 				}
+// 			}
+
+// 			if !tt.wantErr {
+// 				if err != nil {
+// 					t.Errorf("error not expected got %v", err)
+// 					return
+// 				}
+// 			}
+// 		})
+// 	}
+// }
 
 func TestSupplierUseCasesImpl_SupplierEDILogin(t *testing.T) {
 	ctx := context.Background()
@@ -5966,72 +5962,72 @@ func TestSupplierUseCasesImpl_SupplierEDILogin(t *testing.T) {
 		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
 		return
 	}
-	sladeCode := "1"
-	savannahOrgName := "Savannah Informatics"
-	cursor := "8765"
-	parent := "parent"
-	edges := &dto.BusinessPartnerEdge{
-		Cursor: &cursor,
-		Node: &domain.BusinessPartner{
-			ID:        "BUS1N3SS-P123-1D",
-			Name:      savannahOrgName,
-			SladeCode: sladeCode,
-			Parent:    &parent,
-		},
-	}
+	// sladeCode := "1"
+	// savannahOrgName := "Savannah Informatics"
+	// cursor := "8765"
+	// parent := "parent"
+	// edges := &dto.BusinessPartnerEdge{
+	// 	Cursor: &cursor,
+	// 	Node: &domain.BusinessPartner{
+	// 		ID:        "BUS1N3SS-P123-1D",
+	// 		Name:      savannahOrgName,
+	// 		SladeCode: sladeCode,
+	// 		Parent:    &parent,
+	// 	},
+	// }
 
-	newEdges := []*dto.BusinessPartnerEdge{}
-	newEdges = append(newEdges, edges)
+	// newEdges := []*dto.BusinessPartnerEdge{}
+	// newEdges = append(newEdges, edges)
 
-	payload2 := &dto.BranchEdge{
-		Cursor: &cursor,
-		Node: &domain.Branch{
-			ID:                    "BUS1N3SS-P123-1D",
-			Name:                  savannahOrgName,
-			OrganizationSladeCode: "123456",
-			BranchSladeCode:       sladeCode,
-		},
-	}
-	newPayload := []*dto.BranchEdge{}
-	newPayload = append(newPayload, payload2)
+	// payload2 := &dto.BranchEdge{
+	// 	Cursor: &cursor,
+	// 	Node: &domain.Branch{
+	// 		ID:                    "BUS1N3SS-P123-1D",
+	// 		Name:                  savannahOrgName,
+	// 		OrganizationSladeCode: "123456",
+	// 		BranchSladeCode:       sladeCode,
+	// 	},
+	// }
+	// newPayload := []*dto.BranchEdge{}
+	// newPayload = append(newPayload, payload2)
 
-	payload3 := &dto.BusinessPartnerEdge{
-		Cursor: &cursor,
-		Node: &domain.BusinessPartner{
-			ID:        "BUS1N3SS-P123",
-			Name:      "Random Org",
-			SladeCode: "PRO-1234",
-			Parent:    &parent,
-		},
-	}
+	// payload3 := &dto.BusinessPartnerEdge{
+	// 	Cursor: &cursor,
+	// 	Node: &domain.BusinessPartner{
+	// 		ID:        "BUS1N3SS-P123",
+	// 		Name:      "Random Org",
+	// 		SladeCode: "PRO-1234",
+	// 		Parent:    &parent,
+	// 	},
+	// }
 
-	newPayload3 := []*dto.BusinessPartnerEdge{}
-	newPayload3 = append(newPayload3, payload3)
+	// newPayload3 := []*dto.BusinessPartnerEdge{}
+	// newPayload3 = append(newPayload3, payload3)
 
-	payload4 := &dto.BranchEdge{
-		Cursor: &cursor,
-		Node: &domain.Branch{
-			ID:                    "BUS1N3SS-P123",
-			Name:                  "Random Org",
-			OrganizationSladeCode: "1234",
-			BranchSladeCode:       "PRO-1234",
-		},
-	}
-	newPayload4 := []*dto.BranchEdge{}
-	newPayload4 = append(newPayload4, payload4)
+	// payload4 := &dto.BranchEdge{
+	// 	Cursor: &cursor,
+	// 	Node: &domain.Branch{
+	// 		ID:                    "BUS1N3SS-P123",
+	// 		Name:                  "Random Org",
+	// 		OrganizationSladeCode: "1234",
+	// 		BranchSladeCode:       "PRO-1234",
+	// 	},
+	// }
+	// newPayload4 := []*dto.BranchEdge{}
+	// newPayload4 = append(newPayload4, payload4)
 
 	// This will help test the case where a parent is nil
-	payload5 := &dto.BusinessPartnerEdge{
-		Cursor: &cursor,
-		Node: &domain.BusinessPartner{
-			ID:        "BUS1N3SS-P123",
-			Name:      "Random Org",
-			SladeCode: "PRO-1234",
-		},
-	}
+	// payload5 := &dto.BusinessPartnerEdge{
+	// 	Cursor: &cursor,
+	// 	Node: &domain.BusinessPartner{
+	// 		ID:        "BUS1N3SS-P123",
+	// 		Name:      "Random Org",
+	// 		SladeCode: "PRO-1234",
+	// 	},
+	// }
 
-	newPayload5 := []*dto.BusinessPartnerEdge{}
-	newPayload5 = append(newPayload5, payload5)
+	// newPayload5 := []*dto.BusinessPartnerEdge{}
+	// newPayload5 = append(newPayload5, payload5)
 
 	type args struct {
 		ctx       context.Context
@@ -6230,16 +6226,6 @@ func TestSupplierUseCasesImpl_SupplierEDILogin(t *testing.T) {
 					return nil
 				}
 
-				fakeChargeMasterSvc.FindProviderFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BusinessPartnerFilterInput,
-					sort []*dto.BusinessPartnerSortInput) (*dto.BusinessPartnerConnection, error) {
-					return &dto.BusinessPartnerConnection{
-						Edges: newEdges,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
-				}
-
 				fakeEngagementSvs.PublishKYCNudgeFn = func(ctx context.Context, uid string, payload feedlib.Nudge) (*http.Response, error) {
 					return &http.Response{
 						Status:     "OK",
@@ -6248,27 +6234,8 @@ func TestSupplierUseCasesImpl_SupplierEDILogin(t *testing.T) {
 					}, nil
 				}
 
-				fakeChargeMasterSvc.FetchProviderByIDFn = func(ctx context.Context, id string) (*domain.BusinessPartner, error) {
-					return &domain.BusinessPartner{
-						ID:        "BUS1N3SS-P123-1D",
-						Name:      savannahOrgName,
-						SladeCode: "1",
-						Parent:    &parent,
-					}, nil
-				}
-
 				fakeRepo.UpdateSupplierProfileFn = func(ctx context.Context, profileID string, data *profileutils.Supplier) error {
 					return nil
-				}
-
-				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
-					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-					return &dto.BranchConnection{
-						Edges: newPayload,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
 				}
 
 				fakeRepo.UpdateSupplierProfileFn = func(ctx context.Context, profileID string, data *profileutils.Supplier) error {
@@ -6376,16 +6343,6 @@ func TestSupplierUseCasesImpl_SupplierEDILogin(t *testing.T) {
 					return nil
 				}
 
-				fakeChargeMasterSvc.FindProviderFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BusinessPartnerFilterInput,
-					sort []*dto.BusinessPartnerSortInput) (*dto.BusinessPartnerConnection, error) {
-					return &dto.BusinessPartnerConnection{
-						Edges: newPayload3,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
-				}
-
 				fakeEngagementSvs.PublishKYCNudgeFn = func(ctx context.Context, uid string, payload feedlib.Nudge) (*http.Response, error) {
 					return &http.Response{
 						Status:     "OK",
@@ -6394,28 +6351,8 @@ func TestSupplierUseCasesImpl_SupplierEDILogin(t *testing.T) {
 					}, nil
 				}
 
-				fakeChargeMasterSvc.FetchProviderByIDFn = func(ctx context.Context, id string) (*domain.BusinessPartner, error) {
-					parent := "parent"
-					return &domain.BusinessPartner{
-						ID:        "BUS1N3SS-P123",
-						Name:      "Random Org",
-						SladeCode: "PRO-1234",
-						Parent:    &parent,
-					}, nil
-				}
-
 				fakeRepo.UpdateSupplierProfileFn = func(ctx context.Context, profileID string, data *profileutils.Supplier) error {
 					return nil
-				}
-
-				fakeChargeMasterSvc.FindBranchFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput,
-					sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-					return &dto.BranchConnection{
-						Edges: newPayload4,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
 				}
 
 				fakeRepo.UpdateSupplierProfileFn = func(ctx context.Context, profileID string, data *profileutils.Supplier) error {
@@ -6495,16 +6432,6 @@ func TestSupplierUseCasesImpl_SupplierEDILogin(t *testing.T) {
 
 				fakeRepo.UpdatePermissionsFn = func(ctx context.Context, id string, perms []profileutils.PermissionType) error {
 					return nil
-				}
-
-				fakeChargeMasterSvc.FindProviderFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BusinessPartnerFilterInput,
-					sort []*dto.BusinessPartnerSortInput) (*dto.BusinessPartnerConnection, error) {
-					return &dto.BusinessPartnerConnection{
-						Edges: newPayload5,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
 				}
 
 				fakeEngagementSvs.PublishKYCNudgeFn = func(ctx context.Context, uid string, payload feedlib.Nudge) (*http.Response, error) {
@@ -6591,16 +6518,6 @@ func TestSupplierUseCasesImpl_SupplierEDILogin(t *testing.T) {
 
 				fakeRepo.UpdatePermissionsFn = func(ctx context.Context, id string, perms []profileutils.PermissionType) error {
 					return nil
-				}
-
-				fakeChargeMasterSvc.FindProviderFn = func(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BusinessPartnerFilterInput,
-					sort []*dto.BusinessPartnerSortInput) (*dto.BusinessPartnerConnection, error) {
-					return &dto.BusinessPartnerConnection{
-						Edges: newPayload5,
-						PageInfo: &firebasetools.PageInfo{
-							HasNextPage: false,
-						},
-					}, nil
 				}
 
 				fakeEngagementSvs.PublishKYCNudgeFn = func(ctx context.Context, uid string, payload feedlib.Nudge) (*http.Response, error) {

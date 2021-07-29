@@ -30,9 +30,7 @@ const (
 	// TestEDIPortalPassword is a test password for `test` EDI Login
 	TestEDIPortalPassword = "test provider one"
 
-	testChargeMasterParentOrgId = "83d3479d-e902-4aab-a27d-6d5067454daf"
-	testChargeMasterBranchID    = "94294577-6b27-4091-9802-1ce0f2ce4153"
-	primaryEmail                = "test@bewell.co.ke"
+	primaryEmail = "test@bewell.co.ke"
 )
 
 func cleanUpFirebase(ctx context.Context, t *testing.T) {
@@ -1849,76 +1847,77 @@ func TestSubmitProcessOrganizationNutritionKycRequest(t *testing.T) {
 	assert.Equal(t, true, response)
 }
 
-func TestSupplierSetDefaultLocation(t *testing.T) {
-	// clean kyc processing requests collection because other tests have written to it
-	ctx1 := context.Background()
-	if serverutils.MustGetEnvVar(domain.Repo) == domain.FirebaseRepository {
-		cleanUpFirebase(ctx1, t)
-	}
+// TODO: refactor after removing chargemaster
+// func TestSupplierSetDefaultLocation(t *testing.T) {
+// 	// clean kyc processing requests collection because other tests have written to it
+// 	ctx1 := context.Background()
+// 	if serverutils.MustGetEnvVar(domain.Repo) == domain.FirebaseRepository {
+// 		cleanUpFirebase(ctx1, t)
+// 	}
 
-	s, err := InitializeTestService(context.Background())
-	if err != nil {
-		t.Error("failed to setup signup usecase")
-	}
+// 	s, err := InitializeTestService(context.Background())
+// 	if err != nil {
+// 		t.Error("failed to setup signup usecase")
+// 	}
 
-	primaryPhone := interserviceclient.TestUserPhoneNumber
+// 	primaryPhone := interserviceclient.TestUserPhoneNumber
 
-	// clean up
-	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
+// 	// clean up
+// 	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 
-	otp, err := generateTestOTP(t, primaryPhone)
-	if err != nil {
-		t.Errorf("failed to generate test OTP: %v", err)
-		return
-	}
-	pin := "1234"
-	resp1, err := s.Signup.CreateUserByPhone(
-		context.Background(),
-		&dto.SignUpInput{
-			PhoneNumber: &primaryPhone,
-			PIN:         &pin,
-			Flavour:     feedlib.FlavourConsumer,
-			OTP:         &otp.OTP,
-		},
-	)
-	assert.Nil(t, err)
-	assert.NotNil(t, resp1)
-	assert.NotNil(t, resp1.Profile)
-	assert.NotNil(t, resp1.CustomerProfile)
-	assert.NotNil(t, resp1.SupplierProfile)
+// 	otp, err := generateTestOTP(t, primaryPhone)
+// 	if err != nil {
+// 		t.Errorf("failed to generate test OTP: %v", err)
+// 		return
+// 	}
+// 	pin := "1234"
+// 	resp1, err := s.Signup.CreateUserByPhone(
+// 		context.Background(),
+// 		&dto.SignUpInput{
+// 			PhoneNumber: &primaryPhone,
+// 			PIN:         &pin,
+// 			Flavour:     feedlib.FlavourConsumer,
+// 			OTP:         &otp.OTP,
+// 		},
+// 	)
+// 	assert.Nil(t, err)
+// 	assert.NotNil(t, resp1)
+// 	assert.NotNil(t, resp1.Profile)
+// 	assert.NotNil(t, resp1.CustomerProfile)
+// 	assert.NotNil(t, resp1.SupplierProfile)
 
-	login1, err := s.Login.LoginByPhone(context.Background(), primaryPhone, pin, feedlib.FlavourConsumer)
-	assert.Nil(t, err)
-	assert.NotNil(t, login1)
+// 	login1, err := s.Login.LoginByPhone(context.Background(), primaryPhone, pin, feedlib.FlavourConsumer)
+// 	assert.Nil(t, err)
+// 	assert.NotNil(t, login1)
 
-	// create authenticated context
-	ctx := context.Background()
-	authCred := &auth.Token{UID: login1.Auth.UID}
-	authenticatedContext := context.WithValue(
-		ctx,
-		firebasetools.AuthTokenContextKey,
-		authCred,
-	)
-	s, _ = InitializeTestService(authenticatedContext)
+// 	// create authenticated context
+// 	ctx := context.Background()
+// 	authCred := &auth.Token{UID: login1.Auth.UID}
+// 	authenticatedContext := context.WithValue(
+// 		ctx,
+// 		firebasetools.AuthTokenContextKey,
+// 		authCred,
+// 	)
+// 	s, _ = InitializeTestService(authenticatedContext)
 
-	cmParentOrgId := testChargeMasterParentOrgId
-	filter := []*dto.BranchFilterInput{
-		{
-			ParentOrganizationID: &cmParentOrgId,
-		},
-	}
+// 	cmParentOrgId := testChargeMasterParentOrgId
+// 	filter := []*dto.BranchFilterInput{
+// 		{
+// 			ParentOrganizationID: &cmParentOrgId,
+// 		},
+// 	}
 
-	br, err := s.ChargeMaster.FindBranch(authenticatedContext, nil, filter, nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, br)
-	assert.NotEqual(t, 0, len(br.Edges))
+// 	br, err := s.ChargeMaster.FindBranch(authenticatedContext, nil, filter, nil)
+// 	assert.Nil(t, err)
+// 	assert.NotNil(t, br)
+// 	assert.NotEqual(t, 0, len(br.Edges))
 
-	// call set supplier default location
-	spr, err := s.Supplier.SupplierSetDefaultLocation(authenticatedContext, br.Edges[0].Node.ID)
-	assert.Nil(t, err)
-	assert.NotNil(t, spr)
-	assert.Equal(t, br.Edges[0].Node.ID, spr.Location.ID)
-}
+// 	// call set supplier default location
+// 	spr, err := s.Supplier.SupplierSetDefaultLocation(authenticatedContext, br.Edges[0].Node.ID)
+// 	assert.Nil(t, err)
+// 	assert.NotNil(t, spr)
+// 	assert.Equal(t, br.Edges[0].Node.ID, spr.Location.ID)
+// }
 
 func TestFindSupplierByUID(t *testing.T) {
 	ctx, _, err := GetTestAuthenticatedContext(t)
