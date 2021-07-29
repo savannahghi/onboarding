@@ -26,7 +26,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	"github.com/savannahghi/profileutils"
@@ -51,9 +50,8 @@ const (
 )
 
 const (
-	testChargeMasterBranchID = "94294577-6b27-4091-9802-1ce0f2ce4153"
-	engagementService        = "engagement"
-	ediService               = "edi"
+	engagementService = "engagement"
+	ediService        = "edi"
 )
 
 /// these are set up once in TestMain and used by all the acceptance tests in
@@ -120,7 +118,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	ediClient := utils.NewInterServiceClient(ediService, ext)
 
 	erp := erp.NewAccounting()
-	chrg := chargemaster.NewChargeMasterUseCasesImpl()
 	hubspotService := hubspot.NewHubSpotService()
 	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
 	if err != nil {
@@ -129,7 +126,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, repo, engage)
+	edi := edi.NewEdiService(ediClient, repo)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
@@ -145,7 +142,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	pinExt := extension.NewPINExtensionImpl()
 	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
 
-	supplier := usecases.NewSupplierUseCases(repo, profile, erp, chrg, engage, mes, ext, ps)
+	supplier := usecases.NewSupplierUseCases(repo, profile, erp, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
@@ -154,18 +151,17 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	sms := usecases.NewSMSUsecase(repo, ext)
 
 	return &interactor.Interactor{
-		Onboarding:   profile,
-		Signup:       su,
-		Supplier:     supplier,
-		Login:        login,
-		Survey:       survey,
-		UserPIN:      userpin,
-		ERP:          erp,
-		ChargeMaster: chrg,
-		Engagement:   engage,
-		NHIF:         nhif,
-		PubSub:       ps,
-		SMS:          sms,
+		Onboarding: profile,
+		Signup:     su,
+		Supplier:   supplier,
+		Login:      login,
+		Survey:     survey,
+		UserPIN:    userpin,
+		ERP:        erp,
+		Engagement: engage,
+		NHIF:       nhif,
+		PubSub:     ps,
+		SMS:        sms,
 	}, nil
 }
 

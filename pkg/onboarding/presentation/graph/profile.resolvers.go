@@ -636,23 +636,23 @@ func (r *queryResolver) ResumeWithPin(ctx context.Context, pin string) (bool, er
 }
 
 func (r *queryResolver) FindProvider(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BusinessPartnerFilterInput, sort []*dto.BusinessPartnerSortInput) (*dto.BusinessPartnerConnection, error) {
-	startTime := time.Now()
+	// startTime := time.Now()
 
-	provider, err := r.interactor.ChargeMaster.FindProvider(ctx, pagination, filter, sort)
+	// provider, err := r.interactor.ChargeMaster.FindProvider(ctx, pagination, filter, sort)
 
-	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "findProvider", err)
+	// defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "findProvider", err)
 
-	return provider, err
+	return nil, nil
 }
 
 func (r *queryResolver) FindBranch(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput, sort []*dto.BranchSortInput) (*dto.BranchConnection, error) {
-	startTime := time.Now()
+	// startTime := time.Now()
 
-	branch, err := r.interactor.ChargeMaster.FindBranch(ctx, pagination, filter, sort)
+	// branch, err := r.interactor.ChargeMaster.FindBranch(ctx, pagination, filter, sort)
 
-	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "findBranch", err)
+	// defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "findBranch", err)
 
-	return branch, err
+	return nil, nil
 }
 
 func (r *queryResolver) FetchSupplierAllowedLocations(ctx context.Context) (*dto.BranchConnection, error) {

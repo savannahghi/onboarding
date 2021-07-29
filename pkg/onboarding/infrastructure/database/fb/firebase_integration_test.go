@@ -35,7 +35,6 @@ import (
 	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go/auth"
 
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
@@ -146,12 +145,11 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
 	ediClient := utils.NewInterServiceClient(ediService, ext)
 
-	chrg := chargemaster.NewChargeMasterUseCasesImpl()
 	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
 	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
 	erp := erp.NewAccounting()
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, fr, engage)
+	edi := edi.NewEdiService(ediClient, fr)
 	// hubspot usecases
 	hubspotService := hubspot.NewHubSpotService()
 	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(ctx, hubspotService)
@@ -174,25 +172,24 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	mes := messaging.NewServiceMessagingImpl(ext)
 	pinExt := extension.NewPINExtensionImpl()
 	profile := usecases.NewProfileUseCase(fr, ext, engage, ps, crmExt)
-	supplier := usecases.NewSupplierUseCases(fr, profile, erp, chrg, engage, mes, ext, ps)
+	supplier := usecases.NewSupplierUseCases(fr, profile, erp, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(fr, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(fr, ext)
 	userpin := usecases.NewUserPinUseCase(fr, profile, ext, pinExt, engage)
 	su := usecases.NewSignUpUseCases(fr, profile, userpin, supplier, ext, engage, ps, edi)
 
 	return &interactor.Interactor{
-		Onboarding:   profile,
-		Signup:       su,
-		Supplier:     supplier,
-		Login:        login,
-		Survey:       survey,
-		UserPIN:      userpin,
-		ERP:          erp,
-		ChargeMaster: chrg,
-		Engagement:   engage,
-		PubSub:       ps,
-		EDI:          edi,
-		CrmExt:       crmExt,
+		Onboarding: profile,
+		Signup:     su,
+		Supplier:   supplier,
+		Login:      login,
+		Survey:     survey,
+		UserPIN:    userpin,
+		ERP:        erp,
+		Engagement: engage,
+		PubSub:     ps,
+		EDI:        edi,
+		CrmExt:     crmExt,
 	}, nil
 }
 
