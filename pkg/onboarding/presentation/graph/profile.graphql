@@ -7,20 +7,7 @@ extend type Query {
   supplierProfile: Supplier!
 
   resumeWithPIN(pin: String!): Boolean!
-
-  findProvider(
-    pagination: PaginationInput
-    filter: [BusinessPartnerFilterInput]
-    sort: [BusinessPartnerSortInput]
-  ): BusinessPartnerConnection!
-
-  findBranch(
-    pagination: PaginationInput
-    filter: [BranchFilterInput]
-    sort: [BranchSortInput]
-  ): BranchConnection!
-
-  fetchSupplierAllowedLocations: BranchConnection!
+  
 
   fetchKYCProcessingRequests: [KYCRequest]
 

@@ -403,6 +403,9 @@ func TestUpdateUserProfile(t *testing.T) {
 	resp6, err := s.Signup.UpdateUserProfile(context.Background(), completeUserDetails)
 	assert.NotNil(t, err)
 	assert.Nil(t, resp6)
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), validPhoneNumber)
 }
 
 func TestRegisterPushToken(t *testing.T) {

@@ -441,11 +441,8 @@ type ComplexityRoot struct {
 		FetchAdmins                   func(childComplexity int) int
 		FetchAgents                   func(childComplexity int) int
 		FetchKYCProcessingRequests    func(childComplexity int) int
-		FetchSupplierAllowedLocations func(childComplexity int) int
 		FetchUserNavigationActions    func(childComplexity int) int
 		FindAgentbyPhone              func(childComplexity int, phoneNumber *string) int
-		FindBranch                    func(childComplexity int, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput, sort []*dto.BranchSortInput) int
-		FindProvider                  func(childComplexity int, pagination *firebasetools.PaginationInput, filter []*dto.BusinessPartnerFilterInput, sort []*dto.BusinessPartnerSortInput) int
 		GetAddresses                  func(childComplexity int) int
 		GetAllPermissions             func(childComplexity int) int
 		GetAllRoles                   func(childComplexity int) int
@@ -622,9 +619,6 @@ type QueryResolver interface {
 	UserProfile(ctx context.Context) (*profileutils.UserProfile, error)
 	SupplierProfile(ctx context.Context) (*profileutils.Supplier, error)
 	ResumeWithPin(ctx context.Context, pin string) (bool, error)
-	FindProvider(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BusinessPartnerFilterInput, sort []*dto.BusinessPartnerSortInput) (*dto.BusinessPartnerConnection, error)
-	FindBranch(ctx context.Context, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput, sort []*dto.BranchSortInput) (*dto.BranchConnection, error)
-	FetchSupplierAllowedLocations(ctx context.Context) (*dto.BranchConnection, error)
 	FetchKYCProcessingRequests(ctx context.Context) ([]*domain.KYCRequest, error)
 	GetAddresses(ctx context.Context) (*domain.UserAddresses, error)
 	NHIFDetails(ctx context.Context) (*domain.NHIFDetails, error)
@@ -2794,13 +2788,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.FetchKYCProcessingRequests(childComplexity), true
 
-	case "Query.fetchSupplierAllowedLocations":
-		if e.complexity.Query.FetchSupplierAllowedLocations == nil {
-			break
-		}
-
-		return e.complexity.Query.FetchSupplierAllowedLocations(childComplexity), true
-
 	case "Query.fetchUserNavigationActions":
 		if e.complexity.Query.FetchUserNavigationActions == nil {
 			break
@@ -2819,30 +2806,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.FindAgentbyPhone(childComplexity, args["phoneNumber"].(*string)), true
-
-	case "Query.findBranch":
-		if e.complexity.Query.FindBranch == nil {
-			break
-		}
-
-		args, err := ec.field_Query_findBranch_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.FindBranch(childComplexity, args["pagination"].(*firebasetools.PaginationInput), args["filter"].([]*dto.BranchFilterInput), args["sort"].([]*dto.BranchSortInput)), true
-
-	case "Query.findProvider":
-		if e.complexity.Query.FindProvider == nil {
-			break
-		}
-
-		args, err := ec.field_Query_findProvider_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.FindProvider(childComplexity, args["pagination"].(*firebasetools.PaginationInput), args["filter"].([]*dto.BusinessPartnerFilterInput), args["sort"].([]*dto.BusinessPartnerSortInput)), true
 
 	case "Query.getAddresses":
 		if e.complexity.Query.GetAddresses == nil {
@@ -4102,20 +4065,7 @@ input RolePermissionInput {
   supplierProfile: Supplier!
 
   resumeWithPIN(pin: String!): Boolean!
-
-  findProvider(
-    pagination: PaginationInput
-    filter: [BusinessPartnerFilterInput]
-    sort: [BusinessPartnerSortInput]
-  ): BusinessPartnerConnection!
-
-  findBranch(
-    pagination: PaginationInput
-    filter: [BranchFilterInput]
-    sort: [BranchSortInput]
-  ): BranchConnection!
-
-  fetchSupplierAllowedLocations: BranchConnection!
+  
 
   fetchKYCProcessingRequests: [KYCRequest]
 
@@ -5690,72 +5640,6 @@ func (ec *executionContext) field_Query_findAgentbyPhone_args(ctx context.Contex
 		}
 	}
 	args["phoneNumber"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_findBranch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *firebasetools.PaginationInput
-	if tmp, ok := rawArgs["pagination"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-		arg0, err = ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋsavannahghiᚋfirebasetoolsᚐPaginationInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["pagination"] = arg0
-	var arg1 []*dto.BranchFilterInput
-	if tmp, ok := rawArgs["filter"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
-		arg1, err = ec.unmarshalOBranchFilterInput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchFilterInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["filter"] = arg1
-	var arg2 []*dto.BranchSortInput
-	if tmp, ok := rawArgs["sort"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sort"))
-		arg2, err = ec.unmarshalOBranchSortInput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchSortInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["sort"] = arg2
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_findProvider_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *firebasetools.PaginationInput
-	if tmp, ok := rawArgs["pagination"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-		arg0, err = ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋsavannahghiᚋfirebasetoolsᚐPaginationInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["pagination"] = arg0
-	var arg1 []*dto.BusinessPartnerFilterInput
-	if tmp, ok := rawArgs["filter"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
-		arg1, err = ec.unmarshalOBusinessPartnerFilterInput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerFilterInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["filter"] = arg1
-	var arg2 []*dto.BusinessPartnerSortInput
-	if tmp, ok := rawArgs["sort"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sort"))
-		arg2, err = ec.unmarshalOBusinessPartnerSortInput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerSortInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["sort"] = arg2
 	return args, nil
 }
 
@@ -15314,125 +15198,6 @@ func (ec *executionContext) _Query_resumeWithPIN(ctx context.Context, field grap
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_findProvider(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_findProvider_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().FindProvider(rctx, args["pagination"].(*firebasetools.PaginationInput), args["filter"].([]*dto.BusinessPartnerFilterInput), args["sort"].([]*dto.BusinessPartnerSortInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*dto.BusinessPartnerConnection)
-	fc.Result = res
-	return ec.marshalNBusinessPartnerConnection2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerConnection(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_findBranch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_findBranch_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().FindBranch(rctx, args["pagination"].(*firebasetools.PaginationInput), args["filter"].([]*dto.BranchFilterInput), args["sort"].([]*dto.BranchSortInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*dto.BranchConnection)
-	fc.Result = res
-	return ec.marshalNBranchConnection2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchConnection(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_fetchSupplierAllowedLocations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().FetchSupplierAllowedLocations(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*dto.BranchConnection)
-	fc.Result = res
-	return ec.marshalNBranchConnection2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchConnection(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_fetchKYCProcessingRequests(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -23243,48 +23008,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "findProvider":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_findProvider(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "findBranch":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_findBranch(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "fetchSupplierAllowedLocations":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_fetchSupplierAllowedLocations(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "fetchKYCProcessingRequests":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -24339,10 +24062,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNBranchConnection2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchConnection(ctx context.Context, sel ast.SelectionSet, v dto.BranchConnection) graphql.Marshaler {
-	return ec._BranchConnection(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNBranchConnection2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchConnection(ctx context.Context, sel ast.SelectionSet, v *dto.BranchConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -24351,20 +24070,6 @@ func (ec *executionContext) marshalNBranchConnection2ᚖgithubᚗcomᚋsavannahg
 		return graphql.Null
 	}
 	return ec._BranchConnection(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNBusinessPartnerConnection2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerConnection(ctx context.Context, sel ast.SelectionSet, v dto.BusinessPartnerConnection) graphql.Marshaler {
-	return ec._BusinessPartnerConnection(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNBusinessPartnerConnection2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerConnection(ctx context.Context, sel ast.SelectionSet, v *dto.BusinessPartnerConnection) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._BusinessPartnerConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNDate2githubᚗcomᚋsavannahghiᚋscalarutilsᚐDate(ctx context.Context, v interface{}) (scalarutils.Date, error) {
@@ -25767,70 +25472,6 @@ func (ec *executionContext) marshalOBranchEdge2ᚖgithubᚗcomᚋsavannahghiᚋo
 	return ec._BranchEdge(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOBranchFilterInput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchFilterInput(ctx context.Context, v interface{}) ([]*dto.BranchFilterInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]*dto.BranchFilterInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOBranchFilterInput2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchFilterInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalOBranchFilterInput2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchFilterInput(ctx context.Context, v interface{}) (*dto.BranchFilterInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputBranchFilterInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalOBranchSortInput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchSortInput(ctx context.Context, v interface{}) ([]*dto.BranchSortInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]*dto.BranchSortInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOBranchSortInput2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchSortInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalOBranchSortInput2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBranchSortInput(ctx context.Context, v interface{}) (*dto.BranchSortInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputBranchSortInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) marshalOBusinessPartner2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐBusinessPartner(ctx context.Context, sel ast.SelectionSet, v *domain.BusinessPartner) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -25883,70 +25524,6 @@ func (ec *executionContext) marshalOBusinessPartnerEdge2ᚖgithubᚗcomᚋsavann
 		return graphql.Null
 	}
 	return ec._BusinessPartnerEdge(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOBusinessPartnerFilterInput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerFilterInput(ctx context.Context, v interface{}) ([]*dto.BusinessPartnerFilterInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]*dto.BusinessPartnerFilterInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOBusinessPartnerFilterInput2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerFilterInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalOBusinessPartnerFilterInput2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerFilterInput(ctx context.Context, v interface{}) (*dto.BusinessPartnerFilterInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputBusinessPartnerFilterInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalOBusinessPartnerSortInput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerSortInput(ctx context.Context, v interface{}) ([]*dto.BusinessPartnerSortInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]*dto.BusinessPartnerSortInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOBusinessPartnerSortInput2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerSortInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalOBusinessPartnerSortInput2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐBusinessPartnerSortInput(ctx context.Context, v interface{}) (*dto.BusinessPartnerSortInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputBusinessPartnerSortInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOCover2githubᚗcomᚋsavannahghiᚋprofileutilsᚐCover(ctx context.Context, sel ast.SelectionSet, v profileutils.Cover) graphql.Marshaler {
@@ -26337,14 +25914,6 @@ func (ec *executionContext) unmarshalOOrganizationType2githubᚗcomᚋsavannahgh
 
 func (ec *executionContext) marshalOOrganizationType2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐOrganizationType(ctx context.Context, sel ast.SelectionSet, v domain.OrganizationType) graphql.Marshaler {
 	return v
-}
-
-func (ec *executionContext) unmarshalOPaginationInput2ᚖgithubᚗcomᚋsavannahghiᚋfirebasetoolsᚐPaginationInput(ctx context.Context, v interface{}) (*firebasetools.PaginationInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputPaginationInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOPermission2githubᚗcomᚋsavannahghiᚋprofileutilsᚐPermission(ctx context.Context, sel ast.SelectionSet, v profileutils.Permission) graphql.Marshaler {

@@ -65,6 +65,9 @@ func TestSetuserProfileOptOut(t *testing.T) {
 	// // update with an invalid option it should fail
 	// err = s.Onboarding.SetOptOut(context.Background(), "END", primaryPhone)
 	// assert.NotNil(t, err)
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 }
 
 func TestSwitchUserFlaggedFeature(t *testing.T) {
@@ -122,6 +125,9 @@ func TestSwitchUserFlaggedFeature(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, login2)
 	assert.Equal(t, login2.Auth.CanExperiment, false)
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 }
 
 func TestUpdateUserProfileUserName(t *testing.T) {
@@ -129,7 +135,9 @@ func TestUpdateUserProfileUserName(t *testing.T) {
 	if err != nil {
 		t.Error("failed to setup signup usecase")
 	}
+
 	primaryPhone := interserviceclient.TestUserPhoneNumber
+
 	// clean up
 	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 
@@ -153,7 +161,6 @@ func TestUpdateUserProfileUserName(t *testing.T) {
 	assert.NotNil(t, resp.Profile)
 	assert.NotNil(t, resp.Profile.UserName)
 
-	// login and assert whether the profile matches the one created earlier
 	login1, err := s.Login.LoginByPhone(context.Background(), primaryPhone, pin, feedlib.FlavourConsumer)
 	assert.Nil(t, err)
 	assert.NotNil(t, login1)
@@ -168,6 +175,7 @@ func TestUpdateUserProfileUserName(t *testing.T) {
 		firebasetools.AuthTokenContextKey,
 		authCred,
 	)
+
 	s, _ = InitializeTestService(authenticatedContext)
 
 	err = s.Onboarding.UpdateUserName(authenticatedContext, "makmende1")
@@ -195,6 +203,9 @@ func TestUpdateUserProfileUserName(t *testing.T) {
 	assert.NotEqual(t, *login1.Profile.UserName, *pr2.UserName)
 	assert.NotEqual(t, *resp.Profile.UserName, *pr2.UserName)
 	assert.NotEqual(t, *pr1.UserName, *pr2.UserName)
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 
 }
 
@@ -377,6 +388,7 @@ func TestSetPhoneAsPrimary(t *testing.T) {
 	}
 
 	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(ctx, primaryPhone)
 	_ = s.Signup.RemoveUserByPhoneNumber(ctx, secondaryPhone)
 }
 
@@ -583,6 +595,9 @@ func TestAddSecondaryPhoneNumbers(t *testing.T) {
 	if login4 != nil {
 		t.Errorf("an unexpected error occurred :%v", err)
 	}
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 }
 
 func TestAddSecondaryEmailAddress(t *testing.T) {
@@ -768,6 +783,8 @@ func TestAddSecondaryEmailAddress(t *testing.T) {
 		return
 	}
 
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 }
 
 func TestUpdateUserProfilePushTokens(t *testing.T) {
@@ -860,6 +877,9 @@ func TestUpdateUserProfilePushTokens(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, pr)
 	assert.Equal(t, 1, len(pr.PushTokens))
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 }
 
 func TestCheckPhoneExists(t *testing.T) {
@@ -959,6 +979,9 @@ func TestGetUserProfileByUID(t *testing.T) {
 	assert.NotNil(t, pr2)
 	assert.Equal(t, login1.Profile.ID, pr2.ID)
 	assert.Equal(t, login1.Profile.UserName, pr2.UserName)
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 }
 
 func TestUserProfile(t *testing.T) {
@@ -1017,6 +1040,8 @@ func TestUserProfile(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, pr2)
 
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 }
 
 func TestGetProfileByID(t *testing.T) {
@@ -1077,6 +1102,8 @@ func TestGetProfileByID(t *testing.T) {
 	assert.Equal(t, login1.Profile.ID, pr2.ID)
 	assert.Equal(t, login1.Profile.UserName, pr2.UserName)
 
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 }
 
 func TestUpdateBioData(t *testing.T) {
@@ -1211,6 +1238,9 @@ func TestUpdateBioData(t *testing.T) {
 	err = s.Onboarding.UpdateBioData(context.Background(), completeUserDetails)
 	assert.NotNil(t, err)
 
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), validPhoneNumber)
+
 }
 
 func TestUpdatePhotoUploadID(t *testing.T) {
@@ -1284,6 +1314,9 @@ func TestUpdatePhotoUploadID(t *testing.T) {
 	assert.Equal(t, uploadID2, pr.PhotoUploadID)
 	assert.NotEqual(t, resp.Profile.PhotoUploadID, pr.PhotoUploadID)
 	assert.NotEqual(t, uploadID1, pr.PhotoUploadID)
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), validPhoneNumber)
 }
 
 func TestUpdateSuspended(t *testing.T) {
@@ -1348,6 +1381,9 @@ func TestUpdateSuspended(t *testing.T) {
 	pr, err = s.Onboarding.UserProfile(authenticatedContext)
 	assert.NotNil(t, err)
 	assert.Nil(t, pr)
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), validPhoneNumber)
 }
 
 func TestUpdatePermissions(t *testing.T) {
@@ -1422,6 +1458,9 @@ func TestUpdatePermissions(t *testing.T) {
 	pr, err = s.Onboarding.UserProfile(context.Background())
 	assert.NotNil(t, err)
 	assert.Nil(t, pr)
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), validPhoneNumber)
 }
 
 func TestSetupAsExperimentParticipant(t *testing.T) {
@@ -1511,6 +1550,9 @@ func TestSetupAsExperimentParticipant(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, login1)
 	assert.Equal(t, false, login2.Auth.CanExperiment)
+
+	// clean up
+	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), validPhoneNumber)
 }
 
 func TestMaskPhoneNumbers(t *testing.T) {
@@ -1693,6 +1735,7 @@ func TestIntegrationGetAddresses(t *testing.T) {
 	validPIN := interserviceclient.TestUserPin
 	validFlavourConsumer := feedlib.FlavourConsumer
 
+	// cleanup
 	_ = s.Signup.RemoveUserByPhoneNumber(
 		context.Background(),
 		validPhoneNumber,
@@ -1790,6 +1833,11 @@ func TestIntegrationGetAddresses(t *testing.T) {
 		t.Errorf("an error occurred: %v", err)
 		return
 	}
+	// cleanup
+	_ = s.Signup.RemoveUserByPhoneNumber(
+		context.Background(),
+		validPhoneNumber,
+	)
 }
 
 func TestProfileUseCaseImpl_UpdateCovers(t *testing.T) {
@@ -2173,6 +2221,7 @@ func TestProfileUseCaseImpl_RemoveAdminPermsToUser(t *testing.T) {
 		t.Error("failed to setup profile usecase")
 	}
 
+	// cleanup
 	_ = s.Signup.RemoveUserByPhoneNumber(
 		context.Background(),
 		phoneNumber,
@@ -2231,6 +2280,12 @@ func TestProfileUseCaseImpl_RemoveAdminPermsToUser(t *testing.T) {
 			}
 		})
 	}
+
+	// cleanup
+	_ = s.Signup.RemoveUserByPhoneNumber(
+		context.Background(),
+		phoneNumber,
+	)
 }
 
 func TestAddRoleToUser(t *testing.T) {
