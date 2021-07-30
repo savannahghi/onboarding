@@ -3077,412 +3077,415 @@ func TestAddOrganizationCoachKYC(t *testing.T) {
 	}
 }
 
-func TestAddIndividualNutritionKYC(t *testing.T) {
-	ctx := context.Background()
-	phoneNumber := interserviceclient.TestUserPhoneNumber
-	user, err := CreateTestUserByPhone(t, phoneNumber)
-	log.Printf("the user is %v", user)
-	if err != nil {
-		t.Errorf("failed to create a user by phone %v", err)
-		return
-	}
-	idToken := user.Auth.IDToken
-	headers, err := CreatedUserGraphQLHeaders(idToken)
-	if err != nil {
-		t.Errorf("error in getting headers: %w", err)
-		return
-	}
+// TODO: restore
 
-	authToken, err := firebasetools.ValidateBearerToken(ctx, *idToken)
-	if err != nil {
-		t.Errorf("invalid token: %w", err)
-		return
-	}
-	authenticatedContext := context.WithValue(ctx, firebasetools.AuthTokenContextKey, authToken)
+// func TestAddIndividualNutritionKYC(t *testing.T) {
+// 	ctx := context.Background()
+// 	phoneNumber := interserviceclient.TestUserPhoneNumber
+// 	user, err := CreateTestUserByPhone(t, phoneNumber)
+// 	log.Printf("the user is %v", user)
+// 	if err != nil {
+// 		t.Errorf("failed to create a user by phone %v", err)
+// 		return
+// 	}
+// 	idToken := user.Auth.IDToken
+// 	headers, err := CreatedUserGraphQLHeaders(idToken)
+// 	if err != nil {
+// 		t.Errorf("error in getting headers: %w", err)
+// 		return
+// 	}
 
-	err = setPrimaryEmailAddress(authenticatedContext, t, testEmail)
-	if err != nil {
-		t.Errorf("failed to set primary email address: %v", err)
-		return
-	}
-	dateOfBirth2 := scalarutils.Date{
-		Day:   12,
-		Year:  1995,
-		Month: 10,
-	}
-	firstName2 := "makmende"
-	lastName2 := "juha"
+// 	authToken, err := firebasetools.ValidateBearerToken(ctx, *idToken)
+// 	if err != nil {
+// 		t.Errorf("invalid token: %w", err)
+// 		return
+// 	}
+// 	authenticatedContext := context.WithValue(ctx, firebasetools.AuthTokenContextKey, authToken)
 
-	completeUserDetails := profileutils.BioData{
-		DateOfBirth: &dateOfBirth2,
-		FirstName:   &firstName2,
-		LastName:    &lastName2,
-	}
-	partnerName := "nutrition"
-	partnerType := profileutils.PartnerTypeNutrition
+// 	err = setPrimaryEmailAddress(authenticatedContext, t, testEmail)
+// 	if err != nil {
+// 		t.Errorf("failed to set primary email address: %v", err)
+// 		return
+// 	}
+// 	dateOfBirth2 := scalarutils.Date{
+// 		Day:   12,
+// 		Year:  1995,
+// 		Month: 10,
+// 	}
+// 	firstName2 := "makmende"
+// 	lastName2 := "juha"
 
-	_, err = addPartnerType(authenticatedContext, t, &partnerName, partnerType)
-	if err != nil {
-		t.Errorf("failed to add partnerType: %v", err)
-		return
-	}
-	_, err = setUpSupplier(authenticatedContext, t, profileutils.AccountTypeIndividual)
-	if err != nil {
-		t.Errorf("failed to setup supplier: %v", err)
-		return
-	}
-	err = updateBioData(authenticatedContext, t, completeUserDetails)
-	if err != nil {
-		t.Errorf("failed to update biodata: %v", err)
-		return
-	}
+// 	completeUserDetails := profileutils.BioData{
+// 		DateOfBirth: &dateOfBirth2,
+// 		FirstName:   &firstName2,
+// 		LastName:    &lastName2,
+// 	}
+// 	partnerName := "nutrition"
+// 	partnerType := profileutils.PartnerTypeNutrition
 
-	graphQLURL := fmt.Sprintf("%s/%s", baseURL, "graphql")
+// 	_, err = addPartnerType(authenticatedContext, t, &partnerName, partnerType)
+// 	if err != nil {
+// 		t.Errorf("failed to add partnerType: %v", err)
+// 		return
+// 	}
+// 	_, err = setUpSupplier(authenticatedContext, t, profileutils.AccountTypeIndividual)
+// 	if err != nil {
+// 		t.Errorf("failed to setup supplier: %v", err)
+// 		return
+// 	}
+// 	err = updateBioData(authenticatedContext, t, completeUserDetails)
+// 	if err != nil {
+// 		t.Errorf("failed to update biodata: %v", err)
+// 		return
+// 	}
 
-	graphqlMutation := `
-	mutation   addIndividualNutritionKYC($input:IndividualNutritionInput!){
-		addIndividualNutritionKYC(input:$input) {    
-			identificationDoc {
-				identificationDocType
-				identificationDocNumber
-				identificationDocNumberUploadID
-		  	}
-			KRAPIN
-			KRAPINUploadID			           
-			practiceLicenseUploadID
-			practiceLicenseID
-	}
-	}`
+// 	graphQLURL := fmt.Sprintf("%s/%s", baseURL, "graphql")
 
-	type args struct {
-		query map[string]interface{}
-	}
+// 	graphqlMutation := `
+// 	mutation   addIndividualNutritionKYC($input:IndividualNutritionInput!){
+// 		addIndividualNutritionKYC(input:$input) {
+// 			identificationDoc {
+// 				identificationDocType
+// 				identificationDocNumber
+// 				identificationDocNumberUploadID
+// 		  	}
+// 			KRAPIN
+// 			KRAPINUploadID
+// 			practiceLicenseUploadID
+// 			practiceLicenseID
+// 	}
+// 	}`
 
-	tests := []struct {
-		name       string
-		args       args
-		wantStatus int
-		wantErr    bool
-	}{
-		{
-			name: "valid mutation request",
-			args: args{
-				query: map[string]interface{}{
-					"query": graphqlMutation,
-					"variables": map[string]interface{}{
-						"input": map[string]interface{}{
-							"identificationDoc": map[string]interface{}{
-								"identificationDocType":           "NATIONALID",
-								"identificationDocNumber":         "12345",
-								"identificationDocNumberUploadID": "12345",
-							},
-							"KRAPIN":                  "KRA-123456789",
-							"KRAPINUploadID":          "KRA-UPLOAD-123456789",
-							"practiceLicenseUploadID": "PRAC-UPLOAD-123456",
-							"practiceLicenseID":       "PRACL",
-						},
-					},
-				},
-			},
-			wantStatus: http.StatusOK,
-			wantErr:    false,
-		},
-		{
-			name: "invalid with bogus identification document type",
-			args: args{
-				query: map[string]interface{}{
-					"query": graphqlMutation,
-					"variables": map[string]interface{}{
-						"input": map[string]interface{}{
-							"identificationDoc": map[string]interface{}{
-								"identificationDocType":           "bogusType",
-								"identificationDocNumber":         "12345",
-								"identificationDocNumberUploadID": "12345",
-							},
-							"KRAPIN":                  123456789,
-							"KRAPINUploadID":          "KRA-UPLOAD-123456789",
-							"practiceLicenseID":       "PRAC-123456",
-							"practiceLicenseUploadID": "PRAC-123456",
-						},
-					},
-				},
-			},
-			wantStatus: http.StatusUnprocessableEntity,
-			wantErr:    true,
-		},
-	}
+// 	type args struct {
+// 		query map[string]interface{}
+// 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+// 	tests := []struct {
+// 		name       string
+// 		args       args
+// 		wantStatus int
+// 		wantErr    bool
+// 	}{
+// 		{
+// 			name: "valid mutation request",
+// 			args: args{
+// 				query: map[string]interface{}{
+// 					"query": graphqlMutation,
+// 					"variables": map[string]interface{}{
+// 						"input": map[string]interface{}{
+// 							"identificationDoc": map[string]interface{}{
+// 								"identificationDocType":           "NATIONALID",
+// 								"identificationDocNumber":         "12345",
+// 								"identificationDocNumberUploadID": "12345",
+// 							},
+// 							"KRAPIN":                  "KRA-123456789",
+// 							"KRAPINUploadID":          "KRA-UPLOAD-123456789",
+// 							"practiceLicenseUploadID": "PRAC-UPLOAD-123456",
+// 							"practiceLicenseID":       "PRACL",
+// 						},
+// 					},
+// 				},
+// 			},
+// 			wantStatus: http.StatusOK,
+// 			wantErr:    false,
+// 		},
+// 		{
+// 			name: "invalid with bogus identification document type",
+// 			args: args{
+// 				query: map[string]interface{}{
+// 					"query": graphqlMutation,
+// 					"variables": map[string]interface{}{
+// 						"input": map[string]interface{}{
+// 							"identificationDoc": map[string]interface{}{
+// 								"identificationDocType":           "bogusType",
+// 								"identificationDocNumber":         "12345",
+// 								"identificationDocNumberUploadID": "12345",
+// 							},
+// 							"KRAPIN":                  123456789,
+// 							"KRAPINUploadID":          "KRA-UPLOAD-123456789",
+// 							"practiceLicenseID":       "PRAC-123456",
+// 							"practiceLicenseUploadID": "PRAC-123456",
+// 						},
+// 					},
+// 				},
+// 			},
+// 			wantStatus: http.StatusUnprocessableEntity,
+// 			wantErr:    true,
+// 		},
+// 	}
 
-			body, err := mapToJSONReader(tt.args.query)
-			if err != nil {
-				t.Errorf("unable to get GQL JSON io Reader: %s", err)
-				return
-			}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
 
-			r, err := http.NewRequest(
-				http.MethodPost,
-				graphQLURL,
-				body,
-			)
+// 			body, err := mapToJSONReader(tt.args.query)
+// 			if err != nil {
+// 				t.Errorf("unable to get GQL JSON io Reader: %s", err)
+// 				return
+// 			}
 
-			if err != nil {
-				t.Errorf("unable to compose request: %s", err)
-				return
-			}
+// 			r, err := http.NewRequest(
+// 				http.MethodPost,
+// 				graphQLURL,
+// 				body,
+// 			)
 
-			if r == nil {
-				t.Errorf("nil request")
-				return
-			}
+// 			if err != nil {
+// 				t.Errorf("unable to compose request: %s", err)
+// 				return
+// 			}
 
-			for k, v := range headers {
-				r.Header.Add(k, v)
-			}
-			client := http.Client{
-				Timeout: time.Second * testHTTPClientTimeout,
-			}
-			resp, err := client.Do(r)
-			if err != nil {
-				t.Errorf("request error: %s", err)
-				return
-			}
+// 			if r == nil {
+// 				t.Errorf("nil request")
+// 				return
+// 			}
 
-			dataResponse, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Errorf("can't read request body: %s", err)
-				return
-			}
-			if dataResponse == nil {
-				t.Errorf("nil response data")
-				return
-			}
+// 			for k, v := range headers {
+// 				r.Header.Add(k, v)
+// 			}
+// 			client := http.Client{
+// 				Timeout: time.Second * testHTTPClientTimeout,
+// 			}
+// 			resp, err := client.Do(r)
+// 			if err != nil {
+// 				t.Errorf("request error: %s", err)
+// 				return
+// 			}
 
-			data := map[string]interface{}{}
-			err = json.Unmarshal(dataResponse, &data)
-			if err != nil {
-				t.Errorf("bad data returned")
-				return
-			}
+// 			dataResponse, err := ioutil.ReadAll(resp.Body)
+// 			if err != nil {
+// 				t.Errorf("can't read request body: %s", err)
+// 				return
+// 			}
+// 			if dataResponse == nil {
+// 				t.Errorf("nil response data")
+// 				return
+// 			}
 
-			if tt.wantErr {
-				_, ok := data["errors"]
-				if !ok {
-					t.Errorf("expected an error")
-					return
-				}
-			}
+// 			data := map[string]interface{}{}
+// 			err = json.Unmarshal(dataResponse, &data)
+// 			if err != nil {
+// 				t.Errorf("bad data returned")
+// 				return
+// 			}
 
-			if !tt.wantErr {
-				_, ok := data["errors"]
-				if ok {
-					t.Errorf("error not expected got error: %w", data["errors"])
-					return
-				}
-			}
-			if tt.wantStatus != resp.StatusCode {
-				b, _ := httputil.DumpResponse(resp, true)
-				t.Errorf("Bad status response returned; %v ", string(b))
-				return
-			}
-		})
-	}
+// 			if tt.wantErr {
+// 				_, ok := data["errors"]
+// 				if !ok {
+// 					t.Errorf("expected an error")
+// 					return
+// 				}
+// 			}
 
-	// perform tear down; remove user
-	_, err = RemoveTestUserByPhone(t, interserviceclient.TestUserPhoneNumber)
-	if err != nil {
-		t.Errorf("unable to remove test user: %s", err)
-	}
-}
+// 			if !tt.wantErr {
+// 				_, ok := data["errors"]
+// 				if ok {
+// 					t.Errorf("error not expected got error: %w", data["errors"])
+// 					return
+// 				}
+// 			}
+// 			if tt.wantStatus != resp.StatusCode {
+// 				b, _ := httputil.DumpResponse(resp, true)
+// 				t.Errorf("Bad status response returned; %v ", string(b))
+// 				return
+// 			}
+// 		})
+// 	}
 
-func TestAddOrganizationNutritionKyc(t *testing.T) {
-	ctx := context.Background()
-	phoneNumber := interserviceclient.TestUserPhoneNumber
-	user, err := CreateTestUserByPhone(t, phoneNumber)
-	log.Printf("the user is %v", user)
-	if err != nil {
-		t.Errorf("failed to create a user by phone %v", err)
-		return
-	}
-	idToken := user.Auth.IDToken
-	headers, err := CreatedUserGraphQLHeaders(idToken)
-	if err != nil {
-		t.Errorf("error in getting headers: %w", err)
-		return
-	}
+// 	// perform tear down; remove user
+// 	_, err = RemoveTestUserByPhone(t, interserviceclient.TestUserPhoneNumber)
+// 	if err != nil {
+// 		t.Errorf("unable to remove test user: %s", err)
+// 	}
+// }
 
-	authToken, err := firebasetools.ValidateBearerToken(ctx, *idToken)
-	if err != nil {
-		t.Errorf("invalid token: %w", err)
-		return
-	}
-	authenticatedContext := context.WithValue(ctx, firebasetools.AuthTokenContextKey, authToken)
+// TODO: restore
+// func TestAddOrganizationNutritionKyc(t *testing.T) {
+// 	ctx := context.Background()
+// 	phoneNumber := interserviceclient.TestUserPhoneNumber
+// 	user, err := CreateTestUserByPhone(t, phoneNumber)
+// 	log.Printf("the user is %v", user)
+// 	if err != nil {
+// 		t.Errorf("failed to create a user by phone %v", err)
+// 		return
+// 	}
+// 	idToken := user.Auth.IDToken
+// 	headers, err := CreatedUserGraphQLHeaders(idToken)
+// 	if err != nil {
+// 		t.Errorf("error in getting headers: %w", err)
+// 		return
+// 	}
 
-	err = setPrimaryEmailAddress(authenticatedContext, t, testEmail)
-	if err != nil {
-		t.Errorf("failed to set primary email address: %v", err)
-		return
-	}
-	dateOfBirth2 := scalarutils.Date{
-		Day:   12,
-		Year:  1995,
-		Month: 10,
-	}
-	firstName2 := "makmende"
-	lastName2 := "juha"
+// 	authToken, err := firebasetools.ValidateBearerToken(ctx, *idToken)
+// 	if err != nil {
+// 		t.Errorf("invalid token: %w", err)
+// 		return
+// 	}
+// 	authenticatedContext := context.WithValue(ctx, firebasetools.AuthTokenContextKey, authToken)
 
-	completeUserDetails := profileutils.BioData{
-		DateOfBirth: &dateOfBirth2,
-		FirstName:   &firstName2,
-		LastName:    &lastName2,
-	}
-	partnerName := "nutrition"
-	partnerType := profileutils.PartnerTypeNutrition
+// 	err = setPrimaryEmailAddress(authenticatedContext, t, testEmail)
+// 	if err != nil {
+// 		t.Errorf("failed to set primary email address: %v", err)
+// 		return
+// 	}
+// 	dateOfBirth2 := scalarutils.Date{
+// 		Day:   12,
+// 		Year:  1995,
+// 		Month: 10,
+// 	}
+// 	firstName2 := "makmende"
+// 	lastName2 := "juha"
 
-	_, err = addPartnerType(authenticatedContext, t, &partnerName, partnerType)
-	if err != nil {
-		t.Errorf("failed to add partnerType: %v", err)
-		return
-	}
-	_, err = setUpSupplier(authenticatedContext, t, profileutils.AccountTypeOrganisation)
-	if err != nil {
-		t.Errorf("failed to setup supplier: %v", err)
-		return
-	}
-	err = updateBioData(authenticatedContext, t, completeUserDetails)
-	if err != nil {
-		t.Errorf("failed to update biodata: %v", err)
-		return
-	}
+// 	completeUserDetails := profileutils.BioData{
+// 		DateOfBirth: &dateOfBirth2,
+// 		FirstName:   &firstName2,
+// 		LastName:    &lastName2,
+// 	}
+// 	partnerName := "nutrition"
+// 	partnerType := profileutils.PartnerTypeNutrition
 
-	graphQLURL := fmt.Sprintf("%s/%s", baseURL, "graphql")
+// 	_, err = addPartnerType(authenticatedContext, t, &partnerName, partnerType)
+// 	if err != nil {
+// 		t.Errorf("failed to add partnerType: %v", err)
+// 		return
+// 	}
+// 	_, err = setUpSupplier(authenticatedContext, t, profileutils.AccountTypeOrganisation)
+// 	if err != nil {
+// 		t.Errorf("failed to setup supplier: %v", err)
+// 		return
+// 	}
+// 	err = updateBioData(authenticatedContext, t, completeUserDetails)
+// 	if err != nil {
+// 		t.Errorf("failed to update biodata: %v", err)
+// 		return
+// 	}
 
-	graphqlMutation := `
-	mutation   addOrganizationNutritionKYC($input:OrganizationNutritionInput!){
-		addOrganizationNutritionKYC(input:$input) {    
-			organizationTypeName
-			KRAPIN
-			KRAPINUploadID		
-			practiceLicenseID
-			registrationNumber
-	}
-	}`
+// 	graphQLURL := fmt.Sprintf("%s/%s", baseURL, "graphql")
 
-	type args struct {
-		query map[string]interface{}
-	}
+// 	graphqlMutation := `
+// 	mutation   addOrganizationNutritionKYC($input:OrganizationNutritionInput!){
+// 		addOrganizationNutritionKYC(input:$input) {
+// 			organizationTypeName
+// 			KRAPIN
+// 			KRAPINUploadID
+// 			practiceLicenseID
+// 			registrationNumber
+// 	}
+// 	}`
 
-	tests := []struct {
-		name       string
-		args       args
-		wantStatus int
-		wantErr    bool
-	}{
-		{
-			name: "valid mutation request",
-			args: args{
-				query: map[string]interface{}{
-					"query": graphqlMutation,
-					"variables": map[string]interface{}{
-						"input": map[string]interface{}{
-							"organizationTypeName": "LIMITED_COMPANY",
-							"KRAPIN":               "KRA-123456789",
-							"KRAPINUploadID":       "KRA-UPLOAD-123456789",
-							"practiceLicenseID":    "PRACL",
-							"registrationNumber":   "10222",
-						},
-					},
-				},
-			},
-			wantStatus: http.StatusOK,
-			wantErr:    false,
-		},
-	}
+// 	type args struct {
+// 		query map[string]interface{}
+// 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+// 	tests := []struct {
+// 		name       string
+// 		args       args
+// 		wantStatus int
+// 		wantErr    bool
+// 	}{
+// 		{
+// 			name: "valid mutation request",
+// 			args: args{
+// 				query: map[string]interface{}{
+// 					"query": graphqlMutation,
+// 					"variables": map[string]interface{}{
+// 						"input": map[string]interface{}{
+// 							"organizationTypeName": "LIMITED_COMPANY",
+// 							"KRAPIN":               "KRA-123456789",
+// 							"KRAPINUploadID":       "KRA-UPLOAD-123456789",
+// 							"practiceLicenseID":    "PRACL",
+// 							"registrationNumber":   "10222",
+// 						},
+// 					},
+// 				},
+// 			},
+// 			wantStatus: http.StatusOK,
+// 			wantErr:    false,
+// 		},
+// 	}
 
-			body, err := mapToJSONReader(tt.args.query)
-			if err != nil {
-				t.Errorf("unable to get GQL JSON io Reader: %s", err)
-				return
-			}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
 
-			r, err := http.NewRequest(
-				http.MethodPost,
-				graphQLURL,
-				body,
-			)
+// 			body, err := mapToJSONReader(tt.args.query)
+// 			if err != nil {
+// 				t.Errorf("unable to get GQL JSON io Reader: %s", err)
+// 				return
+// 			}
 
-			if err != nil {
-				t.Errorf("unable to compose request: %s", err)
-				return
-			}
+// 			r, err := http.NewRequest(
+// 				http.MethodPost,
+// 				graphQLURL,
+// 				body,
+// 			)
 
-			if r == nil {
-				t.Errorf("nil request")
-				return
-			}
+// 			if err != nil {
+// 				t.Errorf("unable to compose request: %s", err)
+// 				return
+// 			}
 
-			for k, v := range headers {
-				r.Header.Add(k, v)
-			}
-			client := http.Client{
-				Timeout: time.Second * testHTTPClientTimeout,
-			}
-			resp, err := client.Do(r)
-			if err != nil {
-				t.Errorf("request error: %s", err)
-				return
-			}
+// 			if r == nil {
+// 				t.Errorf("nil request")
+// 				return
+// 			}
 
-			dataResponse, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Errorf("can't read request body: %s", err)
-				return
-			}
-			if dataResponse == nil {
-				t.Errorf("nil response data")
-				return
-			}
+// 			for k, v := range headers {
+// 				r.Header.Add(k, v)
+// 			}
+// 			client := http.Client{
+// 				Timeout: time.Second * testHTTPClientTimeout,
+// 			}
+// 			resp, err := client.Do(r)
+// 			if err != nil {
+// 				t.Errorf("request error: %s", err)
+// 				return
+// 			}
 
-			data := map[string]interface{}{}
-			err = json.Unmarshal(dataResponse, &data)
-			if err != nil {
-				t.Errorf("bad data returned")
-				return
-			}
+// 			dataResponse, err := ioutil.ReadAll(resp.Body)
+// 			if err != nil {
+// 				t.Errorf("can't read request body: %s", err)
+// 				return
+// 			}
+// 			if dataResponse == nil {
+// 				t.Errorf("nil response data")
+// 				return
+// 			}
 
-			if tt.wantErr {
-				_, ok := data["errors"]
-				if !ok {
-					t.Errorf("expected an error")
-					return
-				}
-			}
+// 			data := map[string]interface{}{}
+// 			err = json.Unmarshal(dataResponse, &data)
+// 			if err != nil {
+// 				t.Errorf("bad data returned")
+// 				return
+// 			}
 
-			if !tt.wantErr {
-				_, ok := data["errors"]
-				if ok {
-					t.Errorf("error not expected got error: %w", data["errors"])
-					return
-				}
-			}
-			if tt.wantStatus != resp.StatusCode {
-				b, _ := httputil.DumpResponse(resp, true)
-				t.Errorf("Bad status response returned; %v ", string(b))
-				return
-			}
-		})
-	}
+// 			if tt.wantErr {
+// 				_, ok := data["errors"]
+// 				if !ok {
+// 					t.Errorf("expected an error")
+// 					return
+// 				}
+// 			}
 
-	// perform tear down; remove user
-	_, err = RemoveTestUserByPhone(t, interserviceclient.TestUserPhoneNumber)
-	if err != nil {
-		t.Errorf("unable to remove test user: %s", err)
-	}
-}
+// 			if !tt.wantErr {
+// 				_, ok := data["errors"]
+// 				if ok {
+// 					t.Errorf("error not expected got error: %w", data["errors"])
+// 					return
+// 				}
+// 			}
+// 			if tt.wantStatus != resp.StatusCode {
+// 				b, _ := httputil.DumpResponse(resp, true)
+// 				t.Errorf("Bad status response returned; %v ", string(b))
+// 				return
+// 			}
+// 		})
+// 	}
+
+// 	// perform tear down; remove user
+// 	_, err = RemoveTestUserByPhone(t, interserviceclient.TestUserPhoneNumber)
+// 	if err != nil {
+// 		t.Errorf("unable to remove test user: %s", err)
+// 	}
+// }
 
 func TestSetupAsExperimentParticipant(t *testing.T) {
 	// create a user and their profile
