@@ -3,6 +3,7 @@ package usecases_test
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/brianvoe/gofakeit"
@@ -15,6 +16,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/common"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
+	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
@@ -4200,6 +4202,122 @@ func TestProfileUseCaseImpl_RefreshNavigationActions(t *testing.T) {
 						tt.wantNil,
 					)
 				}
+			}
+		})
+	}
+}
+
+func TestProfileUseCaseImpl_GetNavigationActions(t *testing.T) {
+	ctx := context.Background()
+
+	i, err := InitializeFakeOnboardingInteractor()
+	if err != nil {
+		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
+		return
+	}
+
+	type args struct {
+		ctx context.Context
+	}
+	agentNav := domain.AgentNavActions
+	agentNav.Nested = append(agentNav.Nested, domain.AgentRegistrationNavActions)
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *dto.GroupedNavigationActions
+		wantErr bool
+	}{
+		{
+			name:    "sad unable to get logged in user",
+			args:    args{ctx: ctx},
+			want:    nil,
+			wantErr: true,
+		},
+
+		{
+			name:    "sad unable to get user profile",
+			args:    args{ctx: ctx},
+			want:    nil,
+			wantErr: true,
+		},
+
+		{
+			name:    "sad unable to get user roles",
+			args:    args{ctx: ctx},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "happy got user navigation actions",
+			args: args{ctx: ctx},
+			want: &dto.GroupedNavigationActions{
+				Primary: []domain.NavigationAction{
+					domain.HomeNavAction,
+					domain.HelpNavAction,
+				},
+				Secondary: []domain.NavigationAction{
+					agentNav,
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "sad unable to get logged in user" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return nil, fmt.Errorf("unable to get logged in user")
+				}
+			}
+			if tt.name == "sad unable to get user profile" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return &dto.UserInfo{}, nil
+				}
+
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return nil, fmt.Errorf("unable to get user profile")
+				}
+			}
+
+			if tt.name == "sad unable to get user roles" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return &dto.UserInfo{}, nil
+				}
+
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{}, nil
+				}
+				fakeRepo.GetRolesByIDsFn = func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error) {
+					return nil, fmt.Errorf("unable to get user roles")
+				}
+			}
+
+			if tt.name == "happy got user navigation actions" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return &dto.UserInfo{}, nil
+				}
+
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{}, nil
+				}
+				fakeRepo.GetRolesByIDsFn = func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error) {
+					return &[]profileutils.Role{
+						{Scopes: []string{"agent.view", "agent.register"}},
+					}, nil
+				}
+			}
+			got, err := i.Onboarding.GetNavigationActions(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf(
+					"ProfileUseCaseImpl.GetNavigationActions() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ProfileUseCaseImpl.GetNavigationActions() = %v, want %v", got, tt.want)
 			}
 		})
 	}

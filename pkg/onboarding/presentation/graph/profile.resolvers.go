@@ -840,6 +840,15 @@ func (r *queryResolver) GetAllPermissions(ctx context.Context) ([]*profileutils.
 	return permissions, err
 }
 
+func (r *queryResolver) GetNavigationActions(ctx context.Context) (*dto.GroupedNavigationActions, error) {
+	startTime := time.Now()
+
+	navActions, err := r.interactor.Onboarding.GetNavigationActions(ctx)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "getNavigationActions", err)
+
+	return navActions, err
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 

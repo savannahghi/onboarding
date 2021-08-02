@@ -44,6 +44,8 @@ extend type Query {
   getAllRoles(filter: FilterInput): [RoleOutput]
 
   getAllPermissions: [Permission!]!
+
+  getNavigationActions: GroupedNavigationActions
 }
 
 extend type Mutation {

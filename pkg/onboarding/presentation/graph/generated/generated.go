@@ -160,6 +160,11 @@ type ComplexityRoot struct {
 		FindUserProfileByID       func(childComplexity int, id string) int
 	}
 
+	GroupedNavigationActions struct {
+		Primary   func(childComplexity int) int
+		Secondary func(childComplexity int) int
+	}
+
 	Identification struct {
 		IdentificationDocNumber         func(childComplexity int) int
 		IdentificationDocNumberUploadID func(childComplexity int) int
@@ -323,6 +328,14 @@ type ComplexityRoot struct {
 		Title      func(childComplexity int) int
 	}
 
+	NavigationAction struct {
+		Favorite   func(childComplexity int) int
+		Icon       func(childComplexity int) int
+		Nested     func(childComplexity int) int
+		OnTapRoute func(childComplexity int) int
+		Title      func(childComplexity int) int
+	}
+
 	NavigationActions struct {
 		Primary   func(childComplexity int) int
 		Secondary func(childComplexity int) int
@@ -453,6 +466,7 @@ type ComplexityRoot struct {
 		GetAddresses                  func(childComplexity int) int
 		GetAllPermissions             func(childComplexity int) int
 		GetAllRoles                   func(childComplexity int, filter *firebasetools.FilterInput) int
+		GetNavigationActions          func(childComplexity int) int
 		GetUserCommunicationsSettings func(childComplexity int) int
 		ListMicroservices             func(childComplexity int) int
 		NHIFDetails                   func(childComplexity int) int
@@ -643,6 +657,7 @@ type QueryResolver interface {
 	ListMicroservices(ctx context.Context) ([]*domain.Microservice, error)
 	GetAllRoles(ctx context.Context, filter *firebasetools.FilterInput) ([]*dto.RoleOutput, error)
 	GetAllPermissions(ctx context.Context) ([]*profileutils.Permission, error)
+	GetNavigationActions(ctx context.Context) (*dto.GroupedNavigationActions, error)
 }
 type VerifiedIdentifierResolver interface {
 	Timestamp(ctx context.Context, obj *profileutils.VerifiedIdentifier) (*scalarutils.Date, error)
@@ -1118,6 +1133,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Entity.FindUserProfileByID(childComplexity, args["id"].(string)), true
+
+	case "GroupedNavigationActions.primary":
+		if e.complexity.GroupedNavigationActions.Primary == nil {
+			break
+		}
+
+		return e.complexity.GroupedNavigationActions.Primary(childComplexity), true
+
+	case "GroupedNavigationActions.secondary":
+		if e.complexity.GroupedNavigationActions.Secondary == nil {
+			break
+		}
+
+		return e.complexity.GroupedNavigationActions.Secondary(childComplexity), true
 
 	case "Identification.identificationDocNumber":
 		if e.complexity.Identification.IdentificationDocNumber == nil {
@@ -2222,6 +2251,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.NavAction.Title(childComplexity), true
 
+	case "NavigationAction.favorite":
+		if e.complexity.NavigationAction.Favorite == nil {
+			break
+		}
+
+		return e.complexity.NavigationAction.Favorite(childComplexity), true
+
+	case "NavigationAction.icon":
+		if e.complexity.NavigationAction.Icon == nil {
+			break
+		}
+
+		return e.complexity.NavigationAction.Icon(childComplexity), true
+
+	case "NavigationAction.nested":
+		if e.complexity.NavigationAction.Nested == nil {
+			break
+		}
+
+		return e.complexity.NavigationAction.Nested(childComplexity), true
+
+	case "NavigationAction.onTapRoute":
+		if e.complexity.NavigationAction.OnTapRoute == nil {
+			break
+		}
+
+		return e.complexity.NavigationAction.OnTapRoute(childComplexity), true
+
+	case "NavigationAction.title":
+		if e.complexity.NavigationAction.Title == nil {
+			break
+		}
+
+		return e.complexity.NavigationAction.Title(childComplexity), true
+
 	case "NavigationActions.primary":
 		if e.complexity.NavigationActions.Primary == nil {
 			break
@@ -2913,6 +2977,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetAllRoles(childComplexity, args["filter"].(*firebasetools.FilterInput)), true
+
+	case "Query.getNavigationActions":
+		if e.complexity.Query.GetNavigationActions == nil {
+			break
+		}
+
+		return e.complexity.Query.GetNavigationActions(childComplexity), true
 
 	case "Query.getUserCommunicationsSettings":
 		if e.complexity.Query.GetUserCommunicationsSettings == nil {
@@ -4190,6 +4261,8 @@ input RolePermissionInput {
   getAllRoles(filter: FilterInput): [RoleOutput]
 
   getAllPermissions: [Permission!]!
+
+  getNavigationActions: GroupedNavigationActions
 }
 
 extend type Mutation {
@@ -4819,6 +4892,19 @@ type Permission {
   description: String!
   group: PermissionGroup!
   allowed: Boolean!
+}
+
+type NavigationAction {
+  title: String!
+  onTapRoute: String!
+  icon: String
+  favorite: Boolean
+  nested: [Any]
+}
+
+type GroupedNavigationActions {
+  primary: [NavigationAction]
+  secondary: [NavigationAction]
 }
 `, BuiltIn: false},
 	{Name: "federation/directives.graphql", Input: `
@@ -8027,6 +8113,70 @@ func (ec *executionContext) _Entity_findUserProfileByID(ctx context.Context, fie
 	res := resTmp.(*profileutils.UserProfile)
 	fc.Result = res
 	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐUserProfile(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GroupedNavigationActions_primary(ctx context.Context, field graphql.CollectedField, obj *dto.GroupedNavigationActions) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GroupedNavigationActions",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Primary, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]domain.NavigationAction)
+	fc.Result = res
+	return ec.marshalONavigationAction2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐNavigationAction(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GroupedNavigationActions_secondary(ctx context.Context, field graphql.CollectedField, obj *dto.GroupedNavigationActions) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GroupedNavigationActions",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Secondary, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]domain.NavigationAction)
+	fc.Result = res
+	return ec.marshalONavigationAction2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐNavigationAction(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Identification_identificationDocType(ctx context.Context, field graphql.CollectedField, obj *domain.Identification) (ret graphql.Marshaler) {
@@ -12623,6 +12773,172 @@ func (ec *executionContext) _NavAction_nested(ctx context.Context, field graphql
 	return ec.marshalONestedNavAction2ᚕgithubᚗcomᚋsavannahghiᚋprofileutilsᚐNestedNavAction(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _NavigationAction_title(ctx context.Context, field graphql.CollectedField, obj *domain.NavigationAction) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NavigationAction",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NavigationAction_onTapRoute(ctx context.Context, field graphql.CollectedField, obj *domain.NavigationAction) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NavigationAction",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OnTapRoute, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NavigationAction_icon(ctx context.Context, field graphql.CollectedField, obj *domain.NavigationAction) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NavigationAction",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Icon, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NavigationAction_favorite(ctx context.Context, field graphql.CollectedField, obj *domain.NavigationAction) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NavigationAction",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Favorite, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NavigationAction_nested(ctx context.Context, field graphql.CollectedField, obj *domain.NavigationAction) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NavigationAction",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Nested, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]interface{})
+	fc.Result = res
+	return ec.marshalOAny2ᚕinterface(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _NavigationActions_primary(ctx context.Context, field graphql.CollectedField, obj *profileutils.NavigationActions) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -16094,6 +16410,38 @@ func (ec *executionContext) _Query_getAllPermissions(ctx context.Context, field 
 	res := resTmp.([]*profileutils.Permission)
 	fc.Result = res
 	return ec.marshalNPermission2ᚕᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getNavigationActions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetNavigationActions(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.GroupedNavigationActions)
+	fc.Result = res
+	return ec.marshalOGroupedNavigationActions2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐGroupedNavigationActions(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query__entities(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -22078,6 +22426,32 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet) g
 	return out
 }
 
+var groupedNavigationActionsImplementors = []string{"GroupedNavigationActions"}
+
+func (ec *executionContext) _GroupedNavigationActions(ctx context.Context, sel ast.SelectionSet, obj *dto.GroupedNavigationActions) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, groupedNavigationActionsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GroupedNavigationActions")
+		case "primary":
+			out.Values[i] = ec._GroupedNavigationActions_primary(ctx, field, obj)
+		case "secondary":
+			out.Values[i] = ec._GroupedNavigationActions_secondary(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var identificationImplementors = []string{"Identification"}
 
 func (ec *executionContext) _Identification(ctx context.Context, sel ast.SelectionSet, obj *domain.Identification) graphql.Marshaler {
@@ -22913,6 +23287,44 @@ func (ec *executionContext) _NavAction(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var navigationActionImplementors = []string{"NavigationAction"}
+
+func (ec *executionContext) _NavigationAction(ctx context.Context, sel ast.SelectionSet, obj *domain.NavigationAction) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, navigationActionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("NavigationAction")
+		case "title":
+			out.Values[i] = ec._NavigationAction_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "onTapRoute":
+			out.Values[i] = ec._NavigationAction_onTapRoute(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "icon":
+			out.Values[i] = ec._NavigationAction_icon(ctx, field, obj)
+		case "favorite":
+			out.Values[i] = ec._NavigationAction_favorite(ctx, field, obj)
+		case "nested":
+			out.Values[i] = ec._NavigationAction_nested(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var navigationActionsImplementors = []string{"NavigationActions"}
 
 func (ec *executionContext) _NavigationActions(ctx context.Context, sel ast.SelectionSet, obj *profileutils.NavigationActions) graphql.Marshaler {
@@ -23717,6 +24129,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "getNavigationActions":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getNavigationActions(ctx, field)
 				return res
 			})
 		case "_entities":
@@ -25972,6 +26395,57 @@ func (ec *executionContext) marshalOAgent2ᚖgithubᚗcomᚋsavannahghiᚋonboar
 	return ec._Agent(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOAny2interface(ctx context.Context, v interface{}) (interface{}, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalAny(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAny2interface(ctx context.Context, sel ast.SelectionSet, v interface{}) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalAny(v)
+}
+
+func (ec *executionContext) unmarshalOAny2ᚕinterface(ctx context.Context, v interface{}) ([]interface{}, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]interface{}, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOAny2interface(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOAny2ᚕinterface(ctx context.Context, sel ast.SelectionSet, v []interface{}) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalOAny2interface(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalOBioData2githubᚗcomᚋsavannahghiᚋprofileutilsᚐBioData(ctx context.Context, sel ast.SelectionSet, v profileutils.BioData) graphql.Marshaler {
 	return ec._BioData(ctx, sel, &v)
 }
@@ -26362,6 +26836,13 @@ func (ec *executionContext) marshalOGender2ᚖgithubᚗcomᚋsavannahghiᚋenumu
 	return v
 }
 
+func (ec *executionContext) marshalOGroupedNavigationActions2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐGroupedNavigationActions(ctx context.Context, sel ast.SelectionSet, v *dto.GroupedNavigationActions) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._GroupedNavigationActions(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -26606,6 +27087,50 @@ func (ec *executionContext) marshalONavAction2ᚕgithubᚗcomᚋsavannahghiᚋpr
 				defer wg.Done()
 			}
 			ret[i] = ec.marshalONavAction2githubᚗcomᚋsavannahghiᚋprofileutilsᚐNavAction(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalONavigationAction2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐNavigationAction(ctx context.Context, sel ast.SelectionSet, v domain.NavigationAction) graphql.Marshaler {
+	return ec._NavigationAction(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalONavigationAction2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐNavigationAction(ctx context.Context, sel ast.SelectionSet, v []domain.NavigationAction) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalONavigationAction2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐNavigationAction(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
