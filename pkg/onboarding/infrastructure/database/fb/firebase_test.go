@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
+	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
@@ -1874,7 +1875,8 @@ func TestRepository_GetAllRoles(t *testing.T) {
 	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
 
 	type args struct {
-		ctx context.Context
+		ctx    context.Context
+		filter *firebasetools.FilterInput
 	}
 	tests := []struct {
 		name    string
@@ -1900,7 +1902,7 @@ func TestRepository_GetAllRoles(t *testing.T) {
 				}
 			}
 
-			got, err := repo.GetAllRoles(tt.args.ctx)
+			got, err := repo.GetAllRoles(tt.args.ctx, tt.args.filter)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Repository.GetAllRoles() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1983,9 +1985,17 @@ func TestRepository_CheckIfUserHasPermission(t *testing.T) {
 					return docs, nil
 				}
 			}
-			got, err := repo.CheckIfUserHasPermission(tt.args.ctx, tt.args.UID, tt.args.requiredPermission)
+			got, err := repo.CheckIfUserHasPermission(
+				tt.args.ctx,
+				tt.args.UID,
+				tt.args.requiredPermission,
+			)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Repository.CheckIfUserHasPermission() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf(
+					"Repository.CheckIfUserHasPermission() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
 				return
 			}
 			if got != tt.want {
