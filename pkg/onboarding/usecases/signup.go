@@ -13,7 +13,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
@@ -78,7 +77,6 @@ type SignUpUseCasesImpl struct {
 	baseExt              extension.BaseExtension
 	engagement           engagement.ServiceEngagement
 	pubsub               pubsubmessaging.ServicePubSub
-	edi                  edi.ServiceEdi
 }
 
 // NewSignUpUseCases returns a new a onboarding usecase
@@ -90,7 +88,6 @@ func NewSignUpUseCases(
 	ext extension.BaseExtension,
 	eng engagement.ServiceEngagement,
 	pubsub pubsubmessaging.ServicePubSub,
-	edi edi.ServiceEdi,
 ) SignUpUseCases {
 	return &SignUpUseCasesImpl{
 		onboardingRepository: r,
@@ -100,7 +97,6 @@ func NewSignUpUseCases(
 		baseExt:              ext,
 		engagement:           eng,
 		pubsub:               pubsub,
-		edi:                  edi,
 	}
 }
 

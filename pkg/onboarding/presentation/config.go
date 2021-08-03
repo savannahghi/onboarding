@@ -18,7 +18,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
@@ -51,7 +50,6 @@ const (
 	mbBytes              = 1048576
 	serverTimeoutSeconds = 120
 	engagementService    = "engagement"
-	ediService           = "edi"
 )
 
 // AllowedOrigins is list of CORS origins allowed to interact with
@@ -110,12 +108,10 @@ func Router(ctx context.Context) (*mux.Router, error) {
 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, baseExt)
-	ediClient := utils.NewInterServiceClient(ediService, baseExt)
 
 	// Initialize new instance of our infrastructure services
 	erp := erp.NewAccounting()
 	engage := engagement.NewServiceEngagementImpl(engagementClient, baseExt)
-	edi := edi.NewEdiService(ediClient, repo)
 	mes := messaging.NewServiceMessagingImpl(baseExt)
 	pinExt := extension.NewPINExtensionImpl()
 
@@ -132,7 +128,6 @@ func Router(ctx context.Context) (*mux.Router, error) {
 		baseExt,
 		erp,
 		crmExt,
-		edi,
 		repo,
 	)
 	if err != nil {
@@ -145,7 +140,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	login := usecases.NewLoginUseCases(repo, profile, baseExt, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, baseExt)
 	userpin := usecases.NewUserPinUseCase(repo, profile, baseExt, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, baseExt, engage, pubSub, edi)
+	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, baseExt, engage, pubSub)
 	nhif := usecases.NewNHIFUseCases(repo, profile, baseExt, engage)
 	aitUssd := ussd.NewUssdUsecases(repo, baseExt, profile, userpin, su, pinExt, pubSub, crmExt)
 	sms := usecases.NewSMSUsecase(repo, baseExt)
@@ -157,7 +152,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	i, err := interactor.NewOnboardingInteractor(
 		repo, profile, su, supplier, login, survey,
 		userpin, erp, engage, mes, nhif, pubSub,
-		sms, aitUssd, agent, admin, edi, adminSrv, crmExt,
+		sms, aitUssd, agent, admin, adminSrv, crmExt,
 		role,
 	)
 	if err != nil {

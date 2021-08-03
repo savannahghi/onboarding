@@ -292,7 +292,6 @@ type ComplexityRoot struct {
 		SetUpSupplier                    func(childComplexity int, accountType profileutils.AccountType) int
 		SetUserCommunicationsSettings    func(childComplexity int, allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) int
 		SetupAsExperimentParticipant     func(childComplexity int, participate *bool) int
-		SupplierEDILogin                 func(childComplexity int, username string, password string, sladeCode string) int
 		SupplierSetDefaultLocation       func(childComplexity int, locationID string) int
 		SuspendSupplier                  func(childComplexity int, suspensionReason *string) int
 		UpdateUserName                   func(childComplexity int, username string) int
@@ -580,7 +579,6 @@ type MutationResolver interface {
 	AddPartnerType(ctx context.Context, name string, partnerType profileutils.PartnerType) (bool, error)
 	SuspendSupplier(ctx context.Context, suspensionReason *string) (bool, error)
 	SetUpSupplier(ctx context.Context, accountType profileutils.AccountType) (*profileutils.Supplier, error)
-	SupplierEDILogin(ctx context.Context, username string, password string, sladeCode string) (*dto.SupplierLogin, error)
 	SupplierSetDefaultLocation(ctx context.Context, locationID string) (*profileutils.Supplier, error)
 	AddIndividualRiderKyc(ctx context.Context, input domain.IndividualRider) (*domain.IndividualRider, error)
 	AddOrganizationRiderKyc(ctx context.Context, input domain.OrganizationRider) (*domain.OrganizationRider, error)
@@ -2008,18 +2006,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.SetupAsExperimentParticipant(childComplexity, args["participate"].(*bool)), true
-
-	case "Mutation.supplierEDILogin":
-		if e.complexity.Mutation.SupplierEDILogin == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_supplierEDILogin_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.SupplierEDILogin(childComplexity, args["username"].(string), args["password"].(string), args["sladeCode"].(string)), true
 
 	case "Mutation.supplierSetDefaultLocation":
 		if e.complexity.Mutation.SupplierSetDefaultLocation == nil {
@@ -4119,11 +4105,7 @@ extend type Mutation {
   suspendSupplier(suspensionReason: String): Boolean!
 
   setUpSupplier(accountType: AccountType!): Supplier
-  supplierEDILogin(
-    username: String!
-    password: String!
-    sladeCode: String!
-  ): SupplierLogin!
+ 
 
   supplierSetDefaultLocation(locationID: String!): Supplier!
 
@@ -5478,39 +5460,6 @@ func (ec *executionContext) field_Mutation_setupAsExperimentParticipant_args(ctx
 		}
 	}
 	args["participate"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_supplierEDILogin_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["username"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["username"] = arg0
-	var arg1 string
-	if tmp, ok := rawArgs["password"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["password"] = arg1
-	var arg2 string
-	if tmp, ok := rawArgs["sladeCode"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sladeCode"))
-		arg2, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["sladeCode"] = arg2
 	return args, nil
 }
 
@@ -10443,48 +10392,6 @@ func (ec *executionContext) _Mutation_setUpSupplier(ctx context.Context, field g
 	res := resTmp.(*profileutils.Supplier)
 	fc.Result = res
 	return ec.marshalOSupplier2ᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐSupplier(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_supplierEDILogin(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_supplierEDILogin_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SupplierEDILogin(rctx, args["username"].(string), args["password"].(string), args["sladeCode"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*dto.SupplierLogin)
-	fc.Result = res
-	return ec.marshalNSupplierLogin2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐSupplierLogin(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_supplierSetDefaultLocation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -22121,11 +22028,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "setUpSupplier":
 			out.Values[i] = ec._Mutation_setUpSupplier(ctx, field)
-		case "supplierEDILogin":
-			out.Values[i] = ec._Mutation_supplierEDILogin(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "supplierSetDefaultLocation":
 			out.Values[i] = ec._Mutation_supplierSetDefaultLocation(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -24865,20 +24767,6 @@ func (ec *executionContext) marshalNSupplier2ᚖgithubᚗcomᚋsavannahghiᚋpro
 		return graphql.Null
 	}
 	return ec._Supplier(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNSupplierLogin2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐSupplierLogin(ctx context.Context, sel ast.SelectionSet, v dto.SupplierLogin) graphql.Marshaler {
-	return ec._SupplierLogin(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNSupplierLogin2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐSupplierLogin(ctx context.Context, sel ast.SelectionSet, v *dto.SupplierLogin) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._SupplierLogin(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNThinAddress2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐThinAddress(ctx context.Context, sel ast.SelectionSet, v domain.ThinAddress) graphql.Marshaler {

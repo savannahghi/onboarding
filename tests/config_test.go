@@ -26,7 +26,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
@@ -51,7 +50,6 @@ const (
 
 const (
 	engagementService = "engagement"
-	ediService        = "edi"
 )
 
 /// these are set up once in TestMain and used by all the acceptance tests in
@@ -115,7 +113,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
-	ediClient := utils.NewInterServiceClient(ediService, ext)
 
 	erp := erp.NewAccounting()
 	hubspotService := hubspot.NewHubSpotService()
@@ -126,13 +123,11 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, repo)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
 		erp,
 		crmExt,
-		edi,
 		repo,
 	)
 	if err != nil {
@@ -146,7 +141,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi)
+	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps)
 	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
 	sms := usecases.NewSMSUsecase(repo, ext)
 

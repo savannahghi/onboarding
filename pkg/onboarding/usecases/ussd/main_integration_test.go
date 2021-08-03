@@ -15,7 +15,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	"github.com/savannahghi/serverutils"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
@@ -34,7 +33,6 @@ import (
 	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/repository/mock"
 
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
-	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
 	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
@@ -48,7 +46,6 @@ import (
 const (
 	otpService        = "otp"
 	engagementService = "engagement"
-	ediService        = "edi"
 )
 
 func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
@@ -92,7 +89,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
-	ediClient := utils.NewInterServiceClient(ediService, ext)
 
 	erp := erp.NewAccounting()
 	hubspotService := hubspot.NewHubSpotService()
@@ -103,13 +99,11 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, repo)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
 		erp,
 		crmExt,
-		edi,
 		repo,
 	)
 	if err != nil {
@@ -123,7 +117,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi)
+	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps)
 	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
 	sms := usecases.NewSMSUsecase(repo, ext)
 
@@ -155,7 +149,6 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var ext extension.BaseExtension = &fakeBaseExt
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
-	var ediSvc edi.ServiceEdi = &fakeEDISvc
 
 	hubspotService := hubspot.NewHubSpotService()
 	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
@@ -171,7 +164,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
-	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
+	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
 	sms := usecases.NewSMSUsecase(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
@@ -185,7 +178,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	i, err := interactor.NewOnboardingInteractor(
 		r, profile, su, supplier, login,
 		survey, userpin, erpSvc,
-		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, adminSrv, crmExt,
 		role,
 	)
 	if err != nil {
@@ -278,7 +271,6 @@ var fakeEngagementSvs engagementMock.FakeServiceEngagement
 var fakeMessagingSvc messagingMock.FakeServiceMessaging
 var fakeEPRSvc erpMock.FakeServiceCommonTools
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
-var fakeEDISvc ediMock.FakeServiceEDI
 var fakeCrm mockCrm.FakeServiceCrm
 
 // InitializeFakeUSSDTestService represents a fakeussd interactor
@@ -290,7 +282,6 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	var ext extension.BaseExtension = &fakeBaseExt
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
-	var ediSvc edi.ServiceEdi = &fakeEDISvc
 	var crmSvc crmExt.ServiceCrm = &fakeCrm
 
 	hubspotService := hubspot.NewHubSpotService()
@@ -307,7 +298,7 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
-	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
+	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
 	sms := usecases.NewSMSUsecase(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
@@ -319,7 +310,7 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	i, err := interactor.NewOnboardingInteractor(
 		r, profile, su, supplier, login,
 		survey, userpin, erpSvc,
-		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, adminSrv, crmExt,
 		role,
 	)
 	if err != nil {

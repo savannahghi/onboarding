@@ -10,7 +10,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 
@@ -76,7 +75,6 @@ type ServicePubSubMessaging struct {
 	baseExt extension.BaseExtension
 	erp     erp.AccountingUsecase
 	crm     crm.ServiceCrm
-	edi     edi.ServiceEdi
 	repo    repository.OnboardingRepository
 }
 
@@ -86,7 +84,6 @@ func NewServicePubSubMessaging(
 	ext extension.BaseExtension,
 	erp erp.AccountingUsecase,
 	crm crm.ServiceCrm,
-	edi edi.ServiceEdi,
 	repo repository.OnboardingRepository,
 ) (*ServicePubSubMessaging, error) {
 	s := &ServicePubSubMessaging{
@@ -94,7 +91,6 @@ func NewServicePubSubMessaging(
 		baseExt: ext,
 		erp:     erp,
 		crm:     crm,
-		edi:     edi,
 		repo:    repo,
 	}
 

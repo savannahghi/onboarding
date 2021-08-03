@@ -28,7 +28,6 @@ import (
 	"github.com/savannahghi/serverutils"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
@@ -38,7 +37,6 @@ import (
 	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/repository/mock"
 
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
-	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
 	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
@@ -56,7 +54,6 @@ import (
 const (
 	otpService        = "otp"
 	engagementService = "engagement"
-	ediService        = "edi"
 )
 
 func TestMain(m *testing.M) {
@@ -190,9 +187,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
-	ediClient := utils.NewInterServiceClient(ediService, ext)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, repo)
 
 	erp := erp.NewAccounting()
 	// hubspot usecases
@@ -208,7 +203,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		ext,
 		erp,
 		crmExt,
-		edi,
 		repo,
 	)
 	if err != nil {
@@ -222,7 +216,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi)
+	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps)
 	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
 	sms := usecases.NewSMSUsecase(repo, ext)
 
@@ -241,7 +235,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		PubSub:     ps,
 		SMS:        sms,
 		AITUSSD:    aitUssd,
-		EDI:        edi,
 		CrmExt:     crmExt,
 	}, nil
 }
@@ -447,7 +440,6 @@ var fakeEngagementSvs engagementMock.FakeServiceEngagement
 var fakeMessagingSvc messagingMock.FakeServiceMessaging
 var fakeEPRSvc erpMock.FakeServiceCommonTools
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
-var fakeEDISvc ediMock.FakeServiceEDI
 
 // InitializeFakeOnboaridingInteractor represents a fakeonboarding interactor
 func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
@@ -458,7 +450,6 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var ext extension.BaseExtension = &fakeBaseExt
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
-	var ediSvc edi.ServiceEdi = &fakeEDISvc
 
 	// hubspot usecases
 	hubspotService := hubspot.NewHubSpotService()
@@ -475,7 +466,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
-	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
+	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
 	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
 	adminSrv := adminSrv.NewService(ext)
@@ -488,7 +479,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 		r, profile, su, supplier, login,
 		survey, userpin, erpSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms,
-		aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		aitUssd, agent, admin, adminSrv, crmExt,
 		role,
 	)
 	if err != nil {

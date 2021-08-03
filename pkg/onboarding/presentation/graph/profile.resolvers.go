@@ -194,21 +194,6 @@ func (r *mutationResolver) SetUpSupplier(ctx context.Context, accountType profil
 	return supplier, err
 }
 
-func (r *mutationResolver) SupplierEDILogin(ctx context.Context, username string, password string, sladeCode string) (*dto.SupplierLogin, error) {
-	startTime := time.Now()
-
-	supplierEDILogin, err := r.interactor.Supplier.SupplierEDILogin(
-		ctx,
-		username,
-		password,
-		sladeCode,
-	)
-
-	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "supplierEDILogin", err)
-
-	return supplierEDILogin, err
-}
-
 func (r *mutationResolver) SupplierSetDefaultLocation(ctx context.Context, locationID string) (*profileutils.Supplier, error) {
 	startTime := time.Now()
 
