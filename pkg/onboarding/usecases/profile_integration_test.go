@@ -72,7 +72,7 @@ func TestSwitchUserFlaggedFeature(t *testing.T) {
 	if err != nil {
 		t.Error("failed to setup signup usecase")
 	}
-	primaryPhone := interserviceclient.TestUserPhoneNumber
+	primaryPhone := "+254724888184"
 	// clean up
 	_ = s.Signup.RemoveUserByPhoneNumber(context.Background(), primaryPhone)
 	otp, err := generateTestOTP(t, primaryPhone)

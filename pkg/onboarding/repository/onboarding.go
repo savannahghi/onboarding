@@ -124,6 +124,12 @@ type OnboardingRepository interface {
 		suspended bool,
 	) (*profileutils.UserProfile, error)
 
+	// GetUserProfileByPhoneOrEmail gets usser profile by phone or email
+	GetUserProfileByPhoneOrEmail(ctx context.Context, payload *dto.RetrieveUserProfileInput) (*profileutils.UserProfile, error)
+
+	// UpdateUserProfileEmail updates user profile's email
+	UpdateUserProfileEmail(ctx context.Context, phone string, email string) error
+
 	// fetches a user profile by id. returns the unsuspend profile
 	GetUserProfileByID(
 		ctx context.Context,
