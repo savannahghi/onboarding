@@ -28,8 +28,6 @@ import (
 
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
-	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
@@ -55,7 +53,6 @@ var fakeBaseExt extMock.FakeBaseExtensionImpl
 var fakePinExt extMock.PINExtensionImpl
 var serverUrl = "http://localhost:5000"
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
-var fakeEDISvc ediMock.FakeServiceEDI
 
 // InitializeFakeOnboardingInteractor represents a fakeonboarding interactor
 func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
@@ -66,7 +63,6 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var ext extension.BaseExtension = &fakeBaseExt
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
-	var ediSvc edi.ServiceEdi = &fakeEDISvc
 
 	// hubspot usecases
 	hubspotService := hubspot.NewHubSpotService()
@@ -83,7 +79,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
-	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
+	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
 	sms := usecases.NewSMSUsecase(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
@@ -98,7 +94,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 		r, profile, su, supplier, login,
 		survey, userpin, erpSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms,
-		aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		aitUssd, agent, admin, adminSrv, crmExt,
 		role,
 	)
 	if err != nil {

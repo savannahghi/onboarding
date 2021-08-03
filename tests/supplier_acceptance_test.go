@@ -20,15 +20,7 @@ import (
 )
 
 const (
-	// TestSladeCode is a test slade code for `test` EDI Login
-	TestSladeCode = "BRA-PRO-3873-4"
-
-	// TestEDIPortalUsername is a test username for `test` EDI Login
-	TestEDIPortalUsername = "malibu.pharmacy-3873@healthcloud.co.ke"
-
-	// TestEDIPortalPassword is a test passowrd for `test` EDI Login
-	TestEDIPortalPassword = "test provider one"
-	testEmail             = "test@bewell.co.ke"
+	testEmail = "test@bewell.co.ke"
 )
 
 // CreatedUserGraphQLHeaders updates the authorization header with the
@@ -2143,12 +2135,6 @@ func TestSupplierSetDefaultLocation_acceptance(t *testing.T) {
 	_, err = s.Supplier.SetUpSupplier(authenticatedContext, profileutils.AccountTypeOrganisation)
 	if err != nil {
 		t.Errorf("can't set up a supplier")
-		return
-	}
-
-	_, err = s.Supplier.SupplierEDILogin(authenticatedContext, TestEDIPortalUsername, TestEDIPortalPassword, TestSladeCode)
-	if err != nil {
-		t.Errorf("can't perform supplier edi login: %v", err)
 		return
 	}
 

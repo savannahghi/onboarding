@@ -61,11 +61,7 @@ extend type Mutation {
   suspendSupplier(suspensionReason: String): Boolean!
 
   setUpSupplier(accountType: AccountType!): Supplier
-  supplierEDILogin(
-    username: String!
-    password: String!
-    sladeCode: String!
-  ): SupplierLogin!
+ 
 
   supplierSetDefaultLocation(locationID: String!): Supplier!
 

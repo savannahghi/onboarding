@@ -35,7 +35,6 @@ import (
 	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go/auth"
 
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 
@@ -50,7 +49,6 @@ import (
 
 const (
 	engagementService = "engagement"
-	ediService        = "edi"
 )
 
 func TestMain(m *testing.M) {
@@ -144,13 +142,11 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
-	ediClient := utils.NewInterServiceClient(ediService, ext)
 
 	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
 	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
 	erp := erp.NewAccounting()
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, fr)
 	// hubspot usecases
 	hubspotService := hubspot.NewHubSpotService()
 	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(ctx, hubspotService)
@@ -164,7 +160,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		ext,
 		erp,
 		crmExt,
-		edi,
 		fr,
 	)
 	if err != nil {
@@ -177,7 +172,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	login := usecases.NewLoginUseCases(fr, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(fr, ext)
 	userpin := usecases.NewUserPinUseCase(fr, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(fr, profile, userpin, supplier, ext, engage, ps, edi)
+	su := usecases.NewSignUpUseCases(fr, profile, userpin, supplier, ext, engage, ps)
 
 	return &interactor.Interactor{
 		Onboarding: profile,
@@ -189,7 +184,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		ERP:        erp,
 		Engagement: engage,
 		PubSub:     ps,
-		EDI:        edi,
 		CrmExt:     crmExt,
 	}, nil
 }
