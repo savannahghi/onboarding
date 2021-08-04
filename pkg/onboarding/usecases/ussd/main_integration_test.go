@@ -106,7 +106,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, repo, engage)
+	edi := edi.NewEdiService(ediClient, repo)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
@@ -151,7 +151,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 }
 
 // InitializeFakeOnboaridingInteractor represents a fakeonboarding interactor
-func InitializeFakeOnboaridingInteractor() (*interactor.Interactor, error) {
+func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var r repository.OnboardingRepository = &fakeRepo
 	var erpSvc erp.AccountingUsecase = &fakeEPRSvc
 	var chargemasterSvc chargemaster.ServiceChargeMaster = &fakeChargeMasterSvc
@@ -179,6 +179,7 @@ func InitializeFakeOnboaridingInteractor() (*interactor.Interactor, error) {
 	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
 	sms := usecases.NewSMSUsecase(r, ext)
+	role := usecases.NewRoleUseCases(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
 	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin)
 
@@ -189,6 +190,7 @@ func InitializeFakeOnboaridingInteractor() (*interactor.Interactor, error) {
 		r, profile, su, supplier, login,
 		survey, userpin, erpSvc, chargemasterSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		role,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("can't instantiate service : %w", err)
@@ -205,19 +207,19 @@ func TestImpl_HandleResponseFromUSSDGateway(t *testing.T) {
 		t.Errorf("unable to initialize service")
 		return
 	}
-	sessionID := uuid.New().String()
+
 	unregisteredPhoneNumber := "0723456756"
 	registeredPhoneNumber := interserviceclient.TestUserPhoneNumber
 
 	unregisteredValidPayload := &dto.SessionDetails{
-		SessionID:   sessionID,
+		SessionID:   uuid.New().String(),
 		PhoneNumber: &unregisteredPhoneNumber,
 	}
 
-	registeredValidPayload := &dto.SessionDetails{
-		SessionID:   sessionID,
-		PhoneNumber: &registeredPhoneNumber,
-	}
+	// registeredValidPayload := &dto.SessionDetails{
+	// 	SessionID:   uuid.New().String(),
+	// 	PhoneNumber: &registeredPhoneNumber,
+	// }
 
 	invalidPayload := &dto.SessionDetails{
 		SessionID:   "",
@@ -243,17 +245,16 @@ func TestImpl_HandleResponseFromUSSDGateway(t *testing.T) {
 				"1. Register\r\n" +
 				"2. Opt Out\r\n",
 		},
-		{
-			name: "Happy case ):_Success case_Registered_user",
-			args: args{
-				ctx:     ctx,
-				payload: registeredValidPayload,
-			},
-			// TODO: Make this test valid for registered user
-			want: "CON Welcome to Be.Well\r\n" +
-				"1. Register\r\n" +
-				"2. Opt Out\r\n",
-		},
+		// {
+		// 	name: "Happy case ):_Success case_Registered_user",
+		// 	args: args{
+		// 		ctx:     ctx,
+		// 		payload: registeredValidPayload,
+		// 	},
+		// 	want: "CON Welcome to Be.Well.Please enter\r\n" +
+		// 		"your PIN to continue(enter 00 if\r\n" +
+		// 		"you forgot your PIN)\r\n",
+		// },
 		{
 			name: "SAD case ):Fail case_invalid_sessionID",
 			args: args{
@@ -315,6 +316,7 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
 	sms := usecases.NewSMSUsecase(r, ext)
+	role := usecases.NewRoleUseCases(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
 	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin)
 	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmSvc)
@@ -324,6 +326,7 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 		r, profile, su, supplier, login,
 		survey, userpin, erpSvc, chargemasterSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		role,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("can't instantiate service : %w", err)

@@ -95,7 +95,6 @@ func TestMain(m *testing.M) {
 				r.GetUserProfileCollectionName(),
 				r.GetSupplierProfileCollectionName(),
 				r.GetSurveyCollectionName(),
-				r.GetCRMStagingCollectionName(),
 				r.GetCommunicationsSettingsCollectionName(),
 				r.GetCustomerProfileCollectionName(),
 				r.GetExperimentParticipantCollectionName(),
@@ -104,7 +103,7 @@ func TestMain(m *testing.M) {
 				r.GetNHIFDetailsCollectionName(),
 				r.GetProfileNudgesCollectionName(),
 				r.GetSMSCollectionName(),
-				r.GetUSSDCollectionName(),
+				r.GetUSSDDataCollectionName(),
 			}
 			for _, collection := range collections {
 				ref := fsc.Collection(collection)
@@ -195,7 +194,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
 	ediClient := utils.NewInterServiceClient(ediService, ext)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, repo, engage)
+	edi := edi.NewEdiService(ediClient, repo)
 
 	erp := erp.NewAccounting()
 	chrg := chargemaster.NewChargeMasterUseCasesImpl()
@@ -423,7 +422,12 @@ func TestLoginUseCasesImpl_LoginByPhone(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			authResponse, err := s.Login.LoginByPhone(tt.args.ctx, tt.args.phone, tt.args.PIN, tt.args.flavour)
+			authResponse, err := s.Login.LoginByPhone(
+				tt.args.ctx,
+				tt.args.phone,
+				tt.args.PIN,
+				tt.args.flavour,
+			)
 			if tt.wantErr && authResponse != nil {
 				t.Errorf("expected nil auth response but got %v, since the error %v occurred",
 					authResponse,
@@ -451,7 +455,7 @@ var fakePubSub pubsubmessagingMock.FakeServicePubSub
 var fakeEDISvc ediMock.FakeServiceEDI
 
 // InitializeFakeOnboaridingInteractor represents a fakeonboarding interactor
-func InitializeFakeOnboaridingInteractor() (*interactor.Interactor, error) {
+func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var r repository.OnboardingRepository = &fakeRepo
 	var erpSvc erp.AccountingUsecase = &fakeEPRSvc
 	var chargemasterSvc chargemaster.ServiceChargeMaster = &fakeChargeMasterSvc
@@ -482,6 +486,7 @@ func InitializeFakeOnboaridingInteractor() (*interactor.Interactor, error) {
 	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
 	adminSrv := adminSrv.NewService(ext)
 	sms := usecases.NewSMSUsecase(r, ext)
+	role := usecases.NewRoleUseCases(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
 	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin)
 
@@ -490,6 +495,7 @@ func InitializeFakeOnboaridingInteractor() (*interactor.Interactor, error) {
 		survey, userpin, erpSvc, chargemasterSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms,
 		aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		role,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("can't instantiate service : %w", err)

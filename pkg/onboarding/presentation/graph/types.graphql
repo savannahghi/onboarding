@@ -42,6 +42,7 @@ type UserProfile @key(fields: "id") {
   userBioData: BioData
   homeAddress: Address
   workAddress: Address
+  roles: [String]
 }
 
 type Customer {
@@ -434,6 +435,7 @@ type Admin {
   suspended: Boolean
   photoUploadID: String
   userBioData: BioData
+  resendPIN: Boolean
 }
 
 type Agent {
@@ -446,6 +448,7 @@ type Agent {
   suspended: Boolean
   photoUploadID: String
   userBioData: BioData
+  resendPIN: Boolean
 }
 
 extend type Link {
@@ -480,4 +483,20 @@ type Microservice @key(fields: "id") {
   name: String!
   url: String!
   description: String!
+}
+
+type RoleOutput {
+  id: ID!
+  name: String!
+  description: String!
+  active: Boolean!
+  scopes: [String]
+  permissions: [Permission]
+}
+
+type Permission {
+  scope: String!
+  description: String!
+  group: PermissionGroup!
+  allowed: Boolean!
 }

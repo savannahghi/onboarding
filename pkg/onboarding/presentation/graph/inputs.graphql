@@ -308,6 +308,7 @@ input RegisterAdminInput {
   phoneNumber: String!
   email: String
   dateOfBirth: Date!
+  roleIDs: [ID]
 }
 
 input RegisterAgentInput {
@@ -317,10 +318,22 @@ input RegisterAgentInput {
   phoneNumber: String!
   email: String
   dateOfBirth: Date!
+  roleIDs: [ID]
 }
 
 input MicroserviceInput {
   name: String!
   url: String!
   description: String!
+}
+
+input RoleInput {
+  name: String!
+  description: String!
+  scopes: [String]
+}
+
+input RolePermissionInput {
+  roleID: ID!
+  scopes: [String!]!
 }

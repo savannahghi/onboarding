@@ -567,7 +567,48 @@ func (r *mutationResolver) DeregisterAllMicroservices(ctx context.Context) (bool
 	startTime := time.Now()
 
 	status, err := r.interactor.AdminSrv.DeregisterAllMicroservices(ctx)
-	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "deregisterAllMicroservices", err)
+	defer serverutils.RecordGraphqlResolverMetrics(
+		ctx,
+		startTime,
+		"deregisterAllMicroservices",
+		err,
+	)
+
+	return status, err
+}
+
+func (r *mutationResolver) CreateRole(ctx context.Context, input dto.RoleInput) (*dto.RoleOutput, error) {
+	startTime := time.Now()
+
+	role, err := r.interactor.Role.CreateRole(ctx, input)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "createRole", err)
+
+	return role, err
+}
+
+func (r *mutationResolver) AddPermissionsToRole(ctx context.Context, input dto.RolePermissionInput) (*dto.RoleOutput, error) {
+	startTime := time.Now()
+
+	role, err := r.interactor.Role.AddPermissionsToRole(ctx, input)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "addPermissionsToRole", err)
+
+	return role, err
+}
+
+func (r *mutationResolver) AssignRole(ctx context.Context, userID string, roleID string) (bool, error) {
+	startTime := time.Now()
+
+	status, err := r.interactor.Role.AssignRole(ctx, userID, roleID)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "assignRole", err)
+
+	return status, err
+}
+
+func (r *mutationResolver) RevokeRole(ctx context.Context, userID string, roleID string) (bool, error) {
+	startTime := time.Now()
+
+	status, err := r.interactor.Role.RevokeRole(ctx, userID, roleID)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "revokeRole", err)
 
 	return status, err
 }
@@ -759,6 +800,24 @@ func (r *queryResolver) ListMicroservices(ctx context.Context) ([]*domain.Micros
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "listMicroservices", err)
 
 	return services, err
+}
+
+func (r *queryResolver) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, error) {
+	startTime := time.Now()
+
+	roles, err := r.interactor.Role.GetAllRoles(ctx)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "getAllRoles", err)
+
+	return roles, err
+}
+
+func (r *queryResolver) GetAllPermissions(ctx context.Context) ([]*profileutils.Permission, error) {
+	startTime := time.Now()
+
+	permissions, err := r.interactor.Role.GetAllPermissions(ctx)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "getAllPermissions", err)
+
+	return permissions, err
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -50,6 +50,10 @@ type Agent struct {
 	PhotoUploadID string `json:"photoUploadID,omitempty"`
 
 	UserBioData profileutils.BioData `json:"userBioData,omitempty"`
+
+	// Resend PIN helps inform the whether a send new temporary PIN
+	// True when the user hasn't performed the initial sign up to change PIN
+	ResendPIN bool `json:"resendPIN"`
 }
 
 // Admin represents agent with details inferred from their user profile
@@ -71,6 +75,10 @@ type Admin struct {
 	PhotoUploadID string `json:"photoUploadID,omitempty"`
 
 	UserBioData profileutils.BioData `json:"userBioData,omitempty"`
+
+	// Resend PIN helps inform the whether a send new temporary PIN
+	// True when the user hasn't performed the initial sign up to change PIN
+	ResendPIN bool `json:"resendPIN"`
 }
 
 // AccountRecoveryPhonesResponse  payload sent back to the frontend when recovery an account
@@ -131,4 +139,14 @@ type Segment struct {
 	TimeSynced     string                      `json:"time_synced"      firestore:"time_synced"`
 	PayerSladeCode string                      `json:"payer_slade_code" firestore:"payersladecode"`
 	MemberNumber   string                      `json:"member_number"    firestore:"membernumber"`
+}
+
+// RoleOutput is the formatted output with scopes and permissions
+type RoleOutput struct {
+	ID          string                    `json:"id"`
+	Name        string                    `json:"name"`
+	Description string                    `json:"description"`
+	Active      bool                      `json:"active"`
+	Scopes      []string                  `json:"scopes"`
+	Permissions []profileutils.Permission `json:"permissions"`
 }

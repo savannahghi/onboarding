@@ -25,7 +25,7 @@ require (
 	github.com/savannahghi/feedlib v0.0.1
 	github.com/savannahghi/firebasetools v0.0.13
 	github.com/savannahghi/interserviceclient v0.0.13
-	github.com/savannahghi/profileutils v0.0.7
+	github.com/savannahghi/profileutils v0.0.15
 	github.com/savannahghi/pubsubtools v0.0.2
 	github.com/savannahghi/scalarutils v0.0.2
 	github.com/savannahghi/serverutils v0.0.3
@@ -33,7 +33,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/vektah/gqlparser/v2 v2.1.0
-	gitlab.slade360emr.com/go/apiclient v0.0.13
+	gitlab.slade360emr.com/go/apiclient v0.0.14
 	gitlab.slade360emr.com/go/commontools/accounting v0.0.0-20210726041609-f5e1334c2640
 	gitlab.slade360emr.com/go/commontools/crm v0.0.0-20210726041609-f5e1334c2640
 	go.opencensus.io v0.23.0

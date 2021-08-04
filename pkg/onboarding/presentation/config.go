@@ -117,7 +117,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	erp := erp.NewAccounting()
 	chrg := chargemaster.NewChargeMasterUseCasesImpl()
 	engage := engagement.NewServiceEngagementImpl(engagementClient, baseExt)
-	edi := edi.NewEdiService(ediClient, repo, engage)
+	edi := edi.NewEdiService(ediClient, repo)
 	mes := messaging.NewServiceMessagingImpl(baseExt)
 	pinExt := extension.NewPINExtensionImpl()
 
@@ -151,6 +151,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	nhif := usecases.NewNHIFUseCases(repo, profile, baseExt, engage)
 	aitUssd := ussd.NewUssdUsecases(repo, baseExt, profile, userpin, su, pinExt, pubSub, crmExt)
 	sms := usecases.NewSMSUsecase(repo, baseExt)
+	role := usecases.NewRoleUseCases(repo, baseExt)
 	admin := usecases.NewAdminUseCases(repo, engage, baseExt, userpin)
 	agent := usecases.NewAgentUseCases(repo, engage, baseExt, userpin)
 	adminSrv := adminSrv.NewService(baseExt)
@@ -159,6 +160,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 		repo, profile, su, supplier, login, survey,
 		userpin, erp, chrg, engage, mes, nhif, pubSub,
 		sms, aitUssd, agent, admin, edi, adminSrv, crmExt,
+		role,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("can't instantiate service : %w", err)

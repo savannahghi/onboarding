@@ -2,7 +2,6 @@ package ussd
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -62,20 +61,6 @@ func (u *Impl) HandleUserRegistration(ctx context.Context, session *domain.USSDL
 	time := time.Now()
 
 	if userResponse == EmptyInput || userResponse == GoBackHomeInput && session.Level == InitialState {
-		//Creating contact stub on first USSD Dial
-		if err := u.onboardingRepository.StageCRMPayload(ctx, &dto.ContactLeadInput{
-			ContactType:    "phone",
-			ContactValue:   session.PhoneNumber,
-			IsSync:         false,
-			TimeSync:       &time,
-			OptOut:         "NO",
-			WantCover:      false,
-			ContactChannel: "USSD",
-			IsRegistered:   false,
-		}); err != nil {
-			utils.RecordSpanError(span, err)
-			return "END Something went wrong. Please try again."
-		}
 
 		// Capture dialling event
 		if _, err := u.onboardingRepository.SaveUSSDEvent(ctx, &dto.USSDEvent{
@@ -173,7 +158,6 @@ func (u *Impl) HandleUserRegistration(ctx context.Context, session *domain.USSDL
 		return resp
 
 	}
-	fmt.Println("the last name level", session.Level)
 	if session.Level == GetLastNameState {
 		err := utils.ValidateUSSDInput(userResponse)
 		if err != nil {
@@ -308,13 +292,13 @@ func (u *Impl) HandleUserRegistration(ctx context.Context, session *domain.USSDL
 			return "END Something went wrong. Please try again."
 		}
 
-		contactLead := &dto.ContactLeadInput{
+		contactLead := &domain.USSDLeadDetails{
 			FirstName:    userFirstName,
 			LastName:     userLastName,
 			DateOfBirth:  *dateofBirth,
 			IsRegistered: true,
 		}
-		_ = u.onboardingRepository.UpdateStageCRMPayload(ctx, session.PhoneNumber, contactLead)
+		_ = u.onboardingRepository.UpdateAITSessionDetails(ctx, session.PhoneNumber, contactLead)
 
 		err = u.UpdateSessionLevel(ctx, HomeMenuState, session.SessionID)
 		if err != nil {
