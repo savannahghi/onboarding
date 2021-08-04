@@ -6,789 +6,86 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
-	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/profileutils"
-	"github.com/savannahghi/scalarutils"
+	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
+	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
+	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
+
+	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
+	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
+	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
+	messagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging/mock"
+	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
+	pubsubmessagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub/mock"
+	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
+	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/repository/mock"
+	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
+	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
+	"github.com/savannahghi/onboarding/pkg/onboarding/usecases/ussd"
+	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
+	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
-func TestAdminUseCaseImpl_RegisterAdmin(t *testing.T) {
-	ctx := context.Background()
-	i, err := InitializeFakeOnboardingInteractor()
+var fakeRepo mockRepo.FakeOnboardingRepository
+var fakeBaseExt extMock.FakeBaseExtensionImpl
+var fakePinExt extMock.PINExtensionImpl
+var fakeEngagementSvs engagementMock.FakeServiceEngagement
+var fakeMessagingSvc messagingMock.FakeServiceMessaging
+var fakeEPRSvc erpMock.FakeServiceCommonTools
+var fakePubSub pubsubmessagingMock.FakeServicePubSub
+
+// InitializeFakeOnboaridingInteractor represents a fakeonboarding interactor
+func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
+	var r repository.OnboardingRepository = &fakeRepo
+	var erpSvc erp.AccountingUsecase = &fakeEPRSvc
+	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
+	var messagingSvc messaging.ServiceMessaging = &fakeMessagingSvc
+	var ext extension.BaseExtension = &fakeBaseExt
+	var pinExt extension.PINExtension = &fakePinExt
+	var ps pubsubmessaging.ServicePubSub = &fakePubSub
+
+	// hubspot usecases
+	hubspotService := hubspot.NewHubSpotService()
+	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
 	if err != nil {
-		t.Errorf("failed to fake initialize onboarding interactor: %v",
-			err,
-		)
-		return
+		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
 	}
+	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
+	crmExt := crmExt.NewCrmService(hubspotUsecases)
+	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
+	survey := usecases.NewSurveyUseCases(r, ext)
+	supplier := usecases.NewSupplierUseCases(
+		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
+	)
+	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
+	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps)
+	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
+	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
+	adminSrv := adminSrv.NewService(ext)
+	sms := usecases.NewSMSUsecase(r, ext)
+	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
+	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin)
+	role := usecases.NewRoleUseCases(r, ext)
 
-	// admin 47
-	fName := "Tobias"
-	lName := "Rieper"
-	dob := scalarutils.Date{
-		Year:  1995,
-		Month: 6,
-		Day:   1,
+	i, err := interactor.NewOnboardingInteractor(
+		r, profile, su, supplier,
+		survey, userpin, erpSvc,
+		engagementSvc, messagingSvc, nhif, ps, sms,
+		aitUssd, agent, admin, adminSrv, crmExt,
+		role,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("can't instantiate service : %w", err)
 	}
-	admin := dto.RegisterAdminInput{
-		FirstName:   fName,
-		LastName:    lName,
-		Gender:      enumutils.GenderMale,
-		PhoneNumber: firebasetools.TestUserEmail,
-		Email:       firebasetools.TestUserEmail,
-		DateOfBirth: dob,
-	}
+	return i, nil
 
-	type args struct {
-		ctx   context.Context
-		input dto.RegisterAdminInput
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *profileutils.UserProfile
-		wantErr bool
-	}{
-		{
-			name: "valid:register_new_admin",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want: &profileutils.UserProfile{
-				ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-				VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-				UserBioData: profileutils.BioData{
-					FirstName:   &fName,
-					LastName:    &lName,
-					Gender:      enumutils.GenderMale,
-					DateOfBirth: &dob,
-				},
-				Role: profileutils.RoleTypeEmployee,
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid:cannot_create_user_profile",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:cannot_create_customer_profile",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:cannot_create_supplier_profile",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:cannot_set_communication_settings",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:cannot_notify_new_admin_sms",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:cannot_notify_new_admin_email",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:get_logged_in_user_error",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:get_profile_by_uid_error",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:invalid_logged_in_user_role",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:normalizing_phonenumber_failed",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid:cannot_set_admin_temporary_pin",
-			args: args{
-				ctx:   ctx,
-				input: admin,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			if tt.name == "invalid:normalizing_phonenumber_failed" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					return nil, fmt.Errorf("cannot normalize the mobile number")
-				}
-			}
-
-			if tt.name == "invalid:get_logged_in_user_error" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return nil, fmt.Errorf("cannot get logged in user")
-				}
-			}
-
-			if tt.name == "invalid:get_profile_by_uid_error" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return nil, fmt.Errorf("failed to get user bu UID")
-				}
-			}
-
-			if tt.name == "invalid:invalid_logged_in_user_role" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName:   &fName,
-							LastName:    &lName,
-							Gender:      enumutils.GenderMale,
-							DateOfBirth: &dob,
-						},
-						Permissions: profileutils.DefaultAdminPermissions,
-					}, fmt.Errorf("user do not have required permissions")
-				}
-			}
-
-			if tt.name == "valid:register_new_admin" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Permissions: profileutils.DefaultSuperAdminPermissions,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName:   &fName,
-							LastName:    &lName,
-							Gender:      enumutils.GenderMale,
-							DateOfBirth: &dob,
-						},
-						Role: profileutils.RoleTypeEmployee,
-					}, nil
-				}
-
-				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Customer{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedSupplierProfileFn = func(ctx context.Context, profileID string, supplier profileutils.Supplier) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{}, nil
-				}
-
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
-					return &profileutils.UserCommunicationsSetting{
-						ID:        "4711a5e4-a211-4e2b-b40b-b1160049b984",
-						ProfileID: "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-					}, nil
-				}
-
-				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
-					return "1234", nil
-				}
-
-				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
-					return "salt", "passw"
-				}
-
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
-					return true, nil
-				}
-
-				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
-					return nil
-				}
-
-				fakeEngagementSvs.SendMailFn = func(ctx context.Context, email string, message string, subject string) error {
-					return nil
-				}
-			}
-
-			if tt.name == "invalid:cannot_notify_new_admin_sms" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Permissions: profileutils.DefaultEmployeePermissions,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName:   &fName,
-							LastName:    &lName,
-							Gender:      enumutils.GenderMale,
-							DateOfBirth: &dob,
-						},
-						Role: profileutils.RoleTypeEmployee,
-					}, nil
-				}
-
-				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Customer{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedSupplierProfileFn = func(ctx context.Context, profileID string, supplier profileutils.Supplier) (*profileutils.Supplier, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Supplier{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
-					return &profileutils.UserCommunicationsSetting{
-						ID:        "4711a5e4-a211-4e2b-b40b-b1160049b984",
-						ProfileID: "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-					}, nil
-				}
-
-				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
-					return "1234", nil
-				}
-
-				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
-					return "salt", "passw"
-				}
-
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
-					return true, nil
-				}
-
-				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
-					return fmt.Errorf("cannot send notification sms")
-				}
-			}
-
-			if tt.name == "invalid:cannot_set_admin_temporary_pin" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Role: profileutils.RoleTypeEmployee,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Role: profileutils.RoleTypeEmployee,
-					}, nil
-				}
-
-				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Customer{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedSupplierProfileFn = func(ctx context.Context, profileID string, supplier profileutils.Supplier) (*profileutils.Supplier, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Supplier{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
-					return &profileutils.UserCommunicationsSetting{
-						ID:        "4711a5e4-a211-4e2b-b40b-b1160049b984",
-						ProfileID: "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-					}, nil
-				}
-
-				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
-					return "1234", fmt.Errorf("cannot generate temporary PIN")
-				}
-
-			}
-
-			if tt.name == "invalid:cannot_set_admin_temporary_pin" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Permissions: profileutils.DefaultEmployeePermissions,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName:   &fName,
-							LastName:    &lName,
-							Gender:      enumutils.GenderMale,
-							DateOfBirth: &dob,
-						},
-						Role: profileutils.RoleTypeEmployee,
-					}, nil
-				}
-
-				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Customer{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedSupplierProfileFn = func(ctx context.Context, profileID string, supplier profileutils.Supplier) (*profileutils.Supplier, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Supplier{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
-					return &profileutils.UserCommunicationsSetting{
-						ID:        "4711a5e4-a211-4e2b-b40b-b1160049b984",
-						ProfileID: "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-					}, nil
-				}
-
-				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
-					return "1234", fmt.Errorf("cannot generate temporary PIN")
-				}
-
-			}
-
-			if tt.name == "invalid:cannot_notify_new_admin_email" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Permissions: profileutils.DefaultEmployeePermissions,
-					}, nil
-				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName:   &fName,
-							LastName:    &lName,
-							Gender:      enumutils.GenderMale,
-							DateOfBirth: &dob,
-						},
-						Role: profileutils.RoleTypeEmployee,
-					}, nil
-				}
-
-				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Customer{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedSupplierProfileFn = func(ctx context.Context, profileID string, supplier profileutils.Supplier) (*profileutils.Supplier, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Supplier{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
-					return &profileutils.UserCommunicationsSetting{
-						ID:        "4711a5e4-a211-4e2b-b40b-b1160049b984",
-						ProfileID: "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-					}, nil
-				}
-
-				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
-					return "1234", nil
-				}
-
-				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
-					return "salt", "passw"
-				}
-
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
-					return true, nil
-				}
-
-				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
-					return nil
-				}
-
-				fakeEngagementSvs.SendMailFn = func(ctx context.Context, email string, message string, subject string) error {
-					return fmt.Errorf("cannot send notification email")
-				}
-			}
-
-			if tt.name == "invalid:cannot_set_communication_settings" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Permissions: profileutils.DefaultEmployeePermissions,
-					}, nil
-				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName:   &fName,
-							LastName:    &lName,
-							Gender:      enumutils.GenderMale,
-							DateOfBirth: &dob,
-						},
-						Role: profileutils.RoleTypeEmployee,
-					}, nil
-				}
-
-				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Customer{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedSupplierProfileFn = func(ctx context.Context, profileID string, supplier profileutils.Supplier) (*profileutils.Supplier, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Supplier{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
-					return nil, fmt.Errorf("")
-				}
-			}
-
-			if tt.name == "invalid:cannot_create_supplier_profile" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Permissions: profileutils.DefaultEmployeePermissions,
-					}, nil
-				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName:   &fName,
-							LastName:    &lName,
-							Gender:      enumutils.GenderMale,
-							DateOfBirth: &dob,
-						},
-						Role: profileutils.RoleTypeEmployee,
-					}, nil
-				}
-
-				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
-					prID := "c9d62c7e-93e5-44a6-b503-6fc159c1782f"
-					return &profileutils.Customer{
-						ID:        "5e6e41f4-846b-4ba5-ae3f-a92cc7a997ba",
-						ProfileID: &prID,
-					}, nil
-				}
-
-				fakeRepo.CreateDetailedSupplierProfileFn = func(ctx context.Context, profileID string, supplier profileutils.Supplier) (*profileutils.Supplier, error) {
-					return nil, fmt.Errorf("cannot create supplier profile")
-				}
-			}
-
-			if tt.name == "invalid:cannot_create_customer_profile" {
-
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Permissions: profileutils.DefaultEmployeePermissions,
-					}, nil
-				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName:   &fName,
-							LastName:    &lName,
-							Gender:      enumutils.GenderMale,
-							DateOfBirth: &dob,
-						},
-						Role: profileutils.RoleTypeEmployee,
-					}, nil
-				}
-
-				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
-					return nil, fmt.Errorf("cannot create customer profile")
-				}
-			}
-
-			if tt.name == "invalid:cannot_create_user_profile" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254777886622"
-					return &phone, nil
-				}
-
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{
-						UID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
-					}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "c9d62c7e-93e5-44a6-b503-6fc159c1782f",
-						VerifiedUIDS: []string{"f4f39af7-5b64-4c2f-91bd-42b3af315a4e"},
-						UserBioData: profileutils.BioData{
-							FirstName: &fName,
-							LastName:  &lName,
-							Gender:    enumutils.GenderMale,
-						},
-						Permissions: profileutils.DefaultEmployeePermissions,
-					}, nil
-				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
-					return nil, fmt.Errorf("cannot create user profile")
-				}
-			}
-
-			got, err := i.Admin.RegisterAdmin(tt.args.ctx, tt.args.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("AdminUseCaseImpl.RegisterAdmin() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AdminUseCaseImpl.RegisterAdmin() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func TestAdminUseCaseImpl_FetchAdmins(t *testing.T) {

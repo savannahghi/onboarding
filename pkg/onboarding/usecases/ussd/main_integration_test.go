@@ -114,7 +114,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
 
 	supplier := usecases.NewSupplierUseCases(repo, profile, erp, engage, mes, ext, ps)
-	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
 	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps)
@@ -127,7 +126,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		Onboarding: profile,
 		Signup:     su,
 		Supplier:   supplier,
-		Login:      login,
 		Survey:     survey,
 		UserPIN:    userpin,
 		ERP:        erp,
@@ -158,7 +156,6 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
-	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
 		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
@@ -176,7 +173,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	role := usecases.NewRoleUseCases(r, ext)
 
 	i, err := interactor.NewOnboardingInteractor(
-		r, profile, su, supplier, login,
+		r, profile, su, supplier,
 		survey, userpin, erpSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, adminSrv, crmExt,
 		role,
@@ -292,7 +289,6 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
-	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
 		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
@@ -308,7 +304,7 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	role := usecases.NewRoleUseCases(r, ext)
 
 	i, err := interactor.NewOnboardingInteractor(
-		r, profile, su, supplier, login,
+		r, profile, su, supplier,
 		survey, userpin, erpSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, adminSrv, crmExt,
 		role,

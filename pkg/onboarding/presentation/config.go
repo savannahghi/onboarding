@@ -22,7 +22,6 @@ import (
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
-	loginservice "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/login_service"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
@@ -137,7 +136,6 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	// Initialize the usecases
 	profile := usecases.NewProfileUseCase(repo, baseExt, engage, pubSub, crmExt)
 	supplier := usecases.NewSupplierUseCases(repo, profile, erp, engage, mes, baseExt, pubSub)
-	login := usecases.NewLoginUseCases(repo, profile, baseExt, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, baseExt)
 	userpin := usecases.NewUserPinUseCase(repo, profile, baseExt, pinExt, engage)
 	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, baseExt, engage, pubSub)
@@ -150,7 +148,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	role := usecases.NewRoleUseCases(repo, baseExt)
 
 	i, err := interactor.NewOnboardingInteractor(
-		repo, profile, su, supplier, login, survey,
+		repo, profile, su, supplier, survey,
 		userpin, erp, engage, mes, nhif, pubSub,
 		sms, aitUssd, agent, admin, adminSrv, crmExt,
 		role,
@@ -160,7 +158,6 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	}
 
 	h := rest.NewHandlersInterfaces(i)
-	loginService := loginservice.NewServiceLogin(baseExt)
 
 	r := mux.NewRouter() // gorilla mux
 	r.Use(otelmux.Middleware(serverutils.MetricsCollectorService("onboarding")))
@@ -187,32 +184,6 @@ func Router(ctx context.Context) (*mux.Router, error) {
 		http.MethodOptions,
 	).HandlerFunc(
 		h.SwitchFlaggedFeaturesHandler(),
-	)
-
-	// login service routes
-	r.Path("/login").Methods(
-		http.MethodPost,
-		http.MethodOptions,
-	).HandlerFunc(
-		loginService.GetLoginFunc(ctx),
-	)
-	r.Path("/logout").Methods(
-		http.MethodPost,
-		http.MethodOptions,
-	).HandlerFunc(
-		loginService.GetLogoutFunc(ctx),
-	)
-	r.Path("/refresh").Methods(
-		http.MethodPost,
-		http.MethodOptions,
-	).HandlerFunc(
-		loginService.GetRefreshFunc(),
-	)
-	r.Path("/verify_access_token").Methods(
-		http.MethodPost,
-		http.MethodOptions,
-	).HandlerFunc(
-		loginService.GetVerifyTokenFunc(ctx),
 	)
 
 	r.Path("/pubsub").Methods(
@@ -243,20 +214,6 @@ func Router(ctx context.Context) (*mux.Router, error) {
 		http.MethodPost,
 		http.MethodOptions).
 		HandlerFunc(h.SetPrimaryPhoneNumber())
-
-	// LoginByPhone routes
-	r.Path("/login_by_phone").Methods(
-		http.MethodPost,
-		http.MethodOptions).
-		HandlerFunc(h.LoginByPhone())
-	r.Path("/login_anonymous").Methods(
-		http.MethodPost,
-		http.MethodOptions).
-		HandlerFunc(h.LoginAnonymous())
-	r.Path("/refresh_token").Methods(
-		http.MethodPost,
-		http.MethodOptions).
-		HandlerFunc(h.RefreshToken())
 
 	// PIN Routes
 	r.Path("/reset_pin").Methods(
@@ -348,10 +305,6 @@ func Router(ctx context.Context) (*mux.Router, error) {
 		http.MethodPost,
 		http.MethodOptions).
 		HandlerFunc(h.CreateUserWithPhoneNumber())
-	iscTesting.Path("/login_by_phone").Methods(
-		http.MethodPost,
-		http.MethodOptions).
-		HandlerFunc(h.LoginByPhone())
 	iscTesting.Path("/remove_user").Methods(
 		http.MethodPost,
 		http.MethodOptions).

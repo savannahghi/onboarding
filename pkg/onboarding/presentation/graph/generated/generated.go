@@ -448,7 +448,6 @@ type ComplexityRoot struct {
 		GetUserCommunicationsSettings func(childComplexity int) int
 		ListMicroservices             func(childComplexity int) int
 		NHIFDetails                   func(childComplexity int) int
-		ResumeWithPin                 func(childComplexity int, pin string) int
 		SupplierProfile               func(childComplexity int) int
 		UserProfile                   func(childComplexity int) int
 		__resolve__service            func(childComplexity int) int
@@ -616,7 +615,6 @@ type QueryResolver interface {
 	DummyQuery(ctx context.Context) (*bool, error)
 	UserProfile(ctx context.Context) (*profileutils.UserProfile, error)
 	SupplierProfile(ctx context.Context) (*profileutils.Supplier, error)
-	ResumeWithPin(ctx context.Context, pin string) (bool, error)
 	FetchKYCProcessingRequests(ctx context.Context) ([]*domain.KYCRequest, error)
 	GetAddresses(ctx context.Context) (*domain.UserAddresses, error)
 	NHIFDetails(ctx context.Context) (*domain.NHIFDetails, error)
@@ -2835,18 +2833,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.NHIFDetails(childComplexity), true
 
-	case "Query.resumeWithPIN":
-		if e.complexity.Query.ResumeWithPin == nil {
-			break
-		}
-
-		args, err := ec.field_Query_resumeWithPIN_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.ResumeWithPin(childComplexity, args["pin"].(string)), true
-
 	case "Query.supplierProfile":
 		if e.complexity.Query.SupplierProfile == nil {
 			break
@@ -4048,10 +4034,7 @@ input RolePermissionInput {
 
   userProfile: UserProfile!
 
-  supplierProfile: Supplier!
-
-  resumeWithPIN(pin: String!): Boolean!
-  
+  supplierProfile: Supplier!  
 
   fetchKYCProcessingRequests: [KYCRequest]
 
@@ -5589,21 +5572,6 @@ func (ec *executionContext) field_Query_findAgentbyPhone_args(ctx context.Contex
 		}
 	}
 	args["phoneNumber"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_resumeWithPIN_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["pin"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pin"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["pin"] = arg0
 	return args, nil
 }
 
@@ -15063,48 +15031,6 @@ func (ec *executionContext) _Query_supplierProfile(ctx context.Context, field gr
 	return ec.marshalNSupplier2ᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐSupplier(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_resumeWithPIN(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_resumeWithPIN_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().ResumeWithPin(rctx, args["pin"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_fetchKYCProcessingRequests(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -22891,20 +22817,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_supplierProfile(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "resumeWithPIN":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_resumeWithPIN(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

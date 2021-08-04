@@ -12,7 +12,6 @@ import (
 	"firebase.google.com/go/auth"
 	"github.com/gorilla/mux"
 	"github.com/savannahghi/errorcodeutil"
-	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
@@ -28,13 +27,10 @@ type HandlersInterfaces interface {
 	UserRecoveryPhoneNumbers() http.HandlerFunc
 	SetPrimaryPhoneNumber() http.HandlerFunc
 	OptOut() http.HandlerFunc
-	LoginByPhone() http.HandlerFunc
-	LoginAnonymous() http.HandlerFunc
 	RequestPINReset() http.HandlerFunc
 	ResetPin() http.HandlerFunc
 	SendOTP() http.HandlerFunc
 	SendRetryOTP() http.HandlerFunc
-	RefreshToken() http.HandlerFunc
 	FindSupplierByUID() http.HandlerFunc
 	RemoveUserByPhoneNumber() http.HandlerFunc
 	GetUserProfileByUID() http.HandlerFunc
@@ -240,105 +236,6 @@ func (h *HandlersInterfacesImpl) SetPrimaryPhoneNumber() http.HandlerFunc {
 	}
 }
 
-// LoginByPhone is an unauthenticated endpoint that:
-// Collects a phonenumber and pin from the user and checks if the phonenumber
-// is an existing PRIMARY PHONENUMBER. If it does then it fetches the PIN that
-// belongs to the profile and returns auth credentials to allow the user to login
-func (h *HandlersInterfacesImpl) LoginByPhone() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		span := trace.SpanFromContext(ctx)
-
-		p := &dto.LoginPayload{}
-		serverutils.DecodeJSONToTargetStruct(w, r, p)
-
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", p),
-		))
-
-		if p.PhoneNumber == nil || p.PIN == nil {
-			err := fmt.Errorf("expected `phoneNumber`, `pin` to be defined")
-			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
-				Err:     err,
-				Message: err.Error(),
-			}, http.StatusBadRequest)
-			return
-		}
-
-		if !p.Flavour.IsValid() {
-			err := fmt.Errorf("an invalid `flavour` defined")
-			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
-				Err:     err,
-				Message: err.Error(),
-			}, http.StatusBadRequest)
-			return
-		}
-
-		response, err := h.interactor.Login.LoginByPhone(
-			ctx,
-			*p.PhoneNumber,
-			*p.PIN,
-			p.Flavour,
-		)
-		if err != nil {
-			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
-			return
-		}
-		span.AddEvent("login by phone response", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
-
-		serverutils.WriteJSONResponse(w, response, http.StatusOK)
-	}
-}
-
-// LoginAnonymous is an unauthenticated endpoint that returns only auth credentials for anonymous users
-func (h *HandlersInterfacesImpl) LoginAnonymous() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		span := trace.SpanFromContext(ctx)
-
-		p := &dto.LoginPayload{}
-		serverutils.DecodeJSONToTargetStruct(w, r, p)
-
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", p),
-		))
-
-		if p.Flavour.String() == "" {
-			err := fmt.Errorf("expected `flavour` to be defined")
-			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
-				Err:     err,
-				Message: err.Error(),
-			}, http.StatusBadRequest)
-			return
-		}
-
-		if !p.Flavour.IsValid() || p.Flavour != feedlib.FlavourConsumer {
-			err := fmt.Errorf("an invalid `flavour` defined")
-			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
-				Err:     err,
-				Message: err.Error(),
-			}, http.StatusBadRequest)
-			return
-		}
-
-		response, err := h.interactor.Login.LoginAsAnonymous(ctx)
-		if err != nil {
-			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
-			return
-		}
-
-		span.AddEvent("log in as anonymous", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
-
-		serverutils.WriteJSONResponse(w, response, http.StatusOK)
-	}
-}
-
 // RequestPINReset is an unauthenticated request that takes in a phone number
 // sends an otp to an msisdn that requests a PIN reset request during login
 func (h *HandlersInterfacesImpl) RequestPINReset() http.HandlerFunc {
@@ -494,46 +391,6 @@ func (h *HandlersInterfacesImpl) SendRetryOTP() http.HandlerFunc {
 		}
 
 		span.AddEvent("send retry OTP", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
-
-		serverutils.WriteJSONResponse(w, response, http.StatusOK)
-	}
-}
-
-// RefreshToken is an unauthenticated endpoint that
-// takes a custom Firebase refresh token and tries to fetch
-// an ID token and returns auth credentials if successful
-// Otherwise, an error is returned
-func (h *HandlersInterfacesImpl) RefreshToken() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		span := trace.SpanFromContext(ctx)
-
-		p := &dto.RefreshTokenPayload{}
-		serverutils.DecodeJSONToTargetStruct(w, r, p)
-
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", p),
-		))
-
-		if p.RefreshToken == nil {
-			err := fmt.Errorf("expected `refreshToken` to be defined")
-			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
-				Err:     err,
-				Message: err.Error(),
-			}, http.StatusBadRequest)
-			return
-		}
-
-		response, err := h.interactor.Login.RefreshToken(ctx, *p.RefreshToken)
-		if err != nil {
-			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
-			return
-		}
-
-		span.AddEvent("new token", trace.WithAttributes(
 			attribute.Any("response", response),
 		))
 

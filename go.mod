@@ -17,7 +17,6 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/imroc/req v0.3.0
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/savannahghi/converterandformatter v0.0.9
 	github.com/savannahghi/enumutils v0.0.2

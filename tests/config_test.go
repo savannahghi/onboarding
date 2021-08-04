@@ -17,8 +17,6 @@ import (
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go/auth"
-	"github.com/imroc/req"
-	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
@@ -27,9 +25,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
-	"github.com/sirupsen/logrus"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
 	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
@@ -138,7 +134,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
 
 	supplier := usecases.NewSupplierUseCases(repo, profile, erp, engage, mes, ext, ps)
-	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
 	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps)
@@ -149,7 +144,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		Onboarding: profile,
 		Signup:     su,
 		Supplier:   supplier,
-		Login:      login,
 		Survey:     survey,
 		UserPIN:    userpin,
 		ERP:        erp,
@@ -160,32 +154,32 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	}, nil
 }
 
-func composeInValidUserPayload(t *testing.T) *dto.SignUpInput {
-	phone := interserviceclient.TestUserPhoneNumber
-	pin := "" // empty string
-	flavour := feedlib.FlavourPro
-	payload := &dto.SignUpInput{
-		PhoneNumber: &phone,
-		PIN:         &pin,
-		Flavour:     flavour,
-	}
-	return payload
-}
+// func composeInValidUserPayload(t *testing.T) *dto.SignUpInput {
+// 	phone := interserviceclient.TestUserPhoneNumber
+// 	pin := "" // empty string
+// 	flavour := feedlib.FlavourPro
+// 	payload := &dto.SignUpInput{
+// 		PhoneNumber: &phone,
+// 		PIN:         &pin,
+// 		Flavour:     flavour,
+// 	}
+// 	return payload
+// }
 
-func composeValidUserPayload(t *testing.T, phone string) (*dto.SignUpInput, error) {
-	pin := "2030"
-	flavour := feedlib.FlavourPro
-	otp, err := generateTestOTP(t, phone)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate test OTP: %v", err)
-	}
-	return &dto.SignUpInput{
-		PhoneNumber: &phone,
-		PIN:         &pin,
-		Flavour:     flavour,
-		OTP:         &otp.OTP,
-	}, nil
-}
+// func composeValidUserPayload(t *testing.T, phone string) (*dto.SignUpInput, error) {
+// 	pin := "2030"
+// 	flavour := feedlib.FlavourPro
+// 	otp, err := generateTestOTP(t, phone)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to generate test OTP: %v", err)
+// 	}
+// 	return &dto.SignUpInput{
+// 		PhoneNumber: &phone,
+// 		PIN:         &pin,
+// 		Flavour:     flavour,
+// 		OTP:         &otp.OTP,
+// 	}, nil
+// }
 
 func composeSMSMessageDataPayload(t *testing.T, payload *dto.AfricasTalkingMessage) *strings.Reader {
 	data := url.Values{}
@@ -210,68 +204,68 @@ func composeUSSDPayload(t *testing.T, payload *dto.SessionDetails) *strings.Read
 	return smspayload
 }
 
-func CreateTestUserByPhone(t *testing.T, phone string) (*profileutils.UserResponse, error) {
-	client := http.DefaultClient
-	validPayload, err := composeValidUserPayload(t, phone)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compose a valid payload: %v", err)
-	}
-	bs, err := json.Marshal(validPayload)
-	if err != nil {
-		return nil, fmt.Errorf("unable to marshal test item to JSON: %s", err)
-	}
-	payload := bytes.NewBuffer(bs)
-	url := fmt.Sprintf("%s/create_user_by_phone", baseURL)
-	r, err := http.NewRequest(
-		http.MethodPost,
-		url,
-		payload,
-	)
+// func CreateTestUserByPhone(t *testing.T, phone string) (*profileutils.UserResponse, error) {
+// 	client := http.DefaultClient
+// 	validPayload, err := composeValidUserPayload(t, phone)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to compose a valid payload: %v", err)
+// 	}
+// 	bs, err := json.Marshal(validPayload)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("unable to marshal test item to JSON: %s", err)
+// 	}
+// 	payload := bytes.NewBuffer(bs)
+// 	url := fmt.Sprintf("%s/create_user_by_phone", baseURL)
+// 	r, err := http.NewRequest(
+// 		http.MethodPost,
+// 		url,
+// 		payload,
+// 	)
 
-	if err != nil {
-		return nil, fmt.Errorf("can't create new request: %v", err)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("can't create new request: %v", err)
 
-	}
+// 	}
 
-	if r == nil {
-		return nil, fmt.Errorf("nil request")
-	}
+// 	if r == nil {
+// 		return nil, fmt.Errorf("nil request")
+// 	}
 
-	r.Header.Add("Accept", "application/json")
-	r.Header.Add("Content-Type", "application/json")
+// 	r.Header.Add("Accept", "application/json")
+// 	r.Header.Add("Content-Type", "application/json")
 
-	resp, err := client.Do(r)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP error: %v", err)
+// 	resp, err := client.Do(r)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("HTTP error: %v", err)
 
-	}
-	// if resp.StatusCode != http.StatusCreated {
-	// 	return nil, fmt.Errorf("failed to create user: expected status to be %v got %v ", http.StatusCreated, resp.StatusCode)
-	// }
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("HTTP error: %v", err)
-	}
+// 	}
+// 	// if resp.StatusCode != http.StatusCreated {
+// 	// 	return nil, fmt.Errorf("failed to create user: expected status to be %v got %v ", http.StatusCreated, resp.StatusCode)
+// 	// }
+// 	data, err := ioutil.ReadAll(resp.Body)
+// 	if err != nil {
+// 		log.Printf("HTTP error: %v", err)
+// 	}
 
-	var userResponse profileutils.UserResponse
-	err = json.Unmarshal(data, &userResponse)
-	if err != nil {
-		return nil, fmt.Errorf("unable to marshall response: %v", err)
-	}
-	return &userResponse, nil
-}
+// 	var userResponse profileutils.UserResponse
+// 	err = json.Unmarshal(data, &userResponse)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("unable to marshall response: %v", err)
+// 	}
+// 	return &userResponse, nil
+// }
 
-func TestCreateTestUserByPhone(t *testing.T) {
-	userResponse, err := CreateTestUserByPhone(t, interserviceclient.TestUserPhoneNumber)
-	if err != nil {
-		t.Errorf("failed to create test user")
-		return
-	}
-	if userResponse == nil {
-		t.Errorf("got a nil user response")
-		return
-	}
-}
+// func TestCreateTestUserByPhone(t *testing.T) {
+// 	userResponse, err := CreateTestUserByPhone(t, interserviceclient.TestUserPhoneNumber)
+// 	if err != nil {
+// 		t.Errorf("failed to create test user")
+// 		return
+// 	}
+// 	if userResponse == nil {
+// 		t.Errorf("got a nil user response")
+// 		return
+// 	}
+// }
 
 func RemoveTestUserByPhone(t *testing.T, phone string) (bool, error) {
 	client := http.DefaultClient
@@ -311,98 +305,98 @@ func RemoveTestUserByPhone(t *testing.T, phone string) (bool, error) {
 	return true, nil
 }
 
-func TestRemoveTestUserByPhone(t *testing.T) {
-	phone := interserviceclient.TestUserPhoneNumber
-	userResponse, err := CreateTestUserByPhone(t, phone)
-	if err != nil {
-		t.Errorf("failed to create test user")
-		return
-	}
-	if userResponse == nil {
-		t.Errorf("got a nil user response")
-		return
-	}
+// func TestRemoveTestUserByPhone(t *testing.T) {
+// 	phone := interserviceclient.TestUserPhoneNumber
+// 	userResponse, err := CreateTestUserByPhone(t, phone)
+// 	if err != nil {
+// 		t.Errorf("failed to create test user")
+// 		return
+// 	}
+// 	if userResponse == nil {
+// 		t.Errorf("got a nil user response")
+// 		return
+// 	}
 
-	removed, err := RemoveTestUserByPhone(t, phone)
-	if err != nil {
-		t.Errorf("an error occurred: %v", err)
-		return
-	}
-	if !removed {
-		t.Errorf("user was not removed")
-		return
-	}
-}
+// 	removed, err := RemoveTestUserByPhone(t, phone)
+// 	if err != nil {
+// 		t.Errorf("an error occurred: %v", err)
+// 		return
+// 	}
+// 	if !removed {
+// 		t.Errorf("user was not removed")
+// 		return
+// 	}
+// }
 
-func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, error) {
-	ctx := context.Background()
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize test service: %v", err)
-	}
-	return s.Engagement.GenerateAndSendOTP(ctx, phone)
-}
+// func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, error) {
+// 	ctx := context.Background()
+// 	s, err := InitializeTestService(ctx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("unable to initialize test service: %v", err)
+// 	}
+// 	return s.Engagement.GenerateAndSendOTP(ctx, phone)
+// }
 
-func setPrimaryEmailAddress(ctx context.Context, t *testing.T, emailAddress string) error {
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return fmt.Errorf("unable to initialize test service: %v", err)
-	}
+// func setPrimaryEmailAddress(ctx context.Context, t *testing.T, emailAddress string) error {
+// 	s, err := InitializeTestService(ctx)
+// 	if err != nil {
+// 		return fmt.Errorf("unable to initialize test service: %v", err)
+// 	}
 
-	return s.Onboarding.UpdatePrimaryEmailAddress(ctx, emailAddress)
-}
+// 	return s.Onboarding.UpdatePrimaryEmailAddress(ctx, emailAddress)
+// }
 
-func updateBioData(ctx context.Context, t *testing.T, data profileutils.BioData) error {
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return fmt.Errorf("unable to initialize test service: %v", err)
-	}
+// func updateBioData(ctx context.Context, t *testing.T, data profileutils.BioData) error {
+// 	s, err := InitializeTestService(ctx)
+// 	if err != nil {
+// 		return fmt.Errorf("unable to initialize test service: %v", err)
+// 	}
 
-	return s.Onboarding.UpdateBioData(ctx, data)
-}
+// 	return s.Onboarding.UpdateBioData(ctx, data)
+// }
 
-func addPartnerType(ctx context.Context, t *testing.T, name *string, partnerType profileutils.PartnerType) (bool, error) {
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return false, fmt.Errorf("unable to initialize test service: %v", err)
-	}
+// func addPartnerType(ctx context.Context, t *testing.T, name *string, partnerType profileutils.PartnerType) (bool, error) {
+// 	s, err := InitializeTestService(ctx)
+// 	if err != nil {
+// 		return false, fmt.Errorf("unable to initialize test service: %v", err)
+// 	}
 
-	return s.Supplier.AddPartnerType(ctx, name, &partnerType)
-}
+// 	return s.Supplier.AddPartnerType(ctx, name, &partnerType)
+// }
 
-func setUpSupplier(ctx context.Context, t *testing.T, accountType profileutils.AccountType) (*profileutils.Supplier, error) {
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize test service: %v", err)
-	}
-	return s.Supplier.SetUpSupplier(ctx, accountType)
-}
+// func setUpSupplier(ctx context.Context, t *testing.T, accountType profileutils.AccountType) (*profileutils.Supplier, error) {
+// 	s, err := InitializeTestService(ctx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("unable to initialize test service: %v", err)
+// 	}
+// 	return s.Supplier.SetUpSupplier(ctx, accountType)
+// }
 
-func setUpLoggedInTestUserGraphHeaders(t *testing.T) map[string]string {
-	// create a user and their profile
-	phoneNumber := interserviceclient.TestUserPhoneNumber
-	resp, err := CreateTestUserByPhone(t, phoneNumber)
-	if err != nil {
-		log.Printf("unable to create a test user: %s", err)
-		return nil
-	}
+// func setUpLoggedInTestUserGraphHeaders(t *testing.T) map[string]string {
+// 	// create a user and their profile
+// 	phoneNumber := interserviceclient.TestUserPhoneNumber
+// 	resp, err := CreateTestUserByPhone(t, phoneNumber)
+// 	if err != nil {
+// 		log.Printf("unable to create a test user: %s", err)
+// 		return nil
+// 	}
 
-	if resp.Profile.ID == "" {
-		t.Errorf(" user profile id should not be empty")
-		return nil
-	}
+// 	if resp.Profile.ID == "" {
+// 		t.Errorf(" user profile id should not be empty")
+// 		return nil
+// 	}
 
-	if len(resp.Profile.VerifiedUIDS) == 0 {
-		t.Errorf(" user profile VerifiedUIDS should not be empty")
-		return nil
-	}
+// 	if len(resp.Profile.VerifiedUIDS) == 0 {
+// 		t.Errorf(" user profile VerifiedUIDS should not be empty")
+// 		return nil
+// 	}
 
-	logrus.Infof("profile from create user : %v", resp.Profile)
+// 	logrus.Infof("profile from create user : %v", resp.Profile)
 
-	logrus.Infof("uid from create user : %v", resp.Auth.UID)
+// 	logrus.Infof("uid from create user : %v", resp.Auth.UID)
 
-	return getGraphHeaders(*resp.Auth.IDToken)
-}
+// 	return getGraphHeaders(*resp.Auth.IDToken)
+// }
 
 // func setRoleForUserWithPhone(phoneNumber string, role profileutils.RoleType, headers map[string]string) error {
 // 	url := fmt.Sprintf("%s/roles/add_user_role", baseURL)
@@ -439,13 +433,13 @@ func setUpLoggedInTestUserGraphHeaders(t *testing.T) map[string]string {
 // 	return nil
 // }
 
-func getGraphHeaders(idToken string) map[string]string {
-	return req.Header{
-		"Accept":        "application/json",
-		"Content-Type":  "application/json",
-		"Authorization": fmt.Sprintf("Bearer %s", idToken),
-	}
-}
+// func getGraphHeaders(idToken string) map[string]string {
+// 	return req.Header{
+// 		"Accept":        "application/json",
+// 		"Content-Type":  "application/json",
+// 		"Authorization": fmt.Sprintf("Bearer %s", idToken),
+// 	}
+// }
 
 func TestMain(m *testing.M) {
 	// setup

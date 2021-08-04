@@ -4,10 +4,7 @@ extend type Query {
 
   userProfile: UserProfile!
 
-  supplierProfile: Supplier!
-
-  resumeWithPIN(pin: String!): Boolean!
-  
+  supplierProfile: Supplier!  
 
   fetchKYCProcessingRequests: [KYCRequest]
 

@@ -627,16 +627,6 @@ func (r *queryResolver) SupplierProfile(ctx context.Context) (*profileutils.Supp
 	return supplier, err
 }
 
-func (r *queryResolver) ResumeWithPin(ctx context.Context, pin string) (bool, error) {
-	startTime := time.Now()
-
-	resumeWithPin, err := r.interactor.Login.ResumeWithPin(ctx, pin)
-
-	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "resumeWithPin", err)
-
-	return resumeWithPin, err
-}
-
 func (r *queryResolver) FetchKYCProcessingRequests(ctx context.Context) ([]*domain.KYCRequest, error) {
 	startTime := time.Now()
 
