@@ -39,14 +39,11 @@ import (
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
-	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
-
 	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	messagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging/mock"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	pubsubmessagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub/mock"
 	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
 	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
@@ -189,7 +186,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
 
-	erp := erp.NewAccounting()
 	// hubspot usecases
 	hubspotService := hubspot.NewHubSpotService()
 	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
@@ -201,7 +197,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
-		erp,
 		crmExt,
 		repo,
 	)
@@ -212,7 +207,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	pinExt := extension.NewPINExtensionImpl()
 	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
 
-	supplier := usecases.NewSupplierUseCases(repo, profile, erp, engage, mes, ext, ps)
+	supplier := usecases.NewSupplierUseCases(repo, profile, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
@@ -229,7 +224,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		Login:      login,
 		Survey:     survey,
 		UserPIN:    userpin,
-		ERP:        erp,
 		Engagement: engage,
 		NHIF:       nhif,
 		PubSub:     ps,
@@ -438,13 +432,11 @@ var fakeBaseExt extMock.FakeBaseExtensionImpl
 var fakePinExt extMock.PINExtensionImpl
 var fakeEngagementSvs engagementMock.FakeServiceEngagement
 var fakeMessagingSvc messagingMock.FakeServiceMessaging
-var fakeEPRSvc erpMock.FakeServiceCommonTools
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
 
 // InitializeFakeOnboaridingInteractor represents a fakeonboarding interactor
 func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var r repository.OnboardingRepository = &fakeRepo
-	var erpSvc erp.AccountingUsecase = &fakeEPRSvc
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
 	var messagingSvc messaging.ServiceMessaging = &fakeMessagingSvc
 	var ext extension.BaseExtension = &fakeBaseExt
@@ -463,7 +455,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
-		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
+		r, profile, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
 	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps)
@@ -477,7 +469,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 
 	i, err := interactor.NewOnboardingInteractor(
 		r, profile, su, supplier, login,
-		survey, userpin, erpSvc,
+		survey, userpin,
 		engagementSvc, messagingSvc, nhif, ps, sms,
 		aitUssd, agent, admin, adminSrv, crmExt,
 		role,

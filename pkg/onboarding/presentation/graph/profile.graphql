@@ -34,7 +34,6 @@ extend type Query {
 }
 
 extend type Mutation {
-  completeSignup(flavour: Flavour!): Boolean!
 
   updateUserProfile(input: UserProfileInput!): UserProfile!
 
@@ -101,11 +100,7 @@ extend type Mutation {
     input: OrganizationNutritionInput!
   ): OrganizationNutrition!
 
-  processKYCRequest(
-    id: String!
-    status: KYCProcessStatus!
-    rejectionReason: String
-  ): Boolean!
+  
 
   recordPostVisitSurvey(input: PostVisitSurveyInput!): Boolean!
 

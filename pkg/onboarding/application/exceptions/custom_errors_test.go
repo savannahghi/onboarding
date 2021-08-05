@@ -80,8 +80,6 @@ func TestCustomErrors(t *testing.T) {
 	assert.NotNil(t, err)
 	err = exceptions.SaveUserPinError(fmt.Errorf("error"))
 	assert.NotNil(t, err)
-	err = exceptions.CompleteSignUpError(fmt.Errorf("error"))
-	assert.NotNil(t, err)
 	err = exceptions.UsernameInUseError()
 	assert.NotNil(t, err)
 	err = exceptions.SecondaryResourceHardResetError()

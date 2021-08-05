@@ -352,16 +352,6 @@ func GeneratePinError(err error) error {
 	}
 }
 
-// CompleteSignUpError returns an error message when we are unable
-// to CompleteSignup
-func CompleteSignUpError(err error) error {
-	return &errorcodeutil.CustomError{
-		Err:     err,
-		Message: BioDataErrMsg,
-		Code:    int(errorcodeutil.AddNewRecordError),
-	}
-}
-
 // UsernameInUseError is the error message displayed when the provided username
 // is associated with another profile
 func UsernameInUseError() error {

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/savannahghi/enumutils"
-	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/graph/generated"
@@ -17,16 +16,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
-
-func (r *mutationResolver) CompleteSignup(ctx context.Context, flavour feedlib.Flavour) (bool, error) {
-	startTime := time.Now()
-
-	completeSignup, err := r.interactor.Signup.CompleteSignup(ctx, flavour)
-
-	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "completeSignup", err)
-
-	return completeSignup, err
-}
 
 func (r *mutationResolver) UpdateUserProfile(ctx context.Context, input dto.UserProfileInput) (*profileutils.UserProfile, error) {
 	startTime := time.Now()
@@ -356,21 +345,6 @@ func (r *mutationResolver) AddOrganizationNutritionKyc(ctx context.Context, inpu
 	)
 
 	return organizationNutrition, err
-}
-
-func (r *mutationResolver) ProcessKYCRequest(ctx context.Context, id string, status domain.KYCProcessStatus, rejectionReason *string) (bool, error) {
-	startTime := time.Now()
-
-	processKYCRequest, err := r.interactor.Supplier.ProcessKYCRequest(
-		ctx,
-		id,
-		status,
-		rejectionReason,
-	)
-
-	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "processKYCRequest", err)
-
-	return processKYCRequest, err
 }
 
 func (r *mutationResolver) RecordPostVisitSurvey(ctx context.Context, input dto.PostVisitSurveyInput) (bool, error) {

@@ -19,7 +19,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
 	loginservice "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/login_service"
@@ -110,7 +109,6 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	engagementClient := utils.NewInterServiceClient(engagementService, baseExt)
 
 	// Initialize new instance of our infrastructure services
-	erp := erp.NewAccounting()
 	engage := engagement.NewServiceEngagementImpl(engagementClient, baseExt)
 	mes := messaging.NewServiceMessagingImpl(baseExt)
 	pinExt := extension.NewPINExtensionImpl()
@@ -126,7 +124,6 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	pubSub, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		baseExt,
-		erp,
 		crmExt,
 		repo,
 	)
@@ -136,7 +133,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 
 	// Initialize the usecases
 	profile := usecases.NewProfileUseCase(repo, baseExt, engage, pubSub, crmExt)
-	supplier := usecases.NewSupplierUseCases(repo, profile, erp, engage, mes, baseExt, pubSub)
+	supplier := usecases.NewSupplierUseCases(repo, profile, engage, mes, baseExt, pubSub)
 	login := usecases.NewLoginUseCases(repo, profile, baseExt, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, baseExt)
 	userpin := usecases.NewUserPinUseCase(repo, profile, baseExt, pinExt, engage)
@@ -151,7 +148,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 
 	i, err := interactor.NewOnboardingInteractor(
 		repo, profile, su, supplier, login, survey,
-		userpin, erp, engage, mes, nhif, pubSub,
+		userpin, engage, mes, nhif, pubSub,
 		sms, aitUssd, agent, admin, adminSrv, crmExt,
 		role,
 	)

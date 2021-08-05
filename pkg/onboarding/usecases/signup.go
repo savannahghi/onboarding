@@ -2,13 +2,9 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/savannahghi/enumutils"
-	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
@@ -18,7 +14,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
-	"github.com/sirupsen/logrus"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 )
 
@@ -44,11 +39,6 @@ type SignUpUseCases interface {
 
 	// adds a new push token in the users profile if the push token does not exist
 	RegisterPushToken(ctx context.Context, token string) (bool, error)
-
-	// called to create a customer account in the ERP. This API is only valid for `BEWELL CONSUMER`
-	// it should be the last call after updating the users bio data. Its should not return an error
-	// when it fails due to unreachable errors, rather it should retry
-	CompleteSignup(ctx context.Context, flavour feedlib.Flavour) (bool, error)
 
 	// removes a push token from the users profile
 	RetirePushToken(ctx context.Context, token string) (bool, error)
@@ -325,79 +315,6 @@ func (s *SignUpUseCasesImpl) RegisterPushToken(ctx context.Context, token string
 		utils.RecordSpanError(span, err)
 		return false, err
 	}
-	return true, nil
-}
-
-// CompleteSignup called to create a customer account in the ERP. This API is only valid for `BEWELL
-// CONSUMER`
-func (s *SignUpUseCasesImpl) CompleteSignup(
-	ctx context.Context,
-	flavour feedlib.Flavour,
-) (bool, error) {
-	ctx, span := tracer.Start(ctx, "CompleteSignup")
-	defer span.End()
-
-	if flavour != feedlib.FlavourConsumer {
-		return false, exceptions.InvalidFlavourDefinedError()
-	}
-
-	profile, err := s.profileUsecase.UserProfile(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
-
-	uid, err := s.baseExt.GetLoggedInUserUID(ctx)
-	if err != nil {
-		return false, err
-	}
-	if len(profile.PushTokens) > 0 {
-		logrus.Printf("This piece of code was called")
-		coverLinkingDetails := dto.LinkCoverPubSubMessage{
-			PhoneNumber: *profile.PrimaryPhone,
-			UID:         uid,
-			PushToken:   profile.PushTokens,
-		}
-
-		logrus.Printf("Publishing to covers.link topic")
-		if err := s.pubsub.NotifyCoverLinking(ctx, coverLinkingDetails); err != nil {
-			utils.RecordSpanError(span, err)
-			log.Printf("failed to publish to covers.link topic: %v", err)
-		}
-
-		currentTime := time.Now()
-		coverLinkingEvent := &dto.CoverLinkingEvent{
-			ID:                    uuid.NewString(),
-			CoverLinkingEventTime: &currentTime,
-			CoverStatus:           CoverLinkingStatusStarted,
-			PhoneNumber:           *profile.PrimaryPhone,
-		}
-
-		if _, err := s.onboardingRepository.SaveCoverAutolinkingEvents(ctx, coverLinkingEvent); err != nil {
-			utils.RecordSpanError(span, err)
-			log.Printf("failed to save coverlinking `started` event: %v", err)
-		}
-
-	}
-
-	if profile.UserBioData.FirstName == nil || profile.UserBioData.LastName == nil {
-		return false, exceptions.CompleteSignUpError(nil)
-	}
-	fullName := fmt.Sprintf("%v %v",
-		*profile.UserBioData.FirstName,
-		*profile.UserBioData.LastName,
-	)
-
-	err = s.supplierUsecase.CreateCustomerAccount(
-		ctx,
-		fullName,
-		profileutils.PartnerTypeConsumer,
-	)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		logrus.Printf("failed to create customer account with error: %v", err)
-	}
-
 	return true, nil
 }
 

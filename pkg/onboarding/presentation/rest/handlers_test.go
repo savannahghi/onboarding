@@ -21,8 +21,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/profileutils"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
 	crmDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
@@ -57,7 +55,6 @@ var fakePubSub pubsubmessagingMock.FakeServicePubSub
 // InitializeFakeOnboardingInteractor represents a fakeonboarding interactor
 func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var r repository.OnboardingRepository = &fakeRepo
-	var erpSvc erp.AccountingUsecase = &erpMock.FakeServiceCommonTools{}
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
 	var messagingSvc messaging.ServiceMessaging = &messagingMock.FakeServiceMessaging{}
 	var ext extension.BaseExtension = &fakeBaseExt
@@ -76,7 +73,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
-		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
+		r, profile, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
 	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps)
@@ -92,7 +89,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 
 	i, err := interactor.NewOnboardingInteractor(
 		r, profile, su, supplier, login,
-		survey, userpin, erpSvc,
+		survey, userpin,
 		engagementSvc, messagingSvc, nhif, ps, sms,
 		aitUssd, agent, admin, adminSrv, crmExt,
 		role,

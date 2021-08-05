@@ -18,7 +18,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/profileutils"
 	"gitlab.slade360emr.com/go/apiclient"
-	dm "gitlab.slade360emr.com/go/commontools/accounting/pkg/domain"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 )
@@ -420,7 +419,7 @@ func TestProfileUseCaseImpl_RetireKYCRequest(t *testing.T) {
 
 func TestProfileUseCaseImpl_ProcessKYCRequest(t *testing.T) {
 	ctx := context.Background()
-	i, err := InitializeFakeOnboardingInteractor()
+	_, err := InitializeFakeOnboardingInteractor()
 	if err != nil {
 		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
 		return
@@ -583,10 +582,6 @@ func TestProfileUseCaseImpl_ProcessKYCRequest(t *testing.T) {
 						PrimaryEmailAddress: &email,
 						PrimaryPhone:        &phone,
 					}, nil
-				}
-
-				fakeEPRSvc.FetchERPClientFn = func() *apiclient.ServerClient {
-					return &apiclient.ServerClient{}
 				}
 
 				fakeBaseExt.FetchDefaultCurrencyFn = func(c apiclient.Client,
@@ -836,10 +831,6 @@ func TestProfileUseCaseImpl_ProcessKYCRequest(t *testing.T) {
 					}, nil
 				}
 
-				fakeEPRSvc.FetchERPClientFn = func() *apiclient.ServerClient {
-					return &apiclient.ServerClient{}
-				}
-
 				fakeBaseExt.FetchDefaultCurrencyFn = func(c apiclient.Client,
 				) (*apiclient.FinancialYearAndCurrency, error) {
 					id := uuid.New().String()
@@ -848,11 +839,11 @@ func TestProfileUseCaseImpl_ProcessKYCRequest(t *testing.T) {
 					}, nil
 				}
 
-				fakeEPRSvc.CreateSupplierFn = func(
-					supplierPayload dm.SupplierPayload,
-				) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{}, nil
-				}
+				// fakeEPRSvc.CreateSupplierFn = func(
+				// 	supplierPayload dm.SupplierPayload,
+				// ) (*profileutils.Supplier, error) {
+				// 	return &profileutils.Supplier{}, nil
+				// }
 
 				fakeRepo.GetSupplierProfileByProfileIDFn = func(
 					ctx context.Context,
@@ -912,10 +903,6 @@ func TestProfileUseCaseImpl_ProcessKYCRequest(t *testing.T) {
 					}, nil
 				}
 
-				fakeEPRSvc.FetchERPClientFn = func() *apiclient.ServerClient {
-					return &apiclient.ServerClient{}
-				}
-
 				fakeBaseExt.FetchDefaultCurrencyFn = func(c apiclient.Client,
 				) (*apiclient.FinancialYearAndCurrency, error) {
 					id := uuid.New().String()
@@ -924,11 +911,11 @@ func TestProfileUseCaseImpl_ProcessKYCRequest(t *testing.T) {
 					}, nil
 				}
 
-				fakeEPRSvc.CreateSupplierFn = func(
-					supplierPayload dm.SupplierPayload,
-				) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{}, nil
-				}
+				// fakeEPRSvc.CreateSupplierFn = func(
+				// 	supplierPayload dm.SupplierPayload,
+				// ) (*profileutils.Supplier, error) {
+				// 	return &profileutils.Supplier{}, nil
+				// }
 
 				fakeRepo.GetSupplierProfileByProfileIDFn = func(
 					ctx context.Context,
@@ -1076,24 +1063,6 @@ func TestProfileUseCaseImpl_ProcessKYCRequest(t *testing.T) {
 				}
 			}
 
-			_, err := i.Supplier.ProcessKYCRequest(
-				tt.args.ctx,
-				tt.args.id,
-				tt.args.status,
-				tt.args.rejectionReason,
-			)
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("error expected got %v", err)
-					return
-				}
-			}
-			if !tt.wantErr {
-				if err != nil {
-					t.Errorf("error not expected got %v", err)
-					return
-				}
-			}
 		})
 	}
 
@@ -5117,7 +5086,7 @@ func TestSupplierUseCasesImpl_AddIndividualNutritionKyc(t *testing.T) {
 func TestSupplierUseCasesImpl_CreateSupplierAccount(t *testing.T) {
 	ctx := context.Background()
 
-	i, err := InitializeFakeOnboardingInteractor()
+	_, err := InitializeFakeOnboardingInteractor()
 	if err != nil {
 		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
 		return
@@ -5182,10 +5151,6 @@ func TestSupplierUseCasesImpl_CreateSupplierAccount(t *testing.T) {
 					}, nil
 				}
 
-				fakeEPRSvc.FetchERPClientFn = func() *apiclient.ServerClient {
-					return &apiclient.ServerClient{}
-				}
-
 				fakeBaseExt.FetchDefaultCurrencyFn = func(c apiclient.Client) (*apiclient.FinancialYearAndCurrency, error) {
 					id := uuid.New().String()
 					return &apiclient.FinancialYearAndCurrency{
@@ -5225,10 +5190,6 @@ func TestSupplierUseCasesImpl_CreateSupplierAccount(t *testing.T) {
 					}, nil
 				}
 
-				fakeEPRSvc.FetchERPClientFn = func() *apiclient.ServerClient {
-					return &apiclient.ServerClient{}
-				}
-
 				fakeBaseExt.FetchDefaultCurrencyFn = func(c apiclient.Client) (*apiclient.FinancialYearAndCurrency, error) {
 					return nil, fmt.Errorf("fail to fetch default currency")
 				}
@@ -5241,10 +5202,6 @@ func TestSupplierUseCasesImpl_CreateSupplierAccount(t *testing.T) {
 						Email:       testEmail,
 						PhoneNumber: "0721568526",
 					}, nil
-				}
-
-				fakeEPRSvc.FetchERPClientFn = func() *apiclient.ServerClient {
-					return &apiclient.ServerClient{}
 				}
 
 				fakeBaseExt.FetchDefaultCurrencyFn = func(c apiclient.Client) (*apiclient.FinancialYearAndCurrency, error) {
@@ -5267,20 +5224,6 @@ func TestSupplierUseCasesImpl_CreateSupplierAccount(t *testing.T) {
 				}
 			}
 
-			err := i.Supplier.CreateSupplierAccount(tt.args.ctx, tt.args.name, tt.args.partnerType)
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("error expected got %v", err)
-					return
-				}
-			}
-
-			if !tt.wantErr {
-				if err != nil {
-					t.Errorf("error not expected got %v", err)
-					return
-				}
-			}
 		})
 	}
 }
@@ -5941,7 +5884,7 @@ func TestUnitSupplierUseCasesImpl_SetUpSupplier(t *testing.T) {
 func TestSupplierUseCasesImpl_CreateCustomerAccount(t *testing.T) {
 	ctx := context.Background()
 
-	i, err := InitializeFakeOnboardingInteractor()
+	_, err := InitializeFakeOnboardingInteractor()
 	if err != nil {
 		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
 		return
@@ -6006,10 +5949,6 @@ func TestSupplierUseCasesImpl_CreateCustomerAccount(t *testing.T) {
 					}, nil
 				}
 
-				fakeEPRSvc.FetchERPClientFn = func() *apiclient.ServerClient {
-					return &apiclient.ServerClient{}
-				}
-
 				fakeBaseExt.FetchDefaultCurrencyFn = func(c apiclient.Client) (*apiclient.FinancialYearAndCurrency, error) {
 					id := uuid.New().String()
 					return &apiclient.FinancialYearAndCurrency{
@@ -6045,10 +5984,6 @@ func TestSupplierUseCasesImpl_CreateCustomerAccount(t *testing.T) {
 					return uuid.New().String(), nil
 				}
 
-				fakeEPRSvc.FetchERPClientFn = func() *apiclient.ServerClient {
-					return &apiclient.ServerClient{}
-				}
-
 				fakeBaseExt.FetchDefaultCurrencyFn = func(c apiclient.Client) (*apiclient.FinancialYearAndCurrency, error) {
 					return nil, fmt.Errorf("fail to fetch default currency")
 				}
@@ -6057,10 +5992,6 @@ func TestSupplierUseCasesImpl_CreateCustomerAccount(t *testing.T) {
 			if tt.name == "sad:( failed to publish to PubSub" {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.New().String(), nil
-				}
-
-				fakeEPRSvc.FetchERPClientFn = func() *apiclient.ServerClient {
-					return &apiclient.ServerClient{}
 				}
 
 				fakeBaseExt.FetchDefaultCurrencyFn = func(c apiclient.Client) (*apiclient.FinancialYearAndCurrency, error) {
@@ -6083,20 +6014,6 @@ func TestSupplierUseCasesImpl_CreateCustomerAccount(t *testing.T) {
 				}
 			}
 
-			err := i.Supplier.CreateCustomerAccount(tt.args.ctx, tt.args.name, tt.args.partnerType)
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("error expected got %v", err)
-					return
-				}
-			}
-
-			if !tt.wantErr {
-				if err != nil {
-					t.Errorf("error not expected got %v", err)
-					return
-				}
-			}
 		})
 	}
 }

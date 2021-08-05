@@ -19,9 +19,6 @@ import (
 	"github.com/savannahghi/serverutils"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
-
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
@@ -90,7 +87,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
 
-	erp := erp.NewAccounting()
 	hubspotService := hubspot.NewHubSpotService()
 	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
 	if err != nil {
@@ -102,7 +98,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
-		erp,
 		crmExt,
 		repo,
 	)
@@ -113,7 +108,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	pinExt := extension.NewPINExtensionImpl()
 	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
 
-	supplier := usecases.NewSupplierUseCases(repo, profile, erp, engage, mes, ext, ps)
+	supplier := usecases.NewSupplierUseCases(repo, profile, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
@@ -130,7 +125,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		Login:      login,
 		Survey:     survey,
 		UserPIN:    userpin,
-		ERP:        erp,
 		Engagement: engage,
 		NHIF:       nhif,
 		PubSub:     ps,
@@ -143,7 +137,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 // InitializeFakeOnboaridingInteractor represents a fakeonboarding interactor
 func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var r repository.OnboardingRepository = &fakeRepo
-	var erpSvc erp.AccountingUsecase = &fakeEPRSvc
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
 	var messagingSvc messaging.ServiceMessaging = &fakeMessagingSvc
 	var ext extension.BaseExtension = &fakeBaseExt
@@ -161,7 +154,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
-		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
+		r, profile, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
 	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps)
@@ -177,7 +170,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 
 	i, err := interactor.NewOnboardingInteractor(
 		r, profile, su, supplier, login,
-		survey, userpin, erpSvc,
+		survey, userpin,
 		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, adminSrv, crmExt,
 		role,
 	)
@@ -269,14 +262,14 @@ var fakeBaseExt extMock.FakeBaseExtensionImpl
 var fakePinExt extMock.PINExtensionImpl
 var fakeEngagementSvs engagementMock.FakeServiceEngagement
 var fakeMessagingSvc messagingMock.FakeServiceMessaging
-var fakeEPRSvc erpMock.FakeServiceCommonTools
+
+// var fakeEPRSvc erpMock.FakeServiceCommonTools
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
 var fakeCrm mockCrm.FakeServiceCrm
 
 // InitializeFakeUSSDTestService represents a fakeussd interactor
 func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	var r repository.OnboardingRepository = &fakeRepo
-	var erpSvc erp.AccountingUsecase = &fakeEPRSvc
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
 	var messagingSvc messaging.ServiceMessaging = &fakeMessagingSvc
 	var ext extension.BaseExtension = &fakeBaseExt
@@ -295,7 +288,7 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
-		r, profile, erpSvc, engagementSvc, messagingSvc, ext, ps,
+		r, profile, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
 	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps)
@@ -309,7 +302,7 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 
 	i, err := interactor.NewOnboardingInteractor(
 		r, profile, su, supplier, login,
-		survey, userpin, erpSvc,
+		survey, userpin,
 		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, adminSrv, crmExt,
 		role,
 	)
