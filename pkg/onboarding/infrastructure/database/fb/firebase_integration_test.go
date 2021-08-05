@@ -36,7 +36,6 @@ import (
 	"firebase.google.com/go/auth"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 
 	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
@@ -145,7 +144,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
 	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-	erp := erp.NewAccounting()
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
 	// hubspot usecases
 	hubspotService := hubspot.NewHubSpotService()
@@ -158,7 +156,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
-		erp,
 		crmExt,
 		fr,
 	)
@@ -168,7 +165,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	mes := messaging.NewServiceMessagingImpl(ext)
 	pinExt := extension.NewPINExtensionImpl()
 	profile := usecases.NewProfileUseCase(fr, ext, engage, ps, crmExt)
-	supplier := usecases.NewSupplierUseCases(fr, profile, erp, engage, mes, ext, ps)
+	supplier := usecases.NewSupplierUseCases(fr, profile, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(fr, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(fr, ext)
 	userpin := usecases.NewUserPinUseCase(fr, profile, ext, pinExt, engage)
@@ -181,7 +178,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		Login:      login,
 		Survey:     survey,
 		UserPIN:    userpin,
-		ERP:        erp,
 		Engagement: engage,
 		PubSub:     ps,
 		CrmExt:     crmExt,

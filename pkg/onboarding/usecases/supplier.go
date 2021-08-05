@@ -1,12 +1,9 @@
 package usecases
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -30,7 +27,6 @@ import (
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 )
 
 // Supplier constants
@@ -141,35 +137,15 @@ type SupplierUseCases interface {
 
 	StageKYCProcessingRequest(ctx context.Context, sup *profileutils.Supplier) error
 
-	ProcessKYCRequest(
-		ctx context.Context,
-		id string,
-		status domain.KYCProcessStatus,
-		rejectionReason *string,
-	) (bool, error)
-
 	RetireKYCRequest(ctx context.Context) error
 
 	PublishKYCFeedItem(ctx context.Context, uids ...string) error
-
-	CreateCustomerAccount(
-		ctx context.Context,
-		name string,
-		partnerType profileutils.PartnerType,
-	) error
-
-	CreateSupplierAccount(
-		ctx context.Context,
-		name string,
-		partnerType profileutils.PartnerType,
-	) error
 }
 
 // SupplierUseCasesImpl represents usecase implementation object
 type SupplierUseCasesImpl struct {
 	repo       repository.OnboardingRepository
 	profile    ProfileUseCase
-	erp        erp.AccountingUsecase
 	engagement engagement.ServiceEngagement
 	messaging  messaging.ServiceMessaging
 	baseExt    extension.BaseExtension
@@ -180,7 +156,6 @@ type SupplierUseCasesImpl struct {
 func NewSupplierUseCases(
 	r repository.OnboardingRepository,
 	p ProfileUseCase,
-	er erp.AccountingUsecase,
 	eng engagement.ServiceEngagement,
 	messaging messaging.ServiceMessaging,
 	ext extension.BaseExtension,
@@ -190,7 +165,6 @@ func NewSupplierUseCases(
 	return &SupplierUseCasesImpl{
 		repo:       r,
 		profile:    p,
-		erp:        er,
 		engagement: eng,
 		messaging:  messaging,
 		baseExt:    ext,
@@ -246,118 +220,6 @@ func (s SupplierUseCasesImpl) AddPartnerType(
 	}
 
 	return true, nil
-}
-
-// CreateCustomerAccount makes an external call to the Slade 360 ERP to create
-// a customer business partner account
-func (s SupplierUseCasesImpl) CreateCustomerAccount(
-	ctx context.Context,
-	name string,
-	partnerType profileutils.PartnerType,
-) error {
-	ctx, span := tracer.Start(ctx, "CreateCustomerAccount")
-	defer span.End()
-
-	user, err := s.baseExt.GetLoggedInUser(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return fmt.Errorf("can't get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.CustomerAccountCreate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
-
-	if partnerType != profileutils.PartnerTypeConsumer {
-		return exceptions.WrongEnumTypeError(partnerType.String())
-	}
-
-	currency, err := s.baseExt.FetchDefaultCurrency(s.erp.FetchERPClient())
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return exceptions.FetchDefaultCurrencyError(err)
-	}
-
-	customerPayload := dto.CustomerPayload{
-		Active:       active,
-		PartnerName:  name,
-		Country:      country,
-		Currency:     *currency.ID,
-		IsCustomer:   true,
-		CustomerType: partnerType,
-	}
-
-	customerPubSubPayload := dto.CustomerPubSubMessage{
-		CustomerPayload: customerPayload,
-		UID:             user.UID,
-	}
-
-	if err = s.pubsub.NotifyCreateCustomer(ctx, customerPubSubPayload); err != nil {
-		utils.RecordSpanError(span, err)
-		log.Printf("failed to publish to customers.create topic: %v", err)
-	}
-
-	return nil
-}
-
-// CreateSupplierAccount makes a call to our own ERP and creates a supplier account based
-// on the provided partnerType
-func (s SupplierUseCasesImpl) CreateSupplierAccount(
-	ctx context.Context,
-	name string,
-	partnerType profileutils.PartnerType,
-) error {
-	ctx, span := tracer.Start(ctx, "CreateSupplierAccount")
-	defer span.End()
-
-	user, err := s.baseExt.GetLoggedInUser(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return fmt.Errorf("can't get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.SupplierAccountCreate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
-
-	if partnerType == profileutils.PartnerTypeConsumer {
-		return exceptions.WrongEnumTypeError(partnerType.String())
-	}
-
-	currency, err := s.baseExt.FetchDefaultCurrency(s.erp.FetchERPClient())
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return exceptions.FetchDefaultCurrencyError(err)
-	}
-
-	supplierPayload := dto.SupplierPayload{
-		Active:       active,
-		PartnerName:  name,
-		Country:      country,
-		Currency:     *currency.ID,
-		IsSupplier:   true,
-		SupplierType: partnerType,
-	}
-
-	supplierPubSubPayload := dto.SupplierPubSubMessage{
-		SupplierPayload: supplierPayload,
-		UID:             user.UID,
-	}
-
-	if err = s.pubsub.NotifyCreateSupplier(ctx, supplierPubSubPayload); err != nil {
-		utils.RecordSpanError(span, err)
-		log.Printf("failed to publish to suppliers.create topic: %v", err)
-	}
-
-	return nil
 }
 
 // FindSupplierByID fetches a supplier by their id
@@ -1544,148 +1406,6 @@ func (s *SupplierUseCasesImpl) SendKYCEmail(ctx context.Context, text, emailaddr
 	return s.engagement.SendMail(ctx, emailaddress, text, emailKYCSubject)
 }
 
-// ProcessKYCRequest transitions a kyc request to a given state
-func (s *SupplierUseCasesImpl) ProcessKYCRequest(
-	ctx context.Context,
-	id string,
-	status domain.KYCProcessStatus,
-	rejectionReason *string,
-) (bool, error) {
-	ctx, span := tracer.Start(ctx, "ProcessKYCRequest")
-	defer span.End()
-
-	reviewerProfile, err := s.profile.UserProfile(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
-
-	s.repo.CheckIfAdmin(reviewerProfile)
-
-	KYCRequest, err := s.repo.FetchKYCProcessingRequestByID(ctx, id)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
-
-	KYCRequest.Status = status
-	KYCRequest.Processed = true
-	if rejectionReason != nil {
-		KYCRequest.RejectionReason = rejectionReason
-	}
-	KYCRequest.ProcessedTimestamp = time.Now().In(domain.TimeLocation)
-	KYCRequest.ProcessedBy = reviewerProfile.ID
-
-	if err := s.repo.UpdateKYCProcessingRequest(
-		ctx,
-		KYCRequest,
-	); err != nil {
-		utils.RecordSpanError(span, err)
-		return false, fmt.Errorf("unable to update KYC request record: %v", err)
-	}
-
-	supplierProfile, err := s.profile.GetProfileByID(
-		ctx,
-		KYCRequest.SupplierRecord.ProfileID,
-	)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
-
-	var email string
-	var message string
-
-	switch status {
-	case domain.KYCProcessStatusApproved:
-		go func() {
-			if err := s.CreateSupplierAccount(
-				ctx,
-				KYCRequest.SupplierRecord.SupplierName,
-				KYCRequest.ReqPartnerType,
-			); err != nil {
-				utils.RecordSpanError(span, err)
-				logrus.Error(fmt.Errorf("unable to create erp supplier account: %v", err))
-			}
-		}()
-
-		email = s.generateProcessKYCApprovalEmailTemplate()
-		message = "Your KYC details have been reviewed and approved. We look forward to working with you. For enquiries call us on 0790360360"
-
-		supplier, err := s.FindSupplierByUID(ctx)
-		if err != nil {
-			utils.RecordSpanError(span, err)
-			return false, err
-		}
-
-		supplier.Active = true
-
-		if err := s.repo.UpdateSupplierProfile(
-			ctx,
-			supplierProfile.ID,
-			supplier,
-		); err != nil {
-			utils.RecordSpanError(span, err)
-			return false, err
-		}
-
-	case domain.KYCProcessStatusRejected:
-		email = s.generateProcessKYCRejectionEmailTemplate(*rejectionReason)
-		message = "Your KYC details have been reviewed and have not been approved. Please check your email for detailed information. For enquiries call us on 0790360360"
-
-	}
-
-	nudgeTitle := fmt.Sprintf(
-		PublishKYCNudgeTitle,
-		strings.ToLower(string(KYCRequest.ReqPartnerType)),
-	)
-	supplierVerifiedUIDs := supplierProfile.VerifiedUIDS
-	go func() {
-		for _, UID := range supplierVerifiedUIDs {
-			if err = s.engagement.ResolveDefaultNudgeByTitle(
-				ctx,
-				UID,
-				feedlib.FlavourPro,
-				nudgeTitle,
-			); err != nil {
-				utils.RecordSpanError(span, err)
-				logrus.Print(err)
-			}
-		}
-	}()
-
-	supplierEmails := func(profile *profileutils.UserProfile) []string {
-		var emails []string
-		if profile.PrimaryEmailAddress != nil {
-			emails = append(emails, *profile.PrimaryEmailAddress)
-		}
-		emails = append(emails, profile.SecondaryEmailAddresses...)
-		return emails
-	}(supplierProfile)
-
-	for _, supplierEmail := range supplierEmails {
-		err = s.SendKYCEmail(ctx, email, supplierEmail)
-		if err != nil {
-			utils.RecordSpanError(span, err)
-			return false, fmt.Errorf("unable to send KYC processing email: %w", err)
-		}
-	}
-
-	supplierPhones := func(profile *profileutils.UserProfile) []string {
-		var phones []string
-		phones = append(phones, *profile.PrimaryPhone)
-		phones = append(phones, profile.SecondaryPhoneNumbers...)
-		return phones
-	}(supplierProfile)
-
-	if err := s.engagement.SendSMS(ctx, supplierPhones, message); err != nil {
-		utils.RecordSpanError(span, err)
-		return false, fmt.Errorf("unable to send KYC processing message: %w", err)
-	}
-
-	return true, nil
-}
-
 // RetireKYCRequest retires the KYC process request of a supplier
 func (s *SupplierUseCasesImpl) RetireKYCRequest(ctx context.Context) error {
 	ctx, span := tracer.Start(ctx, "RetireKYCRequest")
@@ -1717,27 +1437,4 @@ func (s *SupplierUseCasesImpl) RetireKYCRequest(ctx context.Context) error {
 
 	return nil
 
-}
-
-func (s *SupplierUseCasesImpl) generateProcessKYCApprovalEmailTemplate() string {
-	t := template.Must(template.New("approvalKYCEmail").Parse(utils.ProcessKYCApprovalEmail))
-	buf := new(bytes.Buffer)
-	err := t.Execute(buf, "")
-	if err != nil {
-		log.Fatalf("Error while generating KYC approval email template: %s", err)
-	}
-	return buf.String()
-}
-
-func (s *SupplierUseCasesImpl) generateProcessKYCRejectionEmailTemplate(reason string) string {
-	type rejectionData struct {
-		Reason string
-	}
-	t := template.Must(template.New("rejectionKYCEmail").Parse(utils.ProcessKYCRejectionEmail))
-	buf := new(bytes.Buffer)
-	err := t.Execute(buf, rejectionData{Reason: reason})
-	if err != nil {
-		log.Fatalf("Error while generating KYC rejection email template: %s", err)
-	}
-	return buf.String()
 }

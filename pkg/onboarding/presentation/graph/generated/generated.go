@@ -270,13 +270,11 @@ type ComplexityRoot struct {
 		AddSecondaryEmailAddress         func(childComplexity int, email []string) int
 		AddSecondaryPhoneNumber          func(childComplexity int, phone []string) int
 		AssignRole                       func(childComplexity int, userID string, roleID string) int
-		CompleteSignup                   func(childComplexity int, flavour feedlib.Flavour) int
 		CreateRole                       func(childComplexity int, input dto.RoleInput) int
 		DeactivateAgent                  func(childComplexity int, agentID string) int
 		DeleteFavoriteNavAction          func(childComplexity int, title string) int
 		DeregisterAllMicroservices       func(childComplexity int) int
 		DeregisterMicroservice           func(childComplexity int, id string) int
-		ProcessKYCRequest                func(childComplexity int, id string, status domain.KYCProcessStatus, rejectionReason *string) int
 		RecordPostVisitSurvey            func(childComplexity int, input dto.PostVisitSurveyInput) int
 		RegisterAdmin                    func(childComplexity int, input dto.RegisterAdminInput) int
 		RegisterAgent                    func(childComplexity int, input dto.RegisterAgentInput) int
@@ -565,7 +563,6 @@ type EntityResolver interface {
 	FindUserProfileByID(ctx context.Context, id string) (*profileutils.UserProfile, error)
 }
 type MutationResolver interface {
-	CompleteSignup(ctx context.Context, flavour feedlib.Flavour) (bool, error)
 	UpdateUserProfile(ctx context.Context, input dto.UserProfileInput) (*profileutils.UserProfile, error)
 	UpdateUserPin(ctx context.Context, phone string, pin string) (bool, error)
 	SetPrimaryPhoneNumber(ctx context.Context, phone string, otp string) (bool, error)
@@ -591,7 +588,6 @@ type MutationResolver interface {
 	AddOrganizationCoachKyc(ctx context.Context, input domain.OrganizationCoach) (*domain.OrganizationCoach, error)
 	AddIndividualNutritionKyc(ctx context.Context, input domain.IndividualNutrition) (*domain.IndividualNutrition, error)
 	AddOrganizationNutritionKyc(ctx context.Context, input domain.OrganizationNutrition) (*domain.OrganizationNutrition, error)
-	ProcessKYCRequest(ctx context.Context, id string, status domain.KYCProcessStatus, rejectionReason *string) (bool, error)
 	RecordPostVisitSurvey(ctx context.Context, input dto.PostVisitSurveyInput) (bool, error)
 	RetireKYCProcessingRequest(ctx context.Context) (bool, error)
 	SetupAsExperimentParticipant(ctx context.Context, participate *bool) (bool, error)
@@ -1753,18 +1749,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AssignRole(childComplexity, args["userID"].(string), args["roleID"].(string)), true
 
-	case "Mutation.completeSignup":
-		if e.complexity.Mutation.CompleteSignup == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_completeSignup_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CompleteSignup(childComplexity, args["flavour"].(feedlib.Flavour)), true
-
 	case "Mutation.createRole":
 		if e.complexity.Mutation.CreateRole == nil {
 			break
@@ -1819,18 +1803,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeregisterMicroservice(childComplexity, args["id"].(string)), true
-
-	case "Mutation.processKYCRequest":
-		if e.complexity.Mutation.ProcessKYCRequest == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_processKYCRequest_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.ProcessKYCRequest(childComplexity, args["id"].(string), args["status"].(domain.KYCProcessStatus), args["rejectionReason"].(*string)), true
 
 	case "Mutation.recordPostVisitSurvey":
 		if e.complexity.Mutation.RecordPostVisitSurvey == nil {
@@ -4078,7 +4050,6 @@ input RolePermissionInput {
 }
 
 extend type Mutation {
-  completeSignup(flavour: Flavour!): Boolean!
 
   updateUserProfile(input: UserProfileInput!): UserProfile!
 
@@ -4145,11 +4116,7 @@ extend type Mutation {
     input: OrganizationNutritionInput!
   ): OrganizationNutrition!
 
-  processKYCRequest(
-    id: String!
-    status: KYCProcessStatus!
-    rejectionReason: String
-  ): Boolean!
+  
 
   recordPostVisitSurvey(input: PostVisitSurveyInput!): Boolean!
 
@@ -5091,21 +5058,6 @@ func (ec *executionContext) field_Mutation_assignRole_args(ctx context.Context, 
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_completeSignup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 feedlib.Flavour
-	if tmp, ok := rawArgs["flavour"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("flavour"))
-		arg0, err = ec.unmarshalNFlavour2githubᚗcomᚋsavannahghiᚋfeedlibᚐFlavour(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["flavour"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_createRole_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -5163,39 +5115,6 @@ func (ec *executionContext) field_Mutation_deregisterMicroservice_args(ctx conte
 		}
 	}
 	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_processKYCRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	var arg1 domain.KYCProcessStatus
-	if tmp, ok := rawArgs["status"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
-		arg1, err = ec.unmarshalNKYCProcessStatus2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐKYCProcessStatus(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["status"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["rejectionReason"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rejectionReason"))
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["rejectionReason"] = arg2
 	return args, nil
 }
 
@@ -9809,48 +9728,6 @@ func (ec *executionContext) _Microservice_description(ctx context.Context, field
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_completeSignup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_completeSignup_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CompleteSignup(rctx, args["flavour"].(feedlib.Flavour))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_updateUserProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -10896,48 +10773,6 @@ func (ec *executionContext) _Mutation_addOrganizationNutritionKYC(ctx context.Co
 	res := resTmp.(*domain.OrganizationNutrition)
 	fc.Result = res
 	return ec.marshalNOrganizationNutrition2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐOrganizationNutrition(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_processKYCRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_processKYCRequest_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ProcessKYCRequest(rctx, args["id"].(string), args["status"].(domain.KYCProcessStatus), args["rejectionReason"].(*string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_recordPostVisitSurvey(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -21961,11 +21796,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "completeSignup":
-			out.Values[i] = ec._Mutation_completeSignup(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "updateUserProfile":
 			out.Values[i] = ec._Mutation_updateUserProfile(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -22085,11 +21915,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addOrganizationNutritionKYC":
 			out.Values[i] = ec._Mutation_addOrganizationNutritionKYC(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "processKYCRequest":
-			out.Values[i] = ec._Mutation_processKYCRequest(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -24020,16 +23845,6 @@ func (ec *executionContext) marshalNFieldType2githubᚗcomᚋsavannahghiᚋenumu
 	return v
 }
 
-func (ec *executionContext) unmarshalNFlavour2githubᚗcomᚋsavannahghiᚋfeedlibᚐFlavour(ctx context.Context, v interface{}) (feedlib.Flavour, error) {
-	var res feedlib.Flavour
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNFlavour2githubᚗcomᚋsavannahghiᚋfeedlibᚐFlavour(ctx context.Context, sel ast.SelectionSet, v feedlib.Flavour) graphql.Marshaler {
-	return v
-}
-
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloat(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -24197,16 +24012,6 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNKYCProcessStatus2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐKYCProcessStatus(ctx context.Context, v interface{}) (domain.KYCProcessStatus, error) {
-	var res domain.KYCProcessStatus
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNKYCProcessStatus2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐKYCProcessStatus(ctx context.Context, sel ast.SelectionSet, v domain.KYCProcessStatus) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) unmarshalNLoginProviderType2githubᚗcomᚋsavannahghiᚋprofileutilsᚐLoginProviderType(ctx context.Context, v interface{}) (profileutils.LoginProviderType, error) {

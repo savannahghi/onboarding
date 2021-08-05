@@ -12,8 +12,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
-
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 )
 
 const (
@@ -73,7 +71,6 @@ type ServicePubSub interface {
 type ServicePubSubMessaging struct {
 	client  *pubsub.Client
 	baseExt extension.BaseExtension
-	erp     erp.AccountingUsecase
 	crm     crm.ServiceCrm
 	repo    repository.OnboardingRepository
 }
@@ -82,14 +79,12 @@ type ServicePubSubMessaging struct {
 func NewServicePubSubMessaging(
 	client *pubsub.Client,
 	ext extension.BaseExtension,
-	erp erp.AccountingUsecase,
 	crm crm.ServiceCrm,
 	repo repository.OnboardingRepository,
 ) (*ServicePubSubMessaging, error) {
 	s := &ServicePubSubMessaging{
 		client:  client,
 		baseExt: ext,
-		erp:     erp,
 		crm:     crm,
 		repo:    repo,
 	}

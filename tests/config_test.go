@@ -39,7 +39,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
 	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
@@ -114,7 +113,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
 
-	erp := erp.NewAccounting()
 	hubspotService := hubspot.NewHubSpotService()
 	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
 	if err != nil {
@@ -126,7 +124,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
-		erp,
 		crmExt,
 		repo,
 	)
@@ -137,7 +134,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	pinExt := extension.NewPINExtensionImpl()
 	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
 
-	supplier := usecases.NewSupplierUseCases(repo, profile, erp, engage, mes, ext, ps)
+	supplier := usecases.NewSupplierUseCases(repo, profile, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
@@ -152,7 +149,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		Login:      login,
 		Survey:     survey,
 		UserPIN:    userpin,
-		ERP:        erp,
 		Engagement: engage,
 		NHIF:       nhif,
 		PubSub:     ps,
