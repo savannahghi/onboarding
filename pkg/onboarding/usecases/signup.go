@@ -247,15 +247,10 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		log.Printf("failed to publish to crm.contact.create topic: %v", err)
 	}
 
-	// get navigation actions
-	roles, err := s.onboardingRepository.GetRolesByIDs(ctx, profile.Roles)
+	navActions, err := s.profileUsecase.GetNavActions(ctx, *profile)
 	if err != nil {
-		return nil, err
-	}
-
-	navActions, err := utils.GetUserNavigationActions(ctx, *profile, *roles)
-	if err != nil {
-		return nil, err
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(err)
 	}
 
 	return &profileutils.UserResponse{
@@ -264,7 +259,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		CustomerProfile:       customer,
 		CommunicationSettings: comms,
 		Auth:                  *auth,
-		NavActions:            utils.NewActionsMapper(ctx, navActions),
+		NavActions:            navActions,
 	}, nil
 }
 

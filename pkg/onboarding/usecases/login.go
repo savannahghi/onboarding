@@ -117,15 +117,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 	}
 
 	// get navigation actions
-	roles, err := l.onboardingRepository.GetRolesByIDs(ctx, profile.Roles)
-	if err != nil {
-		return nil, err
-	}
-
-	navActions, err := utils.GetUserNavigationActions(ctx, *profile, *roles)
-	if err != nil {
-		return nil, err
-	}
+	navActions, err := l.profile.GetNavActions(ctx, *profile)
 
 	if err != nil {
 		utils.RecordSpanError(span, err)
@@ -138,7 +130,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 		SupplierProfile:       supplier,
 		Auth:                  *auth,
 		CommunicationSettings: comms,
-		NavActions:            utils.NewActionsMapper(ctx, navActions),
+		NavActions:            navActions,
 	}, nil
 }
 

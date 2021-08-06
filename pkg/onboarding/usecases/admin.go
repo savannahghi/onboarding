@@ -80,6 +80,10 @@ func (a *AdminUseCaseImpl) RegisterAdmin(ctx context.Context, input dto.Register
 		return nil, err
 	}
 
+	if !usp.HasPermission(profileutils.PermissionTypeCreateAdmin) {
+		return nil, exceptions.RoleNotValid(fmt.Errorf("error: logged in user does not have permissions to create admin"))
+	}
+
 	timestamp := time.Now().In(pubsubtools.TimeLocation)
 	adminProfile := profileutils.UserProfile{
 		PrimaryEmailAddress: &input.Email,
