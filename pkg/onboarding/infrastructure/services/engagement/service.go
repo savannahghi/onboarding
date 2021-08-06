@@ -17,7 +17,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/profileutils"
-	"github.com/savannahghi/serverutils"
 )
 
 const (
@@ -43,18 +42,6 @@ const (
 
 // ServiceEngagement represents engagement usecases
 type ServiceEngagement interface {
-	PublishKYCNudge(
-		ctx context.Context,
-		uid string,
-		payload feedlib.Nudge,
-	) (*http.Response, error)
-
-	PublishKYCFeedItem(
-		ctx context.Context,
-		uid string,
-		payload feedlib.Item,
-	) (*http.Response, error)
-
 	ResolveDefaultNudgeByTitle(
 		ctx context.Context,
 		UID string,
@@ -68,10 +55,6 @@ type ServiceEngagement interface {
 		message string,
 		subject string,
 	) error
-
-	SendAlertToSupplier(ctx context.Context, input dto.EmailNotificationPayload) error
-
-	NotifyAdmins(ctx context.Context, input dto.EmailNotificationPayload) error
 
 	NotifySupplierOnSuspension(ctx context.Context, input dto.EmailNotificationPayload) error
 
@@ -108,34 +91,6 @@ func NewServiceEngagementImpl(
 		Engage:  eng,
 		baseExt: ext,
 	}
-}
-
-// PublishKYCNudge calls the `engagement service` to publish
-// a KYC nudge
-func (en *ServiceEngagementImpl) PublishKYCNudge(
-	ctx context.Context,
-	uid string,
-	payload feedlib.Nudge,
-) (*http.Response, error) {
-	return en.Engage.MakeRequest(ctx,
-		http.MethodPost,
-		fmt.Sprintf(publishNudge, uid),
-		payload,
-	)
-}
-
-// PublishKYCFeedItem calls the `engagement service` to publish
-// a KYC feed item
-func (en *ServiceEngagementImpl) PublishKYCFeedItem(
-	ctx context.Context,
-	uid string,
-	payload feedlib.Item,
-) (*http.Response, error) {
-	return en.Engage.MakeRequest(ctx,
-		http.MethodPost,
-		fmt.Sprintf(publishItem, uid),
-		payload,
-	)
 }
 
 // ResolveDefaultNudgeByTitle calls the `engagement service`
@@ -209,76 +164,6 @@ func (en *ServiceEngagementImpl) SendMail(
 			err,
 			resp.StatusCode,
 		)
-	}
-
-	return nil
-}
-
-//SendAlertToSupplier send email to supplier to acknowledgement receipt of
-// KYC request/documents.
-func (en *ServiceEngagementImpl) SendAlertToSupplier(ctx context.Context, input dto.EmailNotificationPayload) error {
-	var writer bytes.Buffer
-	t := template.Must(template.New("acknowledgementKYCEmail").Parse(utils.AcknowledgementKYCEmail))
-	_ = t.Execute(&writer, dto.EmailNotificationPayload{
-		SupplierName: input.SupplierName,
-		PartnerType:  input.PartnerType,
-		AccountType:  input.AccountType,
-		EmailBody:    input.EmailBody,
-		EmailAddress: input.EmailAddress,
-		PrimaryPhone: input.PrimaryPhone,
-	})
-
-	body := map[string]interface{}{
-		"to":      []string{input.EmailAddress},
-		"text":    writer.String(),
-		"subject": input.SubjectTitle,
-	}
-
-	resp, err := en.Engage.MakeRequest(ctx, http.MethodPost, sendEmail, body)
-	if err != nil {
-		return fmt.Errorf("unable to send alert to supplier email: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unable to send alert to supplier email: %w", err)
-	}
-
-	return nil
-}
-
-//NotifyAdmins send email to admin notifying them of new
-// KYC Request.
-func (en *ServiceEngagementImpl) NotifyAdmins(ctx context.Context, input dto.EmailNotificationPayload) error {
-
-	adminEmail, err := serverutils.GetEnvVar("SAVANNAH_ADMIN_EMAIL")
-	if err != nil {
-		return err
-	}
-
-	var writer bytes.Buffer
-	t := template.Must(template.New("adminKYCSubmittedEmail").Parse(utils.AdminKYCSubmittedEmail))
-	_ = t.Execute(&writer, dto.EmailNotificationPayload{
-		SupplierName: input.SupplierName,
-		PartnerType:  input.PartnerType,
-		AccountType:  input.AccountType,
-		EmailBody:    input.EmailBody,
-		EmailAddress: input.EmailAddress,
-		PrimaryPhone: input.PrimaryPhone,
-	})
-
-	body := map[string]interface{}{
-		"to":      []string{adminEmail},
-		"text":    writer.String(),
-		"subject": input.SubjectTitle,
-	}
-
-	resp, err := en.Engage.MakeRequest(ctx, http.MethodPost, sendEmail, body)
-	if err != nil {
-		return fmt.Errorf("unable to send alert to admin email: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unable to send alert to admin email: %w", err)
 	}
 
 	return nil

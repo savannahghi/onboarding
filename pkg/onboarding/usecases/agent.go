@@ -123,7 +123,6 @@ func (a *AgentUseCaseImpl) RegisterAgent(
 	sup := profileutils.Supplier{
 		IsOrganizationVerified: true,
 		SladeCode:              SavannahSladeCode,
-		KYCSubmitted:           true,
 		PartnerSetupComplete:   true,
 		OrganizationName:       SavannahOrgName,
 	}

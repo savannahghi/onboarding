@@ -15,7 +15,6 @@ const (
 	ConsumerNavActionURL = StaticBase + "/actions/consumer_navaction.png"
 	HelpNavActionURL     = StaticBase + "/actions/help_navaction.png"
 	HomeNavActionURL     = StaticBase + "/actions/home_navaction.png"
-	KYCNavActionURL      = StaticBase + "/actions/kyc_navaction.png"
 	PartnerNavActionURL  = StaticBase + "/actions/partner_navaction.png"
 	PatientNavActionURL  = StaticBase + "/actions/patient_navaction.png"
 	RequestNavActionURL  = StaticBase + "/actions/request_navaction.png"

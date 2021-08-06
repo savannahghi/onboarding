@@ -90,7 +90,6 @@ func TestMain(m *testing.M) {
 				r.GetCommunicationsSettingsCollectionName(),
 				r.GetCustomerProfileCollectionName(),
 				r.GetExperimentParticipantCollectionName(),
-				r.GetKCYProcessCollectionName(),
 				r.GetMarketingDataCollectionName(),
 				r.GetNHIFDetailsCollectionName(),
 				r.GetProfileNudgesCollectionName(),

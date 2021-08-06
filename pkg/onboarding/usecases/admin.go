@@ -114,7 +114,6 @@ func (a *AdminUseCaseImpl) RegisterAdmin(ctx context.Context, input dto.Register
 	sup := profileutils.Supplier{
 		IsOrganizationVerified: true,
 		SladeCode:              SavannahSladeCode,
-		KYCSubmitted:           true,
 		PartnerSetupComplete:   true,
 		OrganizationName:       SavannahOrgName,
 	}

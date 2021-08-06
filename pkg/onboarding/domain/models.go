@@ -5,7 +5,6 @@ import (
 
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/firebasetools"
-	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
 )
 
@@ -17,23 +16,6 @@ type Branch struct {
 	BranchSladeCode       string `json:"branchSladeCode" firestore:"branchSladeCode"`
 	// this won' be saved in the repository. it will be computed when fetching the supplier's allowed locations
 	Default bool `json:"default"`
-}
-
-// KYCRequest represent payload required to stage kyc processing request
-type KYCRequest struct {
-	ID                  string                   `json:"id" firestore:"id"`
-	ReqPartnerType      profileutils.PartnerType `json:"reqPartnerType" firestore:"reqPartnerType"`
-	ReqOrganizationType OrganizationType         `json:"reqOrganizationType" firestore:"reqOrganizationType"`
-	ReqRaw              map[string]interface{}   `json:"reqRaw" firestore:"reqRaw"`
-	Processed           bool                     `json:"processed" firestore:"processed"`
-	SupplierRecord      *profileutils.Supplier   `json:"supplierRecord" firestore:"supplierRecord"`
-	Status              KYCProcessStatus         `json:"status" firestore:"status"`
-	RejectionReason     *string                  `json:"rejectionRejection" firestore:"rejectionRejection"`
-	FiledTimestamp      time.Time                `json:"filedTimeStamp" firestore:"filedTimeStamp"`
-	ProcessedTimestamp  time.Time                `json:"processedTimeStamp" firestore:"processedTimeStamp"`
-
-	// points to the userProfile id of the addmin that has processed the KYC
-	ProcessedBy string `json:"processedBy" firestore:"processedBy"`
 }
 
 // BusinessPartner represents a Slade 360 Charge Master business partner

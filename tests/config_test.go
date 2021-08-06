@@ -339,41 +339,6 @@ func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, err
 	return s.Engagement.GenerateAndSendOTP(ctx, phone)
 }
 
-func setPrimaryEmailAddress(ctx context.Context, t *testing.T, emailAddress string) error {
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return fmt.Errorf("unable to initialize test service: %v", err)
-	}
-
-	return s.Onboarding.UpdatePrimaryEmailAddress(ctx, emailAddress)
-}
-
-func updateBioData(ctx context.Context, t *testing.T, data profileutils.BioData) error {
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return fmt.Errorf("unable to initialize test service: %v", err)
-	}
-
-	return s.Onboarding.UpdateBioData(ctx, data)
-}
-
-func addPartnerType(ctx context.Context, t *testing.T, name *string, partnerType profileutils.PartnerType) (bool, error) {
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return false, fmt.Errorf("unable to initialize test service: %v", err)
-	}
-
-	return s.Supplier.AddPartnerType(ctx, name, &partnerType)
-}
-
-func setUpSupplier(ctx context.Context, t *testing.T, accountType profileutils.AccountType) (*profileutils.Supplier, error) {
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize test service: %v", err)
-	}
-	return s.Supplier.SetUpSupplier(ctx, accountType)
-}
-
 func setUpLoggedInTestUserGraphHeaders(t *testing.T) map[string]string {
 	// create a user and their profile
 	phoneNumber := interserviceclient.TestUserPhoneNumber
@@ -474,7 +439,6 @@ func TestMain(m *testing.M) {
 				r.GetCommunicationsSettingsCollectionName(),
 				r.GetCustomerProfileCollectionName(),
 				r.GetExperimentParticipantCollectionName(),
-				r.GetKCYProcessCollectionName(),
 				r.GetMarketingDataCollectionName(),
 				r.GetNHIFDetailsCollectionName(),
 				r.GetProfileNudgesCollectionName(),

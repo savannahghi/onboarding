@@ -447,65 +447,6 @@ func TestRepository_StageProfileNudge(t *testing.T) {
 	}
 }
 
-func TestRepository_StageKYCProcessingRequest(t *testing.T) {
-	ctx := context.Background()
-	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt
-	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
-
-	type args struct {
-		ctx  context.Context
-		data *domain.KYCRequest
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "valid:create",
-			args: args{
-				ctx:  ctx,
-				data: &domain.KYCRequest{ID: uuid.New().String()},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid:return_internal_server_error",
-			args: args{
-				ctx:  ctx,
-				data: &domain.KYCRequest{ID: uuid.New().String()},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.name == "valid:create" {
-				fakeFireStoreClientExt.CreateFn = func(ctx context.Context, command *fb.CreateCommand) (*firestore.DocumentRef, error) {
-					doc := firestore.DocumentRef{
-						ID: uuid.New().String(),
-					}
-					return &doc, nil
-				}
-			}
-
-			if tt.name == "valid:return_internal_server_error" {
-				fakeFireStoreClientExt.CreateFn = func(ctx context.Context, command *fb.CreateCommand) (*firestore.DocumentRef, error) {
-					return nil, fmt.Errorf("internal server error")
-				}
-			}
-
-			err := repo.StageKYCProcessingRequest(tt.args.ctx, tt.args.data)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-			} else {
-				assert.Nil(t, err)
-			}
-
-		})
-	}
-}
-
 func TestRepository_UpdateRole(t *testing.T) {
 	ctx := context.Background()
 	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt

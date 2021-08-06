@@ -71,12 +71,6 @@ enum OrganizationType {
   UNIVERSITY
 }
 
-enum KYCProcessStatus {
-  APPROVED
-  REJECTED
-  PENDING
-}
-
 enum Flavour {
   PRO
   CONSUMER
@@ -98,7 +92,6 @@ enum PermissionType {
   REMOVE_SUPPLIER
   SUSPEND_SUPPLIER
   UNSUSPEND_SUPPLIER
-  PROCESS_KYC
 }
 
 enum AddressType {
@@ -170,7 +163,6 @@ enum PermissionGroup {
   PermissionGroupEmployee
   PermissionGroupAgent
   PermissionGroupPartner
-  PermissionGroupKYC
   PermissionGroupConsumer
   PermissionGroupPatient
 }

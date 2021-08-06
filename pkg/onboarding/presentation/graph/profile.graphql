@@ -8,16 +8,12 @@ extend type Query {
 
   resumeWithPIN(pin: String!): Boolean!
   
-
-  fetchKYCProcessingRequests: [KYCRequest]
-
   getAddresses: UserAddresses!
 
   NHIFDetails: NHIFDetails
 
   getUserCommunicationsSettings: UserCommunicationsSetting!
-  checkSupplierKYCSubmitted: Boolean!
-
+ 
   fetchAdmins: [Admin]
 
   fetchAgents: [Agent]
@@ -60,51 +56,14 @@ extend type Mutation {
   suspendSupplier(suspensionReason: String): Boolean!
 
   setUpSupplier(accountType: AccountType!): Supplier
+
+   supplierSetDefaultLocation(locationID: String!): Supplier!
+   
  
 
-  supplierSetDefaultLocation(locationID: String!): Supplier!
-
-  addIndividualRiderKYC(input: IndividualRiderInput!): IndividualRider!
-
-  addOrganizationRiderKYC(input: OrganizationRiderInput!): OrganizationRider!
-
-  addIndividualPractitionerKYC(
-    input: IndividualPractitionerInput!
-  ): IndividualPractitioner!
-
-  addOrganizationPractitionerKYC(
-    input: OrganizationPractitionerInput!
-  ): OrganizationPractitioner!
-
-  addOrganizationProviderKYC(
-    input: OrganizationProviderInput!
-  ): OrganizationProvider!
-
-  addIndividualPharmaceuticalKYC(
-    input: IndividualPharmaceuticalInput!
-  ): IndividualPharmaceutical!
-
-  addOrganizationPharmaceuticalKYC(
-    input: OrganizationPharmaceuticalInput!
-  ): OrganizationPharmaceutical!
-
-  addIndividualCoachKYC(input: IndividualCoachInput!): IndividualCoach!
-
-  addOrganizationCoachKYC(input: OrganizationCoachInput!): OrganizationCoach!
-
-  addIndividualNutritionKYC(
-    input: IndividualNutritionInput!
-  ): IndividualNutrition!
-
-  addOrganizationNutritionKYC(
-    input: OrganizationNutritionInput!
-  ): OrganizationNutrition!
 
   
-
   recordPostVisitSurvey(input: PostVisitSurveyInput!): Boolean!
-
-  retireKYCProcessingRequest: Boolean!
 
   setupAsExperimentParticipant(participate: Boolean): Boolean!
 
