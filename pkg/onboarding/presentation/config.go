@@ -222,6 +222,8 @@ func Router(ctx context.Context) (*mux.Router, error) {
 		loginService.GetVerifyTokenFunc(ctx),
 	)
 
+	r.Path("/bearer_token").Methods(http.MethodGet).HandlerFunc(h.GetBearerTokenAuthorizationHeader())
+
 	r.Path("/pubsub").Methods(
 		http.MethodPost).
 		HandlerFunc(pubSub.ReceivePubSubPushMessages)

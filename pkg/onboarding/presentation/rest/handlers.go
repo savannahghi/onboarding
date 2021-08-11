@@ -2,6 +2,7 @@ package rest
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
+	interservice_login "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/interservice_login"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
@@ -53,6 +55,7 @@ type HandlersInterfaces interface {
 	// USSDEndNotificationHandler() http.HandlerFunc
 	PollServices() http.HandlerFunc
 	CheckHasPermission() http.HandlerFunc
+	GetBearerTokenAuthorizationHeader() http.HandlerFunc
 }
 
 // HandlersInterfacesImpl represents the usecase implementation object
@@ -1212,5 +1215,24 @@ func (h *HandlersInterfacesImpl) CheckHasPermission() http.HandlerFunc {
 		}
 
 		serverutils.WriteJSONResponse(rw, nil, http.StatusOK)
+	}
+}
+
+// GetBearerTokenAuthorizationHeader get the authorization header
+func (h *HandlersInterfacesImpl) GetBearerTokenAuthorizationHeader() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		bearerToken, err := interservice_login.GetInterserviceBearerTokenHeader(ctx)
+		if err != nil {
+			errorcodeutil.RespondWithError(rw, http.StatusInternalServerError, err)
+			return
+		}
+
+		resp, err := json.Marshal(bearerToken)
+		if err != nil {
+			errorcodeutil.RespondWithError(rw, http.StatusInternalServerError, err)
+			return
+		}
+		errorcodeutil.RespondWithJSON(rw, http.StatusOK, resp)
 	}
 }

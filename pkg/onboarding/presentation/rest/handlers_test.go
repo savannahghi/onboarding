@@ -20,22 +20,16 @@ import (
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
-	"github.com/savannahghi/profileutils"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
-	crmDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
-
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	chargemasterMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster/mock"
+	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
-
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
+	interservice_login_mock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/interservice_login/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	messagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging/mock"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
@@ -47,7 +41,12 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases/ussd"
+	"github.com/savannahghi/profileutils"
+	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
+	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
+	crmDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
+	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
@@ -58,6 +57,7 @@ var fakePinExt extMock.PINExtensionImpl
 var serverUrl = "http://localhost:5000"
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
 var fakeEDISvc ediMock.FakeServiceEDI
+var fakeInterSvcMock interservice_login_mock.FakeInterServiceLogin
 
 // InitializeFakeOnboardingInteractor represents a fakeonboarding interactor
 func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
@@ -3918,6 +3918,66 @@ func TestHandlers_CheckPermission(t *testing.T) {
 
 			// call its ServeHTTP method and pass in our Request and ResponseRecorder.
 			svr := h.CheckHasPermission()
+			svr.ServeHTTP(response, req)
+
+			if tt.wantStatus != response.Code {
+				t.Errorf("expected status %d, got %d", tt.wantStatus, response.Code)
+				return
+			}
+		})
+	}
+}
+
+func TestHandlersInterfacesImpl_GetBearerTokenAuthorizationHeader(t *testing.T) {
+	i, err := InitializeFakeOnboardingInteractor()
+	if err != nil {
+		t.Errorf("failed to initialize onboarding interactor: %v", err)
+		return
+	}
+	h := rest.NewHandlersInterfaces(i)
+
+	type args struct {
+		url        string
+		httpMethod string
+		body       io.Reader
+	}
+
+	tests := []struct {
+		name       string
+		args       args
+		wantStatus int
+		wantErr    bool
+	}{
+		{
+			name: "good case",
+			args: args{
+				url:        fmt.Sprintf("%s/bearer_token", serverUrl),
+				httpMethod: http.MethodGet,
+				body:       nil,
+			},
+			wantStatus: http.StatusOK,
+			wantErr:    false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "good case" {
+				fakeInterSvcMock.GetInterserviceBearerTokenHeaderFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
+				}
+			}
+
+			req, err := http.NewRequest(tt.args.httpMethod, tt.args.url, tt.args.body)
+			if err != nil {
+				t.Errorf("can't create new request: %v", err)
+				return
+			}
+
+			// We create a ResponseRecorder to record the response.
+			response := httptest.NewRecorder()
+
+			// call its ServeHTTP method and pass in our Request and ResponseRecorder.
+			svr := h.GetBearerTokenAuthorizationHeader()
 			svr.ServeHTTP(response, req)
 
 			if tt.wantStatus != response.Code {
