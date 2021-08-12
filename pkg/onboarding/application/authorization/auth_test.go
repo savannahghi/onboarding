@@ -3,6 +3,8 @@ package authorization
 import (
 	"testing"
 
+	"github.com/savannahghi/firebasetools"
+	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 )
 
@@ -103,5 +105,42 @@ func TestCheckAuthorization(t *testing.T) {
 				t.Errorf("CheckAuthorization() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestIsAuthorized(t *testing.T) {
+	userInfo := dto.UserInfo{PhoneNumber: interserviceclient.TestUserPhoneNumber, Email: firebasetools.TestUserEmail}
+
+	permission := dto.PermissionInput{
+		Action:   "test",
+		Resource: "http://example.com",
+	}
+
+	type args struct {
+		user       *dto.UserInfo
+		permission dto.PermissionInput
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "valid: args",
+			args: args{
+				user:       &userInfo,
+				permission: permission,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		_, err := IsAuthorized(tt.args.user, tt.args.permission)
+
+		if !tt.wantErr && err != nil {
+			t.Errorf("error not expected, got %v", err)
+		}
+
 	}
 }
