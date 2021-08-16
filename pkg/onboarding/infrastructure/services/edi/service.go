@@ -9,12 +9,15 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
+	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	"github.com/segmentio/ksuid"
 	"gitlab.slade360emr.com/go/apiclient"
 )
 
@@ -46,6 +49,14 @@ type ServiceEdi interface {
 		membernumber string,
 		payersladecode int,
 	) (*http.Response, error)
+
+	CreateCoverLinkingRequest(
+		ctx context.Context,
+		phoneNumber string,
+		membernumber string,
+		payersladecode int,
+		errorMessage string,
+	) (*dto.CoverLinkingNotificationPayload, error)
 }
 
 // ServiceEDIImpl represents EDI usecases
@@ -100,6 +111,37 @@ func (e *ServiceEDIImpl) LinkCover(
 				return nil, fmt.Errorf("failed to make an edi request for coverlinking: %w", err)
 			}
 
+			if resp.StatusCode != http.StatusOK {
+				dataResponse, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					return nil, fmt.Errorf("failed to read request body")
+				}
+
+				data := map[string]interface{}{}
+				err = json.Unmarshal(dataResponse, &data)
+				if err != nil {
+					return nil, fmt.Errorf("bad data returned")
+				}
+
+				// If the response returned has an error, store the details in a collection
+				// This makes it possible for the staff to review
+				errorMessage, ok := data["error"]
+				if ok {
+					errMessage := errorMessage.(string)
+					if !strings.Contains(errMessage, "cover already exists") {
+						_, err := e.CreateCoverLinkingRequest(
+							ctx,
+							phoneNumber,
+							userData.MemberNumber,
+							sladeCode,
+							errMessage,
+						)
+						if err != nil {
+							return nil, err
+						}
+					}
+				}
+			}
 			currentTime := time.Now()
 			coverLinkingEvent := &dto.CoverLinkingEvent{
 				ID:                    uuid.NewString(),
@@ -175,10 +217,83 @@ func (e *ServiceEDIImpl) LinkEDIMemberCover(
 		PushToken:      userProfile.PushTokens,
 	}
 
-	return e.EdiExt.MakeRequest(
+	resp, err := e.EdiExt.MakeRequest(
 		ctx,
 		http.MethodPost,
 		LinkCover,
 		payload,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("the error is %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		dataResponse, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read request body")
+		}
+
+		data := map[string]interface{}{}
+		err = json.Unmarshal(dataResponse, &data)
+		if err != nil {
+			return nil, fmt.Errorf("bad data returned")
+		}
+
+		// If the response returned has an error, store the details in a collection
+		// This makes it possible for the staff to review
+		errorMessage, ok := data["error"]
+		if ok {
+			errMessage := errorMessage.(string)
+			if !strings.Contains(errMessage, "cover already exists") {
+				_, err := e.CreateCoverLinkingRequest(
+					ctx,
+					phoneNumber,
+					membernumber,
+					payersladecode,
+					errMessage,
+				)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
+	return resp, nil
+}
+
+// CreateCoverLinkingRequest creates a cover linking request in the event that
+// automatically linking a cover to a user's profile fails
+func (e *ServiceEDIImpl) CreateCoverLinkingRequest(
+	ctx context.Context,
+	phoneNumber string,
+	membernumber string,
+	payersladecode int,
+	errorMessage string,
+) (*dto.CoverLinkingNotificationPayload, error) {
+	userProfile, err := e.onboardingRepository.GetUserProfileByPhoneNumber(ctx, phoneNumber, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user profile: %w", err)
+	}
+
+	coverNotificationPayload := &dto.CoverLinkingNotificationPayload{
+		ID:             ksuid.New().String(),
+		TimeStamp:      time.Now(),
+		Read:           false,
+		PayerSladeCode: payersladecode,
+		MemberNumber:   membernumber,
+		State:          domain.CoverLinkingRequestPending,
+		FirstName:      userProfile.UserBioData.FirstName,
+		LastName:       userProfile.UserBioData.LastName,
+		PhoneNumber:    phoneNumber,
+		ErrorMessage:   errorMessage,
+	}
+
+	err = e.onboardingRepository.SaveCoverLinkingNotification(ctx, coverNotificationPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save cover linking notification: %w", err)
+	}
+
+	// TODO: Send an alert to the ADMIN
+	return coverNotificationPayload, nil
 }

@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"firebase.google.com/go/auth"
+	"github.com/brianvoe/gofakeit/v5"
 	"github.com/google/uuid"
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
@@ -2152,6 +2153,73 @@ func TestRepository_GetUserProfilesByRoleID(t *testing.T) {
 			}
 			if !tt.wantErr && got == nil {
 				t.Errorf("Repository.GetUserProfilesByRoleID() = %v", got)
+			}
+		})
+	}
+}
+
+func TestRepository_SaveCoverLinkingNotification(t *testing.T) {
+	ctx := context.Background()
+	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt
+	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
+
+	firstName := gofakeit.FirstName()
+	lastName := gofakeit.LastName()
+
+	payload := &dto.CoverLinkingNotificationPayload{
+		FirstName:      &firstName,
+		LastName:       &lastName,
+		MemberNumber:   "1464441",
+		PayerSladeCode: 458,
+		State:          domain.CoverLinkingRequestPending,
+		PhoneNumber:    interserviceclient.TestUserPhoneNumber,
+		ErrorMessage:   "Cover is invalid",
+	}
+
+	type args struct {
+		ctx   context.Context
+		input *dto.CoverLinkingNotificationPayload
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Happy Case -> Save notification successfully",
+			args: args{
+				ctx:   ctx,
+				input: payload,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Sad Case -> Fail to Save notification",
+			args: args{
+				ctx:   ctx,
+				input: payload,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "Happy Case -> Save notification successfully" {
+				fakeFireStoreClientExt.CreateFn = func(ctx context.Context, command *fb.CreateCommand) (*firestore.DocumentRef, error) {
+					doc := firestore.DocumentRef{
+						ID: uuid.New().String(),
+					}
+					return &doc, nil
+				}
+			}
+
+			if tt.name == "Sad Case -> Fail to Save notification" {
+				fakeFireStoreClientExt.CreateFn = func(ctx context.Context, command *fb.CreateCommand) (*firestore.DocumentRef, error) {
+					return nil, fmt.Errorf("failed to save notification")
+				}
+			}
+			if err := repo.SaveCoverLinkingNotification(tt.args.ctx, tt.args.input); (err != nil) != tt.wantErr {
+				t.Errorf("Repository.SaveCoverLinkingNotification() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

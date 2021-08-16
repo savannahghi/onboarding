@@ -361,3 +361,48 @@ func (e *EmploymentType) UnmarshalGQL(v interface{}) error {
 func (e EmploymentType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
+
+// CoverLinkingRequestState is a list of the cover linking states
+type CoverLinkingRequestState string
+
+// CoverLinkingRequestPending ...
+const (
+	CoverLinkingRequestPending  CoverLinkingRequestState = "PENDING"
+	CoverLinkingRequestReviewed CoverLinkingRequestState = "REVIEWED"
+)
+
+// IsValid returns true if the state is valid
+func (e CoverLinkingRequestState) IsValid() bool {
+	switch e {
+	case CoverLinkingRequestPending, CoverLinkingRequestReviewed:
+		return true
+	}
+	return false
+}
+
+// String ...
+func (e CoverLinkingRequestState) String() string {
+	return string(e)
+}
+
+// UnmarshalGQL converts the supplied value to a CoverLinkingRequestState
+func (e *CoverLinkingRequestState) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = CoverLinkingRequestState(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid cover linking request state", str)
+	}
+	return nil
+}
+
+// MarshalGQL writes the CoverLinkingRequestState to the supplied writer
+func (e CoverLinkingRequestState) MarshalGQL(w io.Writer) {
+	_, err := fmt.Fprint(w, strconv.Quote(e.String()))
+	if err != nil {
+		log.Printf("%v\n", err)
+	}
+}

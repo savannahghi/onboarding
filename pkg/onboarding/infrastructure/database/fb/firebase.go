@@ -35,23 +35,24 @@ var tracer = otel.Tracer(
 )
 
 const (
-	userProfileCollectionName            = "user_profiles"
-	supplierProfileCollectionName        = "supplier_profiles"
-	customerProfileCollectionName        = "customer_profiles"
-	pinsCollectionName                   = "pins"
-	surveyCollectionName                 = "post_visit_survey"
-	profileNudgesCollectionName          = "profile_nudges"
-	kycProcessCollectionName             = "kyc_processing"
-	experimentParticipantCollectionName  = "experiment_participants"
-	nhifDetailsCollectionName            = "nhif_details"
-	communicationsSettingsCollectionName = "communications_settings"
-	smsCollectionName                    = "incoming_sms"
-	ussdDataCollectioName                = "ussd_data"
-	firebaseExchangeRefreshTokenURL      = "https://securetoken.googleapis.com/v1/token?key="
-	marketingDataCollectionName          = "marketing_data"
-	ussdEventsCollectionName             = "ussd_events"
-	coverLinkingEventsCollectionName     = "coverlinking_events"
-	rolesCollectionName                  = "user_roles"
+	userProfileCollectionName              = "user_profiles"
+	supplierProfileCollectionName          = "supplier_profiles"
+	customerProfileCollectionName          = "customer_profiles"
+	pinsCollectionName                     = "pins"
+	surveyCollectionName                   = "post_visit_survey"
+	profileNudgesCollectionName            = "profile_nudges"
+	kycProcessCollectionName               = "kyc_processing"
+	experimentParticipantCollectionName    = "experiment_participants"
+	nhifDetailsCollectionName              = "nhif_details"
+	communicationsSettingsCollectionName   = "communications_settings"
+	smsCollectionName                      = "incoming_sms"
+	ussdDataCollectioName                  = "ussd_data"
+	firebaseExchangeRefreshTokenURL        = "https://securetoken.googleapis.com/v1/token?key="
+	marketingDataCollectionName            = "marketing_data"
+	ussdEventsCollectionName               = "ussd_events"
+	coverLinkingEventsCollectionName       = "coverlinking_events"
+	rolesCollectionName                    = "user_roles"
+	coverLinkingNotificationCollectionName = "coverlinking_notification"
 )
 
 // Repository accesses and updates an item that is stored on Firebase
@@ -158,6 +159,13 @@ func (fr Repository) GetMarketingDataCollectionName() string {
 // GetCoverLinkingEventsCollectionName ...
 func (fr Repository) GetCoverLinkingEventsCollectionName() string {
 	suffixed := firebasetools.SuffixCollection(coverLinkingEventsCollectionName)
+	return suffixed
+}
+
+// GetCoverLinkingNotificationCollectionName returns the collection where cover linking
+// notification will be stored
+func (fr Repository) GetCoverLinkingNotificationCollectionName() string {
+	suffixed := firebasetools.SuffixCollection(coverLinkingNotificationCollectionName)
 	return suffixed
 }
 
@@ -4325,4 +4333,26 @@ func (fr *Repository) CheckIfUserHasPermission(
 	}
 
 	return false, nil
+}
+
+// SaveCoverLinkingNotification saves a cover linking notification to the collection
+func (fr *Repository) SaveCoverLinkingNotification(
+	ctx context.Context,
+	input *dto.CoverLinkingNotificationPayload,
+) error {
+	ctx, span := tracer.Start(ctx, "SaveCoverLinkingNotification")
+	defer span.End()
+
+	query := &CreateCommand{
+		CollectionName: fr.GetCoverLinkingNotificationCollectionName(),
+		Data:           input,
+	}
+
+	_, err := fr.FirestoreClient.Create(ctx, query)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return exceptions.AddRecordError(err)
+	}
+
+	return nil
 }

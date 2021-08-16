@@ -447,3 +447,19 @@ type CheckPermissionPayload struct {
 	UID        *string                  `json:"uid"`
 	Permission *profileutils.Permission `json:"permission"`
 }
+
+// CoverLinkingNotificationPayload defines the input for the cover linking process. This happens when
+// autolinking fails. Instead of returning an error message, we store the details so that the
+// staff can review and either approve or reject the request
+type CoverLinkingNotificationPayload struct {
+	ID             string                          `json:"id" firestore:"id"`
+	TimeStamp      time.Time                       `json:"timeStamp" firestore:"timeStamp"`
+	Read           bool                            `json:"read" firestore:"read"`
+	PayerSladeCode int                             `json:"payersladecode" firestore:"payerSladeCode"`
+	MemberNumber   string                          `json:"membernumber" firestore:"memberNumber"`
+	State          domain.CoverLinkingRequestState `json:"state" firestore:"state"`
+	FirstName      *string                         `json:"firstName" firestore:"firstName"`
+	LastName       *string                         `json:"lastName" firestore:"lastName"`
+	PhoneNumber    string                          `json:"phoneNumber" firestore:"phoneNumber"`
+	ErrorMessage   string                          `json:"errorMessage" firestore:"errorMessage"`
+}

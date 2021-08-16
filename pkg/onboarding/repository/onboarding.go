@@ -91,6 +91,8 @@ type OnboardingRepository interface {
 
 	RolesRepository
 
+	CoversRepository
+
 	// creates a user profile of using the provided phone number and uid
 	CreateUserProfile(
 		ctx context.Context,
@@ -345,4 +347,12 @@ type RolesRepository interface {
 
 	// GetUserProfilesByRole retrieves userprofiles with a particular role
 	GetUserProfilesByRoleID(ctx context.Context, role string) ([]*profileutils.UserProfile, error)
+}
+
+// CoversRepository provides access to all database operations for covers
+type CoversRepository interface {
+	SaveCoverLinkingNotification(
+		ctx context.Context,
+		input *dto.CoverLinkingNotificationPayload,
+	) error
 }

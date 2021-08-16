@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"gitlab.slade360emr.com/go/apiclient"
 )
 
@@ -27,6 +28,14 @@ type FakeServiceEDI struct {
 		membernumber string,
 		payersladecode int,
 	) (*http.Response, error)
+
+	CreateCoverLinkingRequestFn func(
+		ctx context.Context,
+		phoneNumber string,
+		membernumber string,
+		payersladecode int,
+		errorMessage string,
+	) (*dto.CoverLinkingNotificationPayload, error)
 }
 
 // LinkCover ...
@@ -55,4 +64,21 @@ func (f *FakeServiceEDI) LinkEDIMemberCover(
 	payersladecode int,
 ) (*http.Response, error) {
 	return f.LinkEDIMemberCoverFn(ctx, phoneNumber, membernumber, payersladecode)
+}
+
+// CreateCoverLinkingRequest represents a mock of the CreateCoverLinkingRequest mock
+func (f *FakeServiceEDI) CreateCoverLinkingRequest(
+	ctx context.Context,
+	phoneNumber string,
+	membernumber string,
+	payersladecode int,
+	errorMessage string,
+) (*dto.CoverLinkingNotificationPayload, error) {
+	return f.CreateCoverLinkingRequestFn(
+		ctx,
+		phoneNumber,
+		membernumber,
+		payersladecode,
+		errorMessage,
+	)
 }

@@ -360,3 +360,93 @@ func TestServiceEDIImpl_LinkEDIMemberCover(t *testing.T) {
 		})
 	}
 }
+
+func TestServiceEDIImpl_CreateCoverLinkingRequest(t *testing.T) {
+	e := edi.NewEdiService(ediClient, r)
+	ctx := context.Background()
+
+	firstName := gofakeit.FirstName()
+	lastName := gofakeit.LastName()
+
+	type args struct {
+		ctx            context.Context
+		phoneNumber    string
+		membernumber   string
+		payersladecode int
+		errorMessage   string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Happy Case -> Create cover linking request",
+			args: args{
+				ctx:            ctx,
+				phoneNumber:    interserviceclient.TestUserPhoneNumber,
+				membernumber:   "1464441",
+				payersladecode: 458,
+				errorMessage:   "invalid cover",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Sad Case -> Fail to save cover linking request",
+			args: args{
+				ctx:         ctx,
+				phoneNumber: interserviceclient.TestUserPhoneNumber,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "Happy Case -> Create cover linking request" {
+				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{
+						UserBioData: profileutils.BioData{
+							FirstName: &firstName,
+							LastName:  &lastName,
+						},
+						PushTokens:   []string{"Oq70MFGhY7fkoEXiQrRvqMm0BqB3"},
+						VerifiedUIDS: []string{"Oq70MFGhY7fkoEXiQrRvqMm0BqB3"},
+					}, nil
+				}
+
+				fakeRepo.SaveCoverLinkingNotificationFn = func(
+					ctx context.Context,
+					input *dto.CoverLinkingNotificationPayload,
+				) error {
+					return nil
+				}
+			}
+
+			if tt.name == "Sad Case -> Fail to save cover linking request" {
+				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{
+						UserBioData: profileutils.BioData{
+							FirstName: &firstName,
+							LastName:  &lastName,
+						},
+						PushTokens:   []string{"Oq70MFGhY7fkoEXiQrRvqMm0BqB3"},
+						VerifiedUIDS: []string{"Oq70MFGhY7fkoEXiQrRvqMm0BqB3"},
+					}, nil
+				}
+
+				fakeRepo.SaveCoverLinkingNotificationFn = func(
+					ctx context.Context,
+					input *dto.CoverLinkingNotificationPayload,
+				) error {
+					return fmt.Errorf("failed to save cover linking notification")
+				}
+			}
+
+			_, err := e.CreateCoverLinkingRequest(tt.args.ctx, tt.args.phoneNumber, tt.args.membernumber, tt.args.payersladecode, tt.args.errorMessage)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ServiceEDIImpl.CreateCoverLinkingRequest() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
