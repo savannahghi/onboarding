@@ -8,6 +8,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        
+      # Wait for lint and test workflow to complete
+      - name: Wait for other checks to succeed
+        uses: lewagon/wait-on-check-action@v0.2
+        with:
+          ref: ${{ github.ref }}
+          running-workflow-name: 'Deployment'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 40
+          check-regexp: .?_and_test
 
       # Setup gcloud CLI
       - uses: google-github-actions/setup-gcloud@master
