@@ -220,7 +220,7 @@ func TestValidateSMSData(t *testing.T) {
 	}
 
 	invalidData := &dto.AfricasTalkingMessage{
-		LinkID: " ",
+		LinkID: "",
 		Text:   text,
 		To:     to,
 		ID:     id,

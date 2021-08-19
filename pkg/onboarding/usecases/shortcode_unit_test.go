@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
+	"github.com/savannahghi/profileutils"
 )
 
 func TestSMSImpl_CreateSMSData(t *testing.T) {
@@ -73,12 +74,30 @@ func TestSMSImpl_CreateSMSData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "Happy:) successfully persist sms message data" {
+				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{
+						ID: uuid.NewString(),
+					}, nil
+				}
+
+				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
+					return nil
+				}
+
+				fakeEngagementSvs.NotifyAdminsFn = func(ctx context.Context, input dto.EmailNotificationPayload) error {
+					return nil
+				}
+
 				fakeRepo.PersistIncomingSMSDataFn = func(ctx context.Context, input *dto.AfricasTalkingMessage) error {
 					return nil
 				}
 			}
 
 			if tt.name == "Sad:( fail to persist sms message data" {
+				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+					return nil, fmt.Errorf("unable to get user profile")
+				}
+
 				fakeRepo.PersistIncomingSMSDataFn = func(ctx context.Context, input *dto.AfricasTalkingMessage) error {
 					return fmt.Errorf("unable to persist sms message data")
 				}
