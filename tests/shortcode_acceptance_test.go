@@ -12,7 +12,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 )
 
-func TestCreateSMSData_acceptance(t *testing.T) {
+func TestProcessShortCodeSMS_acceptance(t *testing.T) {
 	client := http.DefaultClient
 
 	validLinkID := uuid.New().String()

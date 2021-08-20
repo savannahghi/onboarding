@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
+	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 )
 
-func TestSMSImpl_CreateSMSData_integration(t *testing.T) {
+func TestSMSImpl_ProcessShortCodeSMS_integration(t *testing.T) {
 	ctx := context.Background()
 
 	s, err := InitializeTestService(ctx)
@@ -21,10 +23,10 @@ func TestSMSImpl_CreateSMSData_integration(t *testing.T) {
 	text := "Test Covers"
 	to := "3601"
 	id := "60119"
-	from := "+254705385894"
+	from := interserviceclient.TestUserPhoneNumber
 	date := "2021-05-17T13:20:04.490Z"
 
-	validData := &dto.AfricasTalkingMessage{
+	validPayload := &dto.AfricasTalkingMessage{
 		LinkID: validLinkId,
 		Text:   text,
 		To:     to,
@@ -33,14 +35,33 @@ func TestSMSImpl_CreateSMSData_integration(t *testing.T) {
 		From:   from,
 	}
 
-	invalidData := &dto.AfricasTalkingMessage{
-		LinkID: " ",
+	invalidPayload := &dto.AfricasTalkingMessage{
+		LinkID: "",
 		Text:   text,
 		To:     to,
 		ID:     id,
-		Date:   " ",
+		Date:   "",
 		From:   from,
 	}
+
+	_ = s.Engagement.SendSMS(ctx, []string{from}, text)
+
+	supportNotification := &dto.EmailNotificationPayload{
+		EmailBody: text,
+	}
+	_ = s.Engagement.NotifySupportTeam(ctx, *supportNotification)
+
+	contact := &domain.CRMContact{
+		Properties: domain.ContactProperties{
+			Phone:                 validPayload.From,
+			Gender:                string(domain.GeneralOptionTypeNotGiven),
+			FirstChannelOfContact: domain.ChannelOfContactShortcode,
+			BeWellEnrolled:        domain.GeneralOptionTypeNo,
+			OptOut:                domain.GeneralOptionTypeNo,
+		},
+	}
+
+	_ = s.PubSub.NotifyCreateContact(ctx, *contact)
 
 	type args struct {
 		ctx   context.Context
@@ -55,7 +76,7 @@ func TestSMSImpl_CreateSMSData_integration(t *testing.T) {
 			name: "Happy :) successfully persist sms data",
 			args: args{
 				ctx:   ctx,
-				input: *validData,
+				input: *validPayload,
 			},
 			wantErr: false,
 		},
@@ -71,16 +92,16 @@ func TestSMSImpl_CreateSMSData_integration(t *testing.T) {
 			name: "Sad :( fail to persist sms data with invalid sms data",
 			args: args{
 				ctx:   ctx,
-				input: *invalidData,
+				input: *invalidPayload,
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := s.SMS.CreateSMSData(tt.args.ctx, &tt.args.input)
+			err := s.SMS.ProcessShortCodeSMS(tt.args.ctx, &tt.args.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("SMSImpl.CreateSMSData() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("SMSImpl.ProcessShortCodeSMS() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})

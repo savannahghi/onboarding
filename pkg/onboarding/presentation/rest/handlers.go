@@ -19,6 +19,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
+	"github.com/sirupsen/logrus"
 )
 
 // HandlersInterfaces represents all the REST API logic
@@ -1100,9 +1101,10 @@ func (h *HandlersInterfacesImpl) IncomingATSMS() http.HandlerFunc {
 			return
 		}
 
-		err = h.interactor.SMS.CreateSMSData(ctx, validatedPayload)
+		err = h.interactor.SMS.ProcessShortCodeSMS(ctx, validatedPayload)
 		if err != nil {
-			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
+			// log the error instead of returning 404 so that AfricasTalking doesn't keep retrying incase of an error
+			logrus.Print("an error occurred: ", err)
 			return
 		}
 

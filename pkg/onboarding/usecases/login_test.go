@@ -206,7 +206,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
 	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
+	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr, hubspotService)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
@@ -229,7 +229,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
 	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi)
 	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
-	sms := usecases.NewSMSUsecase(repo, ext)
+	sms := usecases.NewSMSUsecase(repo, ext, engage, ps, crmExt)
 
 	aitUssd := ussd.NewUssdUsecases(repo, ext, profile, userpin, su, pinExt, ps, crmExt)
 
@@ -476,7 +476,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
 	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
+	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr, hubspotService)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
@@ -489,7 +489,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
 	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
 	adminSrv := adminSrv.NewService(ext)
-	sms := usecases.NewSMSUsecase(r, ext)
+	sms := usecases.NewSMSUsecase(r, ext, engagementSvc, ps, crmExt)
 	role := usecases.NewRoleUseCases(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
 	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin, role)

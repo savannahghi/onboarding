@@ -77,7 +77,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
 	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
+	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr, hubspotService)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
@@ -88,7 +88,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
 	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
-	sms := usecases.NewSMSUsecase(r, ext)
+	sms := usecases.NewSMSUsecase(r, ext, engagementSvc, ps, crmExt)
 	role := usecases.NewRoleUseCases(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
 	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin, role)
@@ -2679,6 +2679,9 @@ func TestHandlersInterfacesImpl_SetPrimaryPhoneNumber(t *testing.T) {
 			}
 
 			if tt.name == "valid:_successfully_set_a_primary_phonenumber" {
+				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact crmDomain.CRMContact) error {
+					return nil
+				}
 
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					phone := "+254799774466"
@@ -3554,6 +3557,20 @@ func TestHandlersInterfacesImpl_IncomingATSMS(t *testing.T) {
 			response := httptest.NewRecorder()
 
 			if tt.name == "VALID_CASE:Valid_incoming_sms" {
+				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{
+						ID: uuid.NewString(),
+					}, nil
+				}
+
+				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
+					return nil
+				}
+
+				fakeEngagementSvs.NotifySupportTeamFn = func(ctx context.Context, input dto.EmailNotificationPayload) error {
+					return nil
+				}
+
 				fakeRepo.PersistIncomingSMSDataFn = func(ctx context.Context, input *dto.AfricasTalkingMessage) error {
 					return nil
 				}

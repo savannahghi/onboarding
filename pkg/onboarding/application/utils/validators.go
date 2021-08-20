@@ -73,27 +73,27 @@ func ValidateSignUpInput(input *dto.SignUpInput) (*dto.SignUpInput, error) {
 
 // ValidateAficasTalkingSMSData returns AIT validated SMS data
 func ValidateAficasTalkingSMSData(input *dto.AfricasTalkingMessage) (*dto.AfricasTalkingMessage, error) {
-	if input.LinkID == " " {
+	if input.LinkID == "" {
 		return nil, fmt.Errorf("message `linkID` cannot be empty")
 	}
 
-	if input.Text == " " {
+	if input.Text == "" {
 		return nil, fmt.Errorf("`text` message cannot be empty")
 	}
 
-	if input.To == " " {
+	if input.To == "" {
 		return nil, fmt.Errorf("`to` cannot be empty")
 	}
 
-	if input.ID == " " {
+	if input.ID == "" {
 		return nil, fmt.Errorf("message `ID` cannot be empty")
 	}
 
-	if input.Date == " " {
+	if input.Date == "" {
 		return nil, fmt.Errorf("`date` of sending cannot be empty")
 	}
 
-	if input.From == " " {
+	if input.From == "" {
 		return nil, fmt.Errorf("`phone` number cannot be empty")
 	}
 

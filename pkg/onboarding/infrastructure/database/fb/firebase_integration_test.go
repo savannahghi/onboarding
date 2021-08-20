@@ -163,7 +163,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
 	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
+	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr, hubspotService)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,

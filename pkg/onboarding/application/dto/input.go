@@ -281,13 +281,15 @@ type SupplierPayload struct {
 // EmailNotificationPayload is the email payload used to send email
 // supplier and admins for KYC requests
 type EmailNotificationPayload struct {
-	SupplierName string `json:"supplier_name"`
-	PartnerType  string `json:"partner_type"`
-	AccountType  string `json:"account_type"`
-	SubjectTitle string `json:"subject_title"`
-	EmailBody    string `json:"email_body"`
-	EmailAddress string `json:"email_address"`
-	PrimaryPhone string `json:"primary_phone"`
+	SupplierName string                      `json:"supplier_name"`
+	PartnerType  string                      `json:"partner_type"`
+	AccountType  string                      `json:"account_type"`
+	SubjectTitle string                      `json:"subject_title"`
+	EmailBody    string                      `json:"email_body"`
+	EmailAddress string                      `json:"email_address"`
+	PrimaryPhone string                      `json:"primary_phone"`
+	BeWellUser   CRMDomain.GeneralOptionType `json:"bewell_user"`
+	Time         string                      `json:"sending_time"`
 }
 
 // UserProfilePayload is used to update a user's profile.

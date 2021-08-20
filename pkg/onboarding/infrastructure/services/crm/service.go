@@ -13,6 +13,8 @@ type ServiceCrm interface {
 	CreateHubSpotContact(ctx context.Context, contact *hubspotDomain.CRMContact) (*hubspotDomain.CRMContact, error)
 	UpdateHubSpotContact(ctx context.Context, contact *hubspotDomain.CRMContact) (*hubspotDomain.CRMContact, error)
 	GetContactByPhone(ctx context.Context, phone string) (*hubspotDomain.CRMContact, error)
+	SearchContactByPhone(phone string) (*hubspotDomain.ContactSearchResponse, error)
+	CreateHubspotEngagement(ctx context.Context, eng *hubspotDomain.EngagementData) (*hubspotDomain.EngagementData, error)
 }
 
 // Hubspot interacts with `HubSpot` CRM usecases
@@ -45,4 +47,14 @@ func (h *Hubspot) UpdateHubSpotContact(ctx context.Context, contact *hubspotDoma
 // GetContactByPhone gets a hubspot contact on both our crm and firestore
 func (h *Hubspot) GetContactByPhone(ctx context.Context, phone string) (*hubspotDomain.CRMContact, error) {
 	return h.hubSpotUsecases.GetContactByPhone(ctx, phone)
+}
+
+// SearchContactByPhone does a search for a hubspot's phone nnumber
+func (h *Hubspot) SearchContactByPhone(phone string) (*hubspotDomain.ContactSearchResponse, error) {
+	return h.hubSpotUsecases.SearchContactByPhone(phone)
+}
+
+// CreateHubspotEngagement creates a hubspot's engagement
+func (h *Hubspot) CreateHubspotEngagement(ctx context.Context, eng *hubspotDomain.EngagementData) (*hubspotDomain.EngagementData, error) {
+	return h.hubSpotUsecases.CreateHubspotEngagement(ctx, eng)
 }

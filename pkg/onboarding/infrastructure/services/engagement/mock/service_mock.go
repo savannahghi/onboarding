@@ -18,6 +18,7 @@ type FakeServiceEngagement struct {
 	SendAlertToSupplierFn        func(ctx context.Context, input dto.EmailNotificationPayload) error
 	NotifySupplierOnSuspensionFn func(ctx context.Context, input dto.EmailNotificationPayload) error
 	NotifyAdminsFn               func(ctx context.Context, input dto.EmailNotificationPayload) error
+	NotifySupportTeamFn          func(ctx context.Context, input dto.EmailNotificationPayload) error
 	GenerateAndSendOTPFn         func(
 		ctx context.Context,
 		phone string,
@@ -89,6 +90,11 @@ func (f *FakeServiceEngagement) SendAlertToSupplier(ctx context.Context, input d
 // NotifyAdmins ...
 func (f *FakeServiceEngagement) NotifyAdmins(ctx context.Context, input dto.EmailNotificationPayload) error {
 	return f.NotifyAdminsFn(ctx, input)
+}
+
+// NotifySupportTeam ...
+func (f *FakeServiceEngagement) NotifySupportTeam(ctx context.Context, input dto.EmailNotificationPayload) error {
+	return f.NotifySupportTeamFn(ctx, input)
 }
 
 // GenerateAndSendOTP ...

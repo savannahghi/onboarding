@@ -73,6 +73,8 @@ type ServiceEngagement interface {
 
 	NotifyAdmins(ctx context.Context, input dto.EmailNotificationPayload) error
 
+	NotifySupportTeam(ctx context.Context, input dto.EmailNotificationPayload) error
+
 	NotifySupplierOnSuspension(ctx context.Context, input dto.EmailNotificationPayload) error
 
 	GenerateAndSendOTP(
@@ -263,11 +265,49 @@ func (en *ServiceEngagementImpl) NotifyAdmins(ctx context.Context, input dto.Ema
 		SupplierName: input.SupplierName,
 		PartnerType:  input.PartnerType,
 		AccountType:  input.AccountType,
+		SubjectTitle: input.SubjectTitle,
 		EmailBody:    input.EmailBody,
 		EmailAddress: input.EmailAddress,
 		PrimaryPhone: input.PrimaryPhone,
+		BeWellUser:   input.BeWellUser,
+		Time:         input.Time,
 	})
 
+	notifyErr := en.notifyByEmail(ctx, adminEmail, writer, input)
+	if notifyErr != nil {
+		return notifyErr
+	}
+
+	return nil
+}
+
+// NotifySupportTeam notifies support team when a new message arrives from shortcode
+func (en *ServiceEngagementImpl) NotifySupportTeam(ctx context.Context, input dto.EmailNotificationPayload) error {
+
+	adminEmail, err := serverutils.GetEnvVar("SAVANNAH_ADMIN_EMAIL")
+	if err != nil {
+		return err
+	}
+
+	var writer bytes.Buffer
+	t := template.Must(template.New("supportShortCodeNotificationEmail").Parse(utils.SupportShortCodeNotificationEmail))
+	_ = t.Execute(&writer, dto.EmailNotificationPayload{
+		SubjectTitle: input.SubjectTitle,
+		EmailBody:    input.EmailBody,
+		PrimaryPhone: input.PrimaryPhone,
+		BeWellUser:   input.BeWellUser,
+		Time:         input.Time,
+	})
+
+	notifyErr := en.notifyByEmail(ctx, adminEmail, writer, input)
+	if notifyErr != nil {
+		return notifyErr
+	}
+
+	return nil
+}
+
+func (en *ServiceEngagementImpl) notifyByEmail(ctx context.Context, adminEmail string, writer bytes.Buffer, input dto.EmailNotificationPayload) error {
 	body := map[string]interface{}{
 		"to":      []string{adminEmail},
 		"text":    writer.String(),
@@ -276,13 +316,12 @@ func (en *ServiceEngagementImpl) NotifyAdmins(ctx context.Context, input dto.Ema
 
 	resp, err := en.Engage.MakeRequest(ctx, http.MethodPost, sendEmail, body)
 	if err != nil {
-		return fmt.Errorf("unable to send alert to admin email: %w", err)
+		return fmt.Errorf("unable to send alert to admin / support email: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unable to send alert to admin email: %w", err)
+		return fmt.Errorf("unable to send alert to admin or support email: %w", err)
 	}
-
 	return nil
 }
 

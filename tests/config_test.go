@@ -132,7 +132,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
 	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
+	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr, hubspotService)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
 	edi := edi.NewEdiService(ediClient, repo)
@@ -157,7 +157,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
 	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi)
 	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
-	sms := usecases.NewSMSUsecase(repo, ext)
+	sms := usecases.NewSMSUsecase(repo, ext, engage, ps, crmExt)
 	role := usecases.NewRoleUseCases(repo, ext)
 
 	return &interactor.Interactor{
