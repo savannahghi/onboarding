@@ -19,6 +19,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
+	hubspotDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 )
 
 // HandlersInterfaces represents all the REST API logic
@@ -187,7 +188,7 @@ func (h *HandlersInterfacesImpl) OptOut() http.HandlerFunc {
 			return
 		}
 
-		_, err := h.interactor.CrmExt.OptOut(ctx, *p.PhoneNumber)
+		_, err := h.interactor.CrmExt.OptOutOrOptIn(ctx, *p.PhoneNumber, hubspotDomain.GeneralOptionTypeYes)
 		if err != nil {
 			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
 			return

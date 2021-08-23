@@ -9,10 +9,11 @@ import (
 
 // ServiceCrm represents commontools crm lib usecases extension
 type ServiceCrm interface {
-	OptOut(ctx context.Context, phoneNumber string) (*hubspotDomain.CRMContact, error)
+	OptOutOrOptIn(ctx context.Context, phoneNumber string, text hubspotDomain.GeneralOptionType) (*hubspotDomain.CRMContact, error)
 	CreateHubSpotContact(ctx context.Context, contact *hubspotDomain.CRMContact) (*hubspotDomain.CRMContact, error)
 	UpdateHubSpotContact(ctx context.Context, contact *hubspotDomain.CRMContact) (*hubspotDomain.CRMContact, error)
 	GetContactByPhone(ctx context.Context, phone string) (*hubspotDomain.CRMContact, error)
+	IsOptedOut(ctx context.Context, phoneNumber string) (bool, error)
 }
 
 // Hubspot interacts with `HubSpot` CRM usecases
@@ -28,8 +29,8 @@ func NewCrmService(hubSpotUsecases hubspotUsecases.HubSpotUsecases) *Hubspot {
 }
 
 // OptOut marks a user as opted out of our marketing sms on both our firestore snd hubspot
-func (h *Hubspot) OptOut(ctx context.Context, phoneNumber string) (*hubspotDomain.CRMContact, error) {
-	return h.hubSpotUsecases.OptOut(ctx, phoneNumber)
+func (h *Hubspot) OptOutOrOptIn(ctx context.Context, phoneNumber string, text hubspotDomain.GeneralOptionType) (*hubspotDomain.CRMContact, error) {
+	return h.hubSpotUsecases.OptOutOrOptIn(ctx, phoneNumber, text)
 }
 
 // CreateHubSpotContact creates a hubspot contact on both our crm and firestore
@@ -45,4 +46,9 @@ func (h *Hubspot) UpdateHubSpotContact(ctx context.Context, contact *hubspotDoma
 // GetContactByPhone gets a hubspot contact on both our crm and firestore
 func (h *Hubspot) GetContactByPhone(ctx context.Context, phone string) (*hubspotDomain.CRMContact, error) {
 	return h.hubSpotUsecases.GetContactByPhone(ctx, phone)
+}
+
+// IsOptedOut checks if a user has opted out of our promotional/marketing messages
+func (h *Hubspot) IsOptedOut(ctx context.Context, phoneNumber string) (bool, error) {
+	return h.hubSpotUsecases.IsOptedOut(ctx, phoneNumber)
 }

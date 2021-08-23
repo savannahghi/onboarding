@@ -33,9 +33,9 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/vektah/gqlparser/v2 v2.1.0
-	gitlab.slade360emr.com/go/apiclient v0.0.14
+	gitlab.slade360emr.com/go/apiclient v0.0.17
 	gitlab.slade360emr.com/go/commontools/accounting v0.0.0-20210726041609-f5e1334c2640
-	gitlab.slade360emr.com/go/commontools/crm v0.0.0-20210726041609-f5e1334c2640
+	gitlab.slade360emr.com/go/commontools/crm v0.0.0-20210820122023-7a581f80cb5f
 	go.opencensus.io v0.23.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.21.0
 	go.opentelemetry.io/otel v1.0.0-RC1

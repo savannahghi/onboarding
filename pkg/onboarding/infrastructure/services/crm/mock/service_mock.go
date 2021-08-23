@@ -8,15 +8,16 @@ import (
 
 // FakeServiceCrm ..
 type FakeServiceCrm struct {
-	OptOutFn               func(ctx context.Context, phoneNumber string) (*hubspotDomain.CRMContact, error)
+	OptOutFn               func(ctx context.Context, phoneNumber string, text hubspotDomain.GeneralOptionType) (*hubspotDomain.CRMContact, error)
 	CreateHubSpotContactFn func(ctx context.Context, contact *hubspotDomain.CRMContact) (*hubspotDomain.CRMContact, error)
 	UpdateHubSpotContactFn func(ctx context.Context, contact *hubspotDomain.CRMContact) (*hubspotDomain.CRMContact, error)
 	GetContactByPhoneFn    func(ctx context.Context, phone string) (*hubspotDomain.CRMContact, error)
+	IsOptedOutFn           func(ctx context.Context, phoneNumber string) (bool, error)
 }
 
 // OptOut ..
-func (f *FakeServiceCrm) OptOut(ctx context.Context, phoneNumber string) (*hubspotDomain.CRMContact, error) {
-	return f.OptOutFn(ctx, phoneNumber)
+func (f *FakeServiceCrm) OptOutOrOptIn(ctx context.Context, phoneNumber string, text hubspotDomain.GeneralOptionType) (*hubspotDomain.CRMContact, error) {
+	return f.OptOutFn(ctx, phoneNumber, text)
 }
 
 // CreateHubSpotContact ..
@@ -32,4 +33,8 @@ func (f *FakeServiceCrm) UpdateHubSpotContact(ctx context.Context, contact *hubs
 // GetContactByPhone ..
 func (f *FakeServiceCrm) GetContactByPhone(ctx context.Context, phone string) (*hubspotDomain.CRMContact, error) {
 	return f.GetContactByPhoneFn(ctx, phone)
+}
+
+func (f *FakeServiceCrm) IsOptedOut(ctx context.Context, phoneNumber string) (bool, error) {
+	return f.IsOptedOutFn(ctx, phoneNumber)
 }

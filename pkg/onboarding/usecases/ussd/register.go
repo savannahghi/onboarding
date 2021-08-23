@@ -9,6 +9,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/scalarutils"
+	hubspotDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 )
 
 const (
@@ -49,9 +50,11 @@ const (
 	USSDOptOut = "opted out"
 )
 
+var generalOption hubspotDomain.GeneralOptionType
 var userFirstName string
 var userLastName string
 var date string
+var UssdOptText string
 
 // HandleUserRegistration ...
 func (u *Impl) HandleUserRegistration(ctx context.Context, session *domain.USSDLeadDetails, userResponse string) string {
@@ -74,13 +77,22 @@ func (u *Impl) HandleUserRegistration(ctx context.Context, session *domain.USSDL
 		}
 
 		resp := "CON Welcome to Be.Well\r\n"
-		resp += "1. Register\r\n"
-		resp += "2. Opt Out\r\n"
+		resp = u.IsOptedOut(ctx, session.PhoneNumber, resp)
 		return resp
 	}
 
 	if userResponse == RegOptOutInput && session.Level == InitialState {
-		_, err := u.crm.OptOut(ctx, session.PhoneNumber)
+		isOptOut, err := u.crm.IsOptedOut(ctx, session.PhoneNumber)
+		if err != nil {
+			return "END Something went wrong. Please try again."
+		}
+		UssdOptText = "out of marketing messages\r\n"
+		generalOption = hubspotDomain.GeneralOptionTypeYes
+		if isOptOut {
+			generalOption = hubspotDomain.GeneralOptionTypeNo
+			UssdOptText = "in to marketing messages\r\n"
+		}
+		_, err = u.crm.OptOutOrOptIn(ctx, session.PhoneNumber, generalOption)
 		if err != nil {
 			return "END Something went wrong. Please try again."
 		}
@@ -97,7 +109,7 @@ func (u *Impl) HandleUserRegistration(ctx context.Context, session *domain.USSDL
 		}
 
 		resp := "CON We have successfully opted you\r\n"
-		resp += "out of marketing messages\r\n"
+		resp += UssdOptText
 		resp += "0. Go back home"
 		return resp
 	}
@@ -321,7 +333,25 @@ func (u *Impl) HandleUserRegistration(ctx context.Context, session *domain.USSDL
 		return u.HandleHomeMenu(ctx, HomeMenuState, session, userResponse)
 	}
 	resp := "CON Invalid choice. Try again.\r\n"
+	resp = u.IsOptedOut(ctx, session.PhoneNumber, resp)
+	return resp
+}
+
+//IsOptedOut  checks if a user has opted out of our promotional/marketing messages
+//and returns the correct response register menu
+func (u *Impl) IsOptedOut(ctx context.Context, phoneNumber string, text string) string {
+	OptedOut, err := u.crm.IsOptedOut(ctx, phoneNumber)
+	if err != nil {
+		return "END Something went wrong. Please try again."
+	}
+	if !OptedOut {
+		resp := text
+		resp += "1. Register\r\n"
+		resp += "2. Opt Out\r\n"
+		return resp
+	}
+	resp := text
 	resp += "1. Register\r\n"
-	resp += "2. Opt Out\r\n"
+	resp += "2. Opt In\r\n"
 	return resp
 }

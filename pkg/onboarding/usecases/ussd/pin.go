@@ -188,7 +188,15 @@ func (u *Impl) HandleChangePIN(ctx context.Context, session *domain.USSDLeadDeta
 			return "END Something went wrong. Please try again."
 		}
 
-		return u.ResetPinMenu()
+		OptedOut, err := u.crm.IsOptedOut(ctx, session.PhoneNumber)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			return "END Something went wrong. Please try again."
+		}
+		if !OptedOut {
+			return u.ResetPinMenu(OptOutText)
+		}
+		return u.ResetPinMenu(OptInText)
 	}
 
 	if userResponse != GoBackHomeInput && userResponse != EmptyInput && userResponse != ChangePINInput {
@@ -278,8 +286,15 @@ func (u *Impl) HandlePINReset(ctx context.Context, session *domain.USSDLeadDetai
 		}); err != nil {
 			return "END Something went wrong. Please try again."
 		}
-
-		return u.ResetPinMenu()
+		OptedOut, err := u.crm.IsOptedOut(ctx, session.PhoneNumber)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			return "END Something went wrong. Please try again."
+		}
+		if !OptedOut {
+			return u.ResetPinMenu(OptOutText)
+		}
+		return u.ResetPinMenu(OptInText)
 	}
 	if session.Level == ForgotPINVerifyDate {
 		profile, err := u.onboardingRepository.GetUserProfileByPrimaryPhoneNumber(ctx, session.PhoneNumber, false)

@@ -106,6 +106,7 @@ func TestImpl_HandleChangePIN_Unittest(t *testing.T) {
 				fakeRepo.SaveUSSDEventFn = func(ctx context.Context, input *dto.USSDEvent) (*dto.USSDEvent, error) {
 					return &dto.USSDEvent{}, nil
 				}
+
 			}
 			if tt.name == "go back home" {
 				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
@@ -119,6 +120,9 @@ func TestImpl_HandleChangePIN_Unittest(t *testing.T) {
 				}
 				fakeRepo.UpdateSessionLevelFn = func(ctx context.Context, sessionID string, level int) (*domain.USSDLeadDetails, error) {
 					return &domain.USSDLeadDetails{}, nil
+				}
+				fakeCrm.IsOptedOutFn = func(ctx context.Context, phoneNumber string) (bool, error) {
+					return false, nil
 				}
 			}
 			if tt.name == "change pin option 2 selected" {
@@ -134,11 +138,17 @@ func TestImpl_HandleChangePIN_Unittest(t *testing.T) {
 				fakeRepo.UpdateSessionLevelFn = func(ctx context.Context, sessionID string, level int) (*domain.USSDLeadDetails, error) {
 					return &domain.USSDLeadDetails{}, nil
 				}
+				fakeCrm.IsOptedOutFn = func(ctx context.Context, phoneNumber string) (bool, error) {
+					return false, nil
+				}
 			}
 
 			if tt.name == "Sad case :invalid input" {
 				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("an error occurred: %v", err)
+				}
+				fakeCrm.IsOptedOutFn = func(ctx context.Context, phoneNumber string) (bool, error) {
+					return false, nil
 				}
 			}
 

@@ -87,7 +87,7 @@ func TestParseKYCAsMap(t *testing.T) {
 		t.Errorf("failed to initialize hubspot crm repository: %w", err)
 		return
 	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
+	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr, hubspotService)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,

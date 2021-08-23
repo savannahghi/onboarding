@@ -96,7 +96,7 @@ func TestImpl_HandleUserRegistration_Unittest(t *testing.T) {
 					return &domain.USSDLeadDetails{}, nil
 				}
 
-				fakeCrm.OptOutFn = func(ctx context.Context, phoneNumber string) (*hubspotDomain.CRMContact, error) {
+				fakeCrm.OptOutFn = func(ctx context.Context, phoneNumber string, text hubspotDomain.GeneralOptionType) (*hubspotDomain.CRMContact, error) {
 					return &hubspotDomain.CRMContact{ContactID: uuid.NewString()}, nil
 				}
 
@@ -105,11 +105,17 @@ func TestImpl_HandleUserRegistration_Unittest(t *testing.T) {
 						SessionID: uuid.NewString(),
 					}, nil
 				}
+				fakeCrm.IsOptedOutFn = func(ctx context.Context, phoneNumber string) (bool, error) {
+					return false, nil
+				}
 			}
 
 			if tt.name == "Sad_case:optout" {
-				fakeCrm.OptOutFn = func(ctx context.Context, phoneNumber string) (*hubspotDomain.CRMContact, error) {
+				fakeCrm.OptOutFn = func(ctx context.Context, phoneNumber string, text hubspotDomain.GeneralOptionType) (*hubspotDomain.CRMContact, error) {
 					return nil, fmt.Errorf("an error occurred %w", err)
+				}
+				fakeCrm.IsOptedOutFn = func(ctx context.Context, phoneNumber string) (bool, error) {
+					return false, nil
 				}
 			}
 
