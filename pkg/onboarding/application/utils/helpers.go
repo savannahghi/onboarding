@@ -196,7 +196,7 @@ func NewActionsMapper(ctx context.Context, grouped *dto.GroupedNavigationActions
 		action := grouped.Primary[i]
 		c := profileutils.NavAction{
 			Title:      action.Title,
-			OnTapRoute: action.OnTapRoute,
+			OnTapRoute: action.OnTapRoute.String(),
 			Favourite:  action.Favorite,
 			Icon:       feedlib.GetSVGImageLink(action.Icon, action.Title, action.Title, action.Title),
 		}
@@ -207,7 +207,7 @@ func NewActionsMapper(ctx context.Context, grouped *dto.GroupedNavigationActions
 		action := grouped.Secondary[i]
 		c := profileutils.NavAction{
 			Title:      action.Title,
-			OnTapRoute: action.OnTapRoute,
+			OnTapRoute: action.OnTapRoute.String(),
 			Favourite:  action.Favorite,
 			Icon:       feedlib.GetSVGImageLink(action.Icon, action.Title, action.Title, action.Title),
 		}
@@ -218,7 +218,7 @@ func NewActionsMapper(ctx context.Context, grouped *dto.GroupedNavigationActions
 				nestedAction := (action.Nested[i]).(domain.NavigationAction)
 				m := profileutils.NestedNavAction{
 					Title:      nestedAction.Title,
-					OnTapRoute: nestedAction.OnTapRoute,
+					OnTapRoute: action.OnTapRoute.String(),
 				}
 
 				c.Nested = append(c.Nested, m)

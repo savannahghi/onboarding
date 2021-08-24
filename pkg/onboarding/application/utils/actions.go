@@ -91,9 +91,7 @@ func GetUserNavigationActions(
 }
 
 // GroupNested groups navigation actions into parents and children
-func GroupNested(
-	actions []domain.NavigationAction,
-) []domain.NavigationAction {
+func GroupNested(actions []domain.NavigationAction) []domain.NavigationAction {
 
 	// Array of all parent actions i.e can have nested actions
 	parents := []domain.NavigationAction{}
@@ -112,7 +110,12 @@ func GroupNested(
 				parent.Nested = append(parent.Nested, action)
 			}
 		}
-		grouped = append(grouped, parent)
+
+		//remove all actions that do not have onTapRoute and has no nested children
+		//this removes unnecessary parents
+		if parent.OnTapRoute != domain.DefaultRoute || len(parent.Nested) > 0 {
+			grouped = append(grouped, parent)
+		}
 	}
 
 	return grouped
