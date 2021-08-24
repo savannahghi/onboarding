@@ -319,12 +319,9 @@ func TestUniquePermissionsArray(t *testing.T) {
 
 	duplicatedMixed := []profileutils.PermissionType{}
 	duplicatedMixed = append(duplicatedMixed, profileutils.DefaultAdminPermissions...)
-	duplicatedMixed = append(duplicatedMixed, profileutils.DefaultAgentPermissions...)
 	duplicatedMixed = append(duplicatedMixed, profileutils.DefaultAdminPermissions...)
-	duplicatedMixed = append(duplicatedMixed, profileutils.DefaultAgentPermissions...)
 	mixed := []profileutils.PermissionType{}
 	mixed = append(mixed, profileutils.DefaultAdminPermissions...)
-	mixed = append(mixed, profileutils.DefaultAgentPermissions...)
 
 	type args struct {
 		arr []profileutils.PermissionType

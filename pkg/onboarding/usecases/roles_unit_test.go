@@ -23,7 +23,7 @@ func TestRoleUseCaseImpl_CreateRole(t *testing.T) {
 	}
 
 	input := dto.RoleInput{
-		Name: "Agents",
+		Name: "Provider",
 	}
 
 	allPerms, err := profileutils.AllPermissions(ctx)
@@ -349,7 +349,7 @@ func TestRoleUseCaseImpl_FindRoleByName(t *testing.T) {
 		return
 	}
 
-	roleName := "Employee Role"
+	roleName := "Provider Role"
 
 	allPerms, err := profileutils.AllPermissions(ctx)
 	if err != nil {
@@ -2271,7 +2271,7 @@ func TestRoleUseCaseImpl_CreateUnauthorizedRole(t *testing.T) {
 	}
 
 	input := dto.RoleInput{
-		Name: "Agents",
+		Name: "Provider",
 	}
 
 	allPerms, err := profileutils.AllPermissions(ctx)

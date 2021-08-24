@@ -167,8 +167,6 @@ enum LinkType {
 
 enum PermissionGroup {
   Roles
-  Employees
-  Agents
   Partners
   KYC
   Consumers

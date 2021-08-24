@@ -47,6 +47,7 @@ type Config struct {
 type ResolverRoot interface {
 	Entity() EntityResolver
 	Mutation() MutationResolver
+	NavigationAction() NavigationActionResolver
 	Query() QueryResolver
 	UserProfile() UserProfileResolver
 	VerifiedIdentifier() VerifiedIdentifierResolver
@@ -63,34 +64,6 @@ type ComplexityRoot struct {
 		Longitude        func(childComplexity int) int
 		Name             func(childComplexity int) int
 		PlaceID          func(childComplexity int) int
-	}
-
-	Admin struct {
-		ID                      func(childComplexity int) int
-		PhotoUploadID           func(childComplexity int) int
-		PrimaryEmailAddress     func(childComplexity int) int
-		PrimaryPhone            func(childComplexity int) int
-		ResendPIN               func(childComplexity int) int
-		Roles                   func(childComplexity int) int
-		SecondaryEmailAddresses func(childComplexity int) int
-		SecondaryPhoneNumbers   func(childComplexity int) int
-		Suspended               func(childComplexity int) int
-		TermsAccepted           func(childComplexity int) int
-		UserBioData             func(childComplexity int) int
-	}
-
-	Agent struct {
-		ID                      func(childComplexity int) int
-		PhotoUploadID           func(childComplexity int) int
-		PrimaryEmailAddress     func(childComplexity int) int
-		PrimaryPhone            func(childComplexity int) int
-		ResendPIN               func(childComplexity int) int
-		Roles                   func(childComplexity int) int
-		SecondaryEmailAddresses func(childComplexity int) int
-		SecondaryPhoneNumbers   func(childComplexity int) int
-		Suspended               func(childComplexity int) int
-		TermsAccepted           func(childComplexity int) int
-		UserBioData             func(childComplexity int) int
 	}
 
 	Beneficiary struct {
@@ -641,6 +614,9 @@ type MutationResolver interface {
 	ActivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error)
 	DeactivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error)
 }
+type NavigationActionResolver interface {
+	OnTapRoute(ctx context.Context, obj *domain.NavigationAction) (string, error)
+}
 type QueryResolver interface {
 	DummyQuery(ctx context.Context) (*bool, error)
 	UserProfile(ctx context.Context) (*profileutils.UserProfile, error)
@@ -725,160 +701,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Address.PlaceID(childComplexity), true
-
-	case "Admin.id":
-		if e.complexity.Admin.ID == nil {
-			break
-		}
-
-		return e.complexity.Admin.ID(childComplexity), true
-
-	case "Admin.photoUploadID":
-		if e.complexity.Admin.PhotoUploadID == nil {
-			break
-		}
-
-		return e.complexity.Admin.PhotoUploadID(childComplexity), true
-
-	case "Admin.primaryEmailAddress":
-		if e.complexity.Admin.PrimaryEmailAddress == nil {
-			break
-		}
-
-		return e.complexity.Admin.PrimaryEmailAddress(childComplexity), true
-
-	case "Admin.primaryPhone":
-		if e.complexity.Admin.PrimaryPhone == nil {
-			break
-		}
-
-		return e.complexity.Admin.PrimaryPhone(childComplexity), true
-
-	case "Admin.resendPIN":
-		if e.complexity.Admin.ResendPIN == nil {
-			break
-		}
-
-		return e.complexity.Admin.ResendPIN(childComplexity), true
-
-	case "Admin.roles":
-		if e.complexity.Admin.Roles == nil {
-			break
-		}
-
-		return e.complexity.Admin.Roles(childComplexity), true
-
-	case "Admin.secondaryEmailAddresses":
-		if e.complexity.Admin.SecondaryEmailAddresses == nil {
-			break
-		}
-
-		return e.complexity.Admin.SecondaryEmailAddresses(childComplexity), true
-
-	case "Admin.secondaryPhoneNumbers":
-		if e.complexity.Admin.SecondaryPhoneNumbers == nil {
-			break
-		}
-
-		return e.complexity.Admin.SecondaryPhoneNumbers(childComplexity), true
-
-	case "Admin.suspended":
-		if e.complexity.Admin.Suspended == nil {
-			break
-		}
-
-		return e.complexity.Admin.Suspended(childComplexity), true
-
-	case "Admin.termsAccepted":
-		if e.complexity.Admin.TermsAccepted == nil {
-			break
-		}
-
-		return e.complexity.Admin.TermsAccepted(childComplexity), true
-
-	case "Admin.userBioData":
-		if e.complexity.Admin.UserBioData == nil {
-			break
-		}
-
-		return e.complexity.Admin.UserBioData(childComplexity), true
-
-	case "Agent.id":
-		if e.complexity.Agent.ID == nil {
-			break
-		}
-
-		return e.complexity.Agent.ID(childComplexity), true
-
-	case "Agent.photoUploadID":
-		if e.complexity.Agent.PhotoUploadID == nil {
-			break
-		}
-
-		return e.complexity.Agent.PhotoUploadID(childComplexity), true
-
-	case "Agent.primaryEmailAddress":
-		if e.complexity.Agent.PrimaryEmailAddress == nil {
-			break
-		}
-
-		return e.complexity.Agent.PrimaryEmailAddress(childComplexity), true
-
-	case "Agent.primaryPhone":
-		if e.complexity.Agent.PrimaryPhone == nil {
-			break
-		}
-
-		return e.complexity.Agent.PrimaryPhone(childComplexity), true
-
-	case "Agent.resendPIN":
-		if e.complexity.Agent.ResendPIN == nil {
-			break
-		}
-
-		return e.complexity.Agent.ResendPIN(childComplexity), true
-
-	case "Agent.roles":
-		if e.complexity.Agent.Roles == nil {
-			break
-		}
-
-		return e.complexity.Agent.Roles(childComplexity), true
-
-	case "Agent.secondaryEmailAddresses":
-		if e.complexity.Agent.SecondaryEmailAddresses == nil {
-			break
-		}
-
-		return e.complexity.Agent.SecondaryEmailAddresses(childComplexity), true
-
-	case "Agent.secondaryPhoneNumbers":
-		if e.complexity.Agent.SecondaryPhoneNumbers == nil {
-			break
-		}
-
-		return e.complexity.Agent.SecondaryPhoneNumbers(childComplexity), true
-
-	case "Agent.suspended":
-		if e.complexity.Agent.Suspended == nil {
-			break
-		}
-
-		return e.complexity.Agent.Suspended(childComplexity), true
-
-	case "Agent.termsAccepted":
-		if e.complexity.Agent.TermsAccepted == nil {
-			break
-		}
-
-		return e.complexity.Agent.TermsAccepted(childComplexity), true
-
-	case "Agent.userBioData":
-		if e.complexity.Agent.UserBioData == nil {
-			break
-		}
-
-		return e.complexity.Agent.UserBioData(childComplexity), true
 
 	case "Beneficiary.dateOfBirth":
 		if e.complexity.Beneficiary.DateOfBirth == nil {
@@ -3780,8 +3602,6 @@ enum LinkType {
 
 enum PermissionGroup {
   Roles
-  Employees
-  Agents
   Partners
   KYC
   Consumers
@@ -4831,34 +4651,6 @@ type UserCommunicationsSetting {
   allowTextSMS: Boolean!
   allowPush: Boolean!
   allowEmail: Boolean!
-}
-
-type Admin {
-  id: String!
-  primaryPhone: String!
-  primaryEmailAddress: String
-  secondaryPhoneNumbers: [String]
-  secondaryEmailAddresses: [String]
-  termsAccepted: Boolean
-  suspended: Boolean
-  photoUploadID: String
-  userBioData: BioData
-  resendPIN: Boolean
-  roles: [RoleOutput]
-}
-
-type Agent {
-  id: String!
-  primaryPhone: String!
-  primaryEmailAddress: String
-  secondaryPhoneNumbers: [String]
-  secondaryEmailAddresses: [String]
-  termsAccepted: Boolean
-  suspended: Boolean
-  photoUploadID: String
-  userBioData: BioData
-  resendPIN: Boolean
-  roles: [RoleOutput]
 }
 
 extend type Link {
@@ -6232,722 +6024,6 @@ func (ec *executionContext) _Address_formattedAddress(ctx context.Context, field
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_id(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_primaryPhone(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PrimaryPhone, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_primaryEmailAddress(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PrimaryEmailAddress, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_secondaryPhoneNumbers(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SecondaryPhoneNumbers, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalOString2ᚕstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_secondaryEmailAddresses(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SecondaryEmailAddresses, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalOString2ᚕstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_termsAccepted(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TermsAccepted, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_suspended(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Suspended, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_photoUploadID(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PhotoUploadID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_userBioData(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UserBioData, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(profileutils.BioData)
-	fc.Result = res
-	return ec.marshalOBioData2githubᚗcomᚋsavannahghiᚋprofileutilsᚐBioData(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_resendPIN(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ResendPIN, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Admin_roles(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Admin",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Roles, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]dto.RoleOutput)
-	fc.Result = res
-	return ec.marshalORoleOutput2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_id(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_primaryPhone(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PrimaryPhone, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_primaryEmailAddress(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PrimaryEmailAddress, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_secondaryPhoneNumbers(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SecondaryPhoneNumbers, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalOString2ᚕstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_secondaryEmailAddresses(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SecondaryEmailAddresses, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalOString2ᚕstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_termsAccepted(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TermsAccepted, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_suspended(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Suspended, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_photoUploadID(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PhotoUploadID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_userBioData(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UserBioData, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(profileutils.BioData)
-	fc.Result = res
-	return ec.marshalOBioData2githubᚗcomᚋsavannahghiᚋprofileutilsᚐBioData(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_resendPIN(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ResendPIN, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Agent_roles(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Agent",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Roles, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]dto.RoleOutput)
-	fc.Result = res
-	return ec.marshalORoleOutput2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Beneficiary_name(ctx context.Context, field graphql.CollectedField, obj *model.Beneficiary) (ret graphql.Marshaler) {
@@ -12919,14 +11995,14 @@ func (ec *executionContext) _NavigationAction_onTapRoute(ctx context.Context, fi
 		Object:     "NavigationAction",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.OnTapRoute, nil
+		return ec.resolvers.NavigationAction().OnTapRoute(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -21958,106 +21034,6 @@ func (ec *executionContext) _Address(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
-var adminImplementors = []string{"Admin"}
-
-func (ec *executionContext) _Admin(ctx context.Context, sel ast.SelectionSet, obj *dto.Admin) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, adminImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Admin")
-		case "id":
-			out.Values[i] = ec._Admin_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "primaryPhone":
-			out.Values[i] = ec._Admin_primaryPhone(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "primaryEmailAddress":
-			out.Values[i] = ec._Admin_primaryEmailAddress(ctx, field, obj)
-		case "secondaryPhoneNumbers":
-			out.Values[i] = ec._Admin_secondaryPhoneNumbers(ctx, field, obj)
-		case "secondaryEmailAddresses":
-			out.Values[i] = ec._Admin_secondaryEmailAddresses(ctx, field, obj)
-		case "termsAccepted":
-			out.Values[i] = ec._Admin_termsAccepted(ctx, field, obj)
-		case "suspended":
-			out.Values[i] = ec._Admin_suspended(ctx, field, obj)
-		case "photoUploadID":
-			out.Values[i] = ec._Admin_photoUploadID(ctx, field, obj)
-		case "userBioData":
-			out.Values[i] = ec._Admin_userBioData(ctx, field, obj)
-		case "resendPIN":
-			out.Values[i] = ec._Admin_resendPIN(ctx, field, obj)
-		case "roles":
-			out.Values[i] = ec._Admin_roles(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var agentImplementors = []string{"Agent"}
-
-func (ec *executionContext) _Agent(ctx context.Context, sel ast.SelectionSet, obj *dto.Agent) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, agentImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Agent")
-		case "id":
-			out.Values[i] = ec._Agent_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "primaryPhone":
-			out.Values[i] = ec._Agent_primaryPhone(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "primaryEmailAddress":
-			out.Values[i] = ec._Agent_primaryEmailAddress(ctx, field, obj)
-		case "secondaryPhoneNumbers":
-			out.Values[i] = ec._Agent_secondaryPhoneNumbers(ctx, field, obj)
-		case "secondaryEmailAddresses":
-			out.Values[i] = ec._Agent_secondaryEmailAddresses(ctx, field, obj)
-		case "termsAccepted":
-			out.Values[i] = ec._Agent_termsAccepted(ctx, field, obj)
-		case "suspended":
-			out.Values[i] = ec._Agent_suspended(ctx, field, obj)
-		case "photoUploadID":
-			out.Values[i] = ec._Agent_photoUploadID(ctx, field, obj)
-		case "userBioData":
-			out.Values[i] = ec._Agent_userBioData(ctx, field, obj)
-		case "resendPIN":
-			out.Values[i] = ec._Agent_resendPIN(ctx, field, obj)
-		case "roles":
-			out.Values[i] = ec._Agent_roles(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
 var beneficiaryImplementors = []string{"Beneficiary"}
 
 func (ec *executionContext) _Beneficiary(ctx context.Context, sel ast.SelectionSet, obj *model.Beneficiary) graphql.Marshaler {
@@ -23340,13 +22316,22 @@ func (ec *executionContext) _NavigationAction(ctx context.Context, sel ast.Selec
 		case "title":
 			out.Values[i] = ec._NavigationAction_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "onTapRoute":
-			out.Values[i] = ec._NavigationAction_onTapRoute(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._NavigationAction_onTapRoute(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "icon":
 			out.Values[i] = ec._NavigationAction_icon(ctx, field, obj)
 		case "favorite":
@@ -25148,13 +24133,19 @@ func (ec *executionContext) marshalNDate2ᚖgithubᚗcomᚋsavannahghiᚋscalaru
 }
 
 func (ec *executionContext) unmarshalNEmploymentType2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐEmploymentType(ctx context.Context, v interface{}) (domain.EmploymentType, error) {
-	var res domain.EmploymentType
-	err := res.UnmarshalGQL(v)
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain.EmploymentType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNEmploymentType2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐEmploymentType(ctx context.Context, sel ast.SelectionSet, v domain.EmploymentType) graphql.Marshaler {
-	return v
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNFieldType2githubᚗcomᚋsavannahghiᚋenumutilsᚐFieldType(ctx context.Context, v interface{}) (enumutils.FieldType, error) {
@@ -27274,50 +26265,6 @@ func (ec *executionContext) marshalOPermissionType2ᚕgithubᚗcomᚋsavannahghi
 
 func (ec *executionContext) marshalOReceivablesAccount2githubᚗcomᚋsavannahghiᚋprofileutilsᚐReceivablesAccount(ctx context.Context, sel ast.SelectionSet, v profileutils.ReceivablesAccount) graphql.Marshaler {
 	return ec._ReceivablesAccount(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalORoleOutput2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx context.Context, sel ast.SelectionSet, v dto.RoleOutput) graphql.Marshaler {
-	return ec._RoleOutput(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalORoleOutput2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx context.Context, sel ast.SelectionSet, v []dto.RoleOutput) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalORoleOutput2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
 }
 
 func (ec *executionContext) marshalORoleOutput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx context.Context, sel ast.SelectionSet, v []*dto.RoleOutput) graphql.Marshaler {

@@ -313,30 +313,6 @@ type RolePayload struct {
 	Role        *profileutils.RoleType `json:"role"`
 }
 
-// RegisterAgentInput provides the data payload required to create an Agent
-type RegisterAgentInput struct {
-	FirstName   string           `json:"lastName"`
-	LastName    string           `json:"firstName"`
-	Gender      enumutils.Gender `json:"gender"`
-	PhoneNumber string           `json:"phoneNumber"`
-	Email       string           `json:"email"`
-	DateOfBirth scalarutils.Date `json:"dateOfBirth"`
-	// ID of the Role being assigned to the new agent
-	RoleIDs []string `json:"roleIDs"`
-}
-
-// RegisterAdminInput provides the data payload required to create an Admin
-type RegisterAdminInput struct {
-	FirstName   string           `json:"lastName"`
-	LastName    string           `json:"firstName"`
-	Gender      enumutils.Gender `json:"gender"`
-	PhoneNumber string           `json:"phoneNumber"`
-	Email       string           `json:"email"`
-	DateOfBirth scalarutils.Date `json:"dateOfBirth"`
-	// ID of the Role being assigned to the new employee
-	RoleIDs []string `json:"roleIDs"`
-}
-
 // ContactLeadInput ...
 type ContactLeadInput struct {
 	ContactType    string                      `json:"contact_type,omitempty"`
@@ -350,11 +326,6 @@ type ContactLeadInput struct {
 	WantCover      bool                        `json:"wantCover"                 firestore:"wantCover"`
 	ContactChannel string                      `json:"contact_channel,omitempty"`
 	IsRegistered   bool                        `json:"is_registered,omitempty"`
-}
-
-// AgentFilterInput is used to supply filter parameters for agent filter inputs
-type AgentFilterInput struct {
-	PhoneNumber string `json:"phoneNumber"`
 }
 
 // CoverInput is used to add covers

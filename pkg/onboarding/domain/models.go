@@ -163,11 +163,19 @@ type MicroserviceStatus struct {
 // NavigationGroup is the grouping of related navigation actions based on resource
 type NavigationGroup string
 
+// NavActionRoute is the link openned by a navigation action
+type NavActionRoute string
+
+// String...
+func (n NavActionRoute) String() string {
+	return string(n)
+}
+
 // NavigationAction is the menu rendered to PRO users for navigating the app
 type NavigationAction struct {
 	Group              NavigationGroup          `json:"code"`
 	Title              string                   `json:"title"`
-	OnTapRoute         string                   `json:"onTapRoute"`
+	OnTapRoute         NavActionRoute           `json:"onTapRoute"`
 	Icon               string                   `json:"icon"`
 	Favorite           bool                     `json:"favorite"`
 	HasParent          bool                     `json:"isParent"`
@@ -200,18 +208,4 @@ type RoleRevocationLog struct {
 
 	// Created is the timestamp indicating when the role was created
 	Created time.Time `json:"created" firestore:"created"`
-}
-
-//AdminProfile is the profile of all users who permform admin tasks
-type AdminProfile struct {
-	ID             string `json:"id,omitempty"`
-	ProfileID      string `json:"profileID,omitempty"`
-	OrganizationID string `json:"organizationID,omitempty"`
-}
-
-//AgentProfile is the profile of all users who permform agent tasks
-type AgentProfile struct {
-	ID        string    `json:"id,omitempty"`
-	ProfileID string    `json:"profileID,omitempty"`
-	AgentType AgentType `json:"agentType,omitempty"`
 }

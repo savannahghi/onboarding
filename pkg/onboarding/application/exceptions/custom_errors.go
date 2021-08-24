@@ -475,13 +475,3 @@ func NavigationActionsError(err error) error {
 		Code:    int(errorcodeutil.NavigationActionsError),
 	}
 }
-
-// AgentNotFoundError returns an error message when an agent is not found
-func AgentNotFoundError(err error) error {
-	return &errorcodeutil.CustomError{
-		Err:     err,
-		Message: AgentNotFoundErrMsg,
-		Code:    int(errorcodeutil.ProfileNotFound),
-	}
-
-}

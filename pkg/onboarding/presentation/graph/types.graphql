@@ -430,34 +430,6 @@ type UserCommunicationsSetting {
   allowEmail: Boolean!
 }
 
-type Admin {
-  id: String!
-  primaryPhone: String!
-  primaryEmailAddress: String
-  secondaryPhoneNumbers: [String]
-  secondaryEmailAddresses: [String]
-  termsAccepted: Boolean
-  suspended: Boolean
-  photoUploadID: String
-  userBioData: BioData
-  resendPIN: Boolean
-  roles: [RoleOutput]
-}
-
-type Agent {
-  id: String!
-  primaryPhone: String!
-  primaryEmailAddress: String
-  secondaryPhoneNumbers: [String]
-  secondaryEmailAddresses: [String]
-  termsAccepted: Boolean
-  suspended: Boolean
-  photoUploadID: String
-  userBioData: BioData
-  resendPIN: Boolean
-  roles: [RoleOutput]
-}
-
 extend type Link {
   ID: String
   URL: String
