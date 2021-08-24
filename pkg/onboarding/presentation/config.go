@@ -19,6 +19,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/clinical"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
@@ -52,6 +53,7 @@ const (
 	mbBytes              = 1048576
 	serverTimeoutSeconds = 120
 	engagementService    = "engagement"
+	clinicService        = "clinical"
 	ediService           = "edi"
 )
 
@@ -111,12 +113,14 @@ func Router(ctx context.Context) (*mux.Router, error) {
 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, baseExt)
+	clinicClient := utils.NewInterServiceClient(clinicService, baseExt)
 	ediClient := utils.NewInterServiceClient(ediService, baseExt)
 
 	// Initialize new instance of our infrastructure services
 	erp := erp.NewAccounting()
 	chrg := chargemaster.NewChargeMasterUseCasesImpl()
 	engage := engagement.NewServiceEngagementImpl(engagementClient, baseExt)
+	clinic := clinical.NewClinicalService(clinicClient)
 	edi := edi.NewEdiService(ediClient, repo)
 	mes := messaging.NewServiceMessagingImpl(baseExt)
 	pinExt := extension.NewPINExtensionImpl()
@@ -147,7 +151,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	login := usecases.NewLoginUseCases(repo, profile, baseExt, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, baseExt)
 	userpin := usecases.NewUserPinUseCase(repo, profile, baseExt, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, baseExt, engage, pubSub, edi)
+	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, baseExt, engage, pubSub, edi, clinic)
 	nhif := usecases.NewNHIFUseCases(repo, profile, baseExt, engage)
 	aitUssd := ussd.NewUssdUsecases(repo, baseExt, profile, userpin, su, pinExt, pubSub, crmExt)
 	sms := usecases.NewSMSUsecase(repo, baseExt)

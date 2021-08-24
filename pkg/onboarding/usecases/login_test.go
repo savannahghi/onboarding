@@ -30,6 +30,7 @@ import (
 	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/clinical"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 
@@ -41,6 +42,7 @@ import (
 
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
 	chargemasterMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster/mock"
+	clinicalMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/clinical/mock"
 	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
@@ -59,6 +61,7 @@ import (
 const (
 	otpService        = "otp"
 	engagementService = "engagement"
+	clinicService     = "clinical"
 	ediService        = "edi"
 )
 
@@ -194,8 +197,10 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
+	clinicClient := utils.NewInterServiceClient(clinicService, ext)
 	ediClient := utils.NewInterServiceClient(ediService, ext)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
+	clinic := clinical.NewClinicalService(clinicClient)
 	edi := edi.NewEdiService(ediClient, repo)
 
 	erp := erp.NewAccounting()
@@ -227,7 +232,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi)
+	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi, clinic)
 	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
 	sms := usecases.NewSMSUsecase(repo, ext)
 
@@ -452,6 +457,7 @@ var fakeRepo mockRepo.FakeOnboardingRepository
 var fakeBaseExt extMock.FakeBaseExtensionImpl
 var fakePinExt extMock.PINExtensionImpl
 var fakeEngagementSvs engagementMock.FakeServiceEngagement
+var fakeClinicSvc clinicalMock.FakeServiceClinical
 var fakeMessagingSvc messagingMock.FakeServiceMessaging
 var fakeEPRSvc erpMock.FakeServiceCommonTools
 var fakeChargeMasterSvc chargemasterMock.FakeServiceChargeMaster
@@ -464,6 +470,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var erpSvc erp.AccountingUsecase = &fakeEPRSvc
 	var chargemasterSvc chargemaster.ServiceChargeMaster = &fakeChargeMasterSvc
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
+	var clinicalSvc clinical.ServiceClinical = &fakeClinicSvc
 	var messagingSvc messaging.ServiceMessaging = &fakeMessagingSvc
 	var ext extension.BaseExtension = &fakeBaseExt
 	var pinExt extension.PINExtension = &fakePinExt
@@ -485,7 +492,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 		r, profile, erpSvc, chargemasterSvc, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
-	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
+	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc, clinicalSvc)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
 	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
 	adminSrv := adminSrv.NewService(ext)

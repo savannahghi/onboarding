@@ -30,11 +30,13 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	chargemasterMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster/mock"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/clinical"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
+	clinicalMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/clinical/mock"
 	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	messagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging/mock"
@@ -57,6 +59,7 @@ var fakeBaseExt extMock.FakeBaseExtensionImpl
 var fakePinExt extMock.PINExtensionImpl
 var serverUrl = "http://localhost:5000"
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
+var fakeClinicSvc clinicalMock.FakeServiceClinical
 var fakeEDISvc ediMock.FakeServiceEDI
 
 // InitializeFakeOnboardingInteractor represents a fakeonboarding interactor
@@ -65,6 +68,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var erpSvc erp.AccountingUsecase = &erpMock.FakeServiceCommonTools{}
 	var chargemasterSvc chargemaster.ServiceChargeMaster = &chargemasterMock.FakeServiceChargeMaster{}
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
+	var clinicalSvc clinical.ServiceClinical = &fakeClinicSvc
 	var messagingSvc messaging.ServiceMessaging = &messagingMock.FakeServiceMessaging{}
 	var ext extension.BaseExtension = &fakeBaseExt
 	var pinExt extension.PINExtension = &fakePinExt
@@ -86,7 +90,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 		r, profile, erpSvc, chargemasterSvc, engagementSvc, messagingSvc, ext, ps,
 	)
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
-	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
+	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc, clinicalSvc)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
 	sms := usecases.NewSMSUsecase(r, ext)
 	role := usecases.NewRoleUseCases(r, ext)

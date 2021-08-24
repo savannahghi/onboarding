@@ -467,3 +467,9 @@ type RoleRevocationInput struct {
 	RoleID    string
 	Reason    string
 }
+
+// SearchPatientResult is the clinical service result of searching patient
+type SearchPatientResult struct {
+	Found   bool                                  `json:"found,omitempty"`
+	Patient domain.SimplePatientRegistrationInput `json:"patient,omitempty"`
+}

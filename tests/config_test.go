@@ -28,6 +28,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/clinical"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
@@ -54,6 +55,7 @@ const (
 const (
 	testChargeMasterBranchID = "94294577-6b27-4091-9802-1ce0f2ce4153"
 	engagementService        = "engagement"
+	clinicService            = "clinical"
 	ediService               = "edi"
 	testRoleName             = "Test Role"
 	testPIN                  = "2030"
@@ -123,6 +125,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	// Initialize ISC clients
 	engagementClient := utils.NewInterServiceClient(engagementService, ext)
+	clinicClient := utils.NewInterServiceClient(clinicService, ext)
 	ediClient := utils.NewInterServiceClient(ediService, ext)
 
 	erp := erp.NewAccounting()
@@ -135,6 +138,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
+	clinic := clinical.NewClinicalService(clinicClient)
 	edi := edi.NewEdiService(ediClient, repo)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
@@ -155,7 +159,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(repo, ext)
 	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi)
+	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi, clinic)
 	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
 	sms := usecases.NewSMSUsecase(repo, ext)
 	role := usecases.NewRoleUseCases(repo, ext)
