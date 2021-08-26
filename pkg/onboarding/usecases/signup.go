@@ -2,6 +2,8 @@ package usecases
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
@@ -9,10 +11,12 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
+	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"github.com/savannahghi/profileutils"
+	"github.com/savannahghi/pubsubtools"
 	"github.com/savannahghi/scalarutils"
 )
 
@@ -57,17 +61,22 @@ type SignUpUseCases interface {
 	SetPhoneAsPrimary(ctx context.Context, phone, otp string) (bool, error)
 
 	RemoveUserByPhoneNumber(ctx context.Context, phone string) error
+
+	RegisterUser(
+		ctx context.Context,
+		input dto.RegisterUserInput,
+	) (*profileutils.UserProfile, error)
 }
 
 // SignUpUseCasesImpl represents usecase implementation object
 type SignUpUseCasesImpl struct {
-	onboardingRepository repository.OnboardingRepository
-	profileUsecase       ProfileUseCase
-	pinUsecase           UserPINUseCases
-	supplierUsecase      SupplierUseCases
-	baseExt              extension.BaseExtension
-	engagement           engagement.ServiceEngagement
-	pubsub               pubsubmessaging.ServicePubSub
+	repo            repository.OnboardingRepository
+	profileUsecase  ProfileUseCase
+	pinUsecase      UserPINUseCases
+	supplierUsecase SupplierUseCases
+	baseExt         extension.BaseExtension
+	engagement      engagement.ServiceEngagement
+	pubsub          pubsubmessaging.ServicePubSub
 }
 
 // NewSignUpUseCases returns a new a onboarding usecase
@@ -81,13 +90,13 @@ func NewSignUpUseCases(
 	pubsub pubsubmessaging.ServicePubSub,
 ) SignUpUseCases {
 	return &SignUpUseCasesImpl{
-		onboardingRepository: r,
-		profileUsecase:       profile,
-		pinUsecase:           pin,
-		supplierUsecase:      supplier,
-		baseExt:              ext,
-		engagement:           eng,
-		pubsub:               pubsub,
+		repo:            r,
+		profileUsecase:  profile,
+		pinUsecase:      pin,
+		supplierUsecase: supplier,
+		baseExt:         ext,
+		engagement:      eng,
+		pubsub:          pubsub,
 	}
 }
 
@@ -155,14 +164,14 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	}
 
 	// get or create user via their phone number
-	user, err := s.onboardingRepository.GetOrCreatePhoneNumberUser(ctx, *userData.PhoneNumber)
+	user, err := s.repo.GetOrCreatePhoneNumberUser(ctx, *userData.PhoneNumber)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
 	// create a user profile
-	profile, err := s.onboardingRepository.CreateUserProfile(
+	profile, err := s.repo.CreateUserProfile(
 		ctx,
 		*userData.PhoneNumber,
 		user.UID,
@@ -172,7 +181,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		return nil, exceptions.InternalServerError(err)
 	}
 	// generate auth credentials
-	auth, err := s.onboardingRepository.GenerateAuthCredentials(
+	auth, err := s.repo.GenerateAuthCredentials(
 		ctx,
 		*userData.PhoneNumber,
 		profile,
@@ -194,20 +203,20 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 
 	var supplier *profileutils.Supplier
 	var customer *profileutils.Customer
-	supplier, err = s.onboardingRepository.CreateEmptySupplierProfile(ctx, profile.ID)
+	supplier, err = s.repo.CreateEmptySupplierProfile(ctx, profile.ID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, exceptions.InternalServerError(err)
 	}
 
-	customer, err = s.onboardingRepository.CreateEmptyCustomerProfile(ctx, profile.ID)
+	customer, err = s.repo.CreateEmptyCustomerProfile(ctx, profile.ID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, exceptions.InternalServerError(err)
 	}
 	// set the user default communications settings
 	defaultCommunicationSetting := true
-	comms, err := s.onboardingRepository.SetUserCommunicationsSettings(
+	comms, err := s.repo.SetUserCommunicationsSettings(
 		ctx,
 		profile.ID,
 		&defaultCommunicationSetting,
@@ -221,7 +230,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	}
 
 	// get navigation actions
-	roles, err := s.onboardingRepository.GetRolesByIDs(ctx, profile.Roles)
+	roles, err := s.repo.GetRolesByIDs(ctx, profile.Roles)
 	if err != nil {
 		return nil, err
 	}
@@ -353,7 +362,7 @@ func (s *SignUpUseCasesImpl) GetUserRecoveryPhoneNumbers(
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	pr, err := s.onboardingRepository.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
+	pr, err := s.repo.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
@@ -410,5 +419,99 @@ func (s *SignUpUseCasesImpl) RemoveUserByPhoneNumber(ctx context.Context, phone 
 		utils.RecordSpanError(span, err)
 		return exceptions.NormalizeMSISDNError(err)
 	}
-	return s.onboardingRepository.PurgeUserByPhoneNumber(ctx, *phoneNumber)
+	return s.repo.PurgeUserByPhoneNumber(ctx, *phoneNumber)
+}
+
+// RegisterUser creates a new userprofile
+func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.RegisterUserInput) (*profileutils.UserProfile, error) {
+	ctx, span := tracer.Start(ctx, "RegisterUser")
+	defer span.End()
+
+	// Check logged in user has permissions to register consumer
+	p, err := s.baseExt.GetLoggedInUser(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	// Get Logged In user profile
+	usp, err := s.repo.GetUserProfileByUID(ctx, p.UID, false)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	phoneNumber, err := s.baseExt.NormalizeMSISDN(input.PhoneNumber)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.NormalizeMSISDNError(err)
+	}
+
+	timestamp := time.Now().In(pubsubtools.TimeLocation)
+
+	userProfile := profileutils.UserProfile{
+		PrimaryEmailAddress: input.Email,
+		UserBioData: profileutils.BioData{
+			FirstName:   &input.FirstName,
+			LastName:    &input.LastName,
+			Gender:      enumutils.Gender(input.Gender),
+			DateOfBirth: &input.DateOfBirth,
+		},
+		CreatedByID: &usp.ID,
+		Created:     &timestamp,
+		Roles:       input.RoleIDs,
+	}
+	// create a user profile
+	profile, err := s.repo.CreateDetailedUserProfile(ctx, *phoneNumber, userProfile)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	//create empty supplier profile
+	_, err = s.repo.CreateEmptySupplierProfile(ctx, profile.ID)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(err)
+	}
+
+	//create empty customer profile
+	_, err = s.repo.CreateEmptyCustomerProfile(ctx, profile.ID)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(err)
+	}
+
+	// set the user default communications settings
+	defaultCommunicationSetting := true
+	_, err = s.repo.SetUserCommunicationsSettings(
+		ctx,
+		profile.ID,
+		&defaultCommunicationSetting,
+		&defaultCommunicationSetting,
+		&defaultCommunicationSetting,
+		&defaultCommunicationSetting,
+	)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	otp, err := s.pinUsecase.SetUserTempPIN(ctx, profile.ID)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	message := input.WelcomeMessage
+	if message == nil {
+		formatSMS := fmt.Sprintf(domain.WelcomeMessage, input.FirstName, otp)
+		message = &formatSMS
+	}
+
+	if err := s.engagement.SendSMS(ctx, []string{*phoneNumber}, *message); err != nil {
+		return nil, fmt.Errorf("unable to send consumer registration message: %w", err)
+	}
+
+	return profile, nil
 }

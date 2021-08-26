@@ -53,6 +53,8 @@ type HandlersInterfaces interface {
 	CreateRole() http.HandlerFunc
 	AssignRole() http.HandlerFunc
 	RemoveRoleByName() http.HandlerFunc
+
+	RegisterUser() http.HandlerFunc
 }
 
 // HandlersInterfacesImpl represents the usecase implementation object
@@ -1178,6 +1180,24 @@ func (h *HandlersInterfacesImpl) RemoveRoleByName() http.HandlerFunc {
 		}
 
 		_, err = h.interactor.Role.UnauthorizedDeleteRole(ctx, role.ID)
+		if err != nil {
+			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
+			return
+		}
+
+		serverutils.WriteJSONResponse(rw, nil, http.StatusOK)
+	}
+}
+
+// RegisterUser creates a new user profile using provided input
+func (h *HandlersInterfacesImpl) RegisterUser() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		input := &dto.RegisterUserInput{}
+		serverutils.DecodeJSONToTargetStruct(rw, r, input)
+
+		_, err := h.interactor.Signup.RegisterUser(ctx, *input)
 		if err != nil {
 			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
 			return

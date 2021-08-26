@@ -266,6 +266,10 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	// Interservice Authenticated routes
 	isc := r.PathPrefix("/internal").Subrouter()
 	isc.Use(interserviceclient.InterServiceAuthenticationMiddleware())
+	isc.Path("/register_user").Methods(
+		http.MethodPost,
+		http.MethodOptions).
+		HandlerFunc(h.RegisterUser())
 	isc.Path("/supplier").Methods(
 		http.MethodPost,
 		http.MethodOptions).
