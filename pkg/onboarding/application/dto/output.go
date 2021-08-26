@@ -161,3 +161,11 @@ type GroupedNavigationActions struct {
 	Primary   []domain.NavigationAction `json:"primary,omitempty"`
 	Secondary []domain.NavigationAction `json:"secondary,omitempty"`
 }
+
+// RegisteredUserResponse is used to return by creating a new user in ISC
+type RegisteredUserResponse struct {
+	ID          string `json:"id,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Email       string `json:"email,omitempty"`
+	PhoneNumber string `json:"phoneNumber,omitempty"`
+}
