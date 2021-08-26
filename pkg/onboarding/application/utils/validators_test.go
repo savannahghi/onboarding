@@ -8,10 +8,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
+	"github.com/savannahghi/scalarutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -345,6 +347,138 @@ func TestValidateUSSDDetails(t *testing.T) {
 
 			if err == nil && validInput == nil {
 				t.Errorf("expected a valid input %v since no error occurred", validInput)
+			}
+		})
+	}
+}
+
+func TestValidateRegisterUserInput(t *testing.T) {
+	uid := uuid.NewString()
+	fName := "Test"
+	lName := "test"
+	validPhone := interserviceclient.TestUserPhoneNumber
+	invalidPhone := "123"
+	gender := "male"
+	dob := scalarutils.Date{
+		Day:   1,
+		Month: 1,
+		Year:  2000,
+	}
+
+	tests := []struct {
+		name    string
+		input   dto.RegisterUserInput
+		want    bool
+		wantErr bool
+	}{
+		{
+			name: "invalid phone number",
+			input: dto.RegisterUserInput{
+				UID:         &uid,
+				PhoneNumber: &invalidPhone,
+				Gender:      (*enumutils.Gender)(&gender),
+				DateOfBirth: &dob,
+				FirstName:   &fName,
+				LastName:    &lName,
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "invalid uid not provided",
+			input: dto.RegisterUserInput{
+				PhoneNumber: &validPhone,
+				Gender:      (*enumutils.Gender)(&gender),
+				DateOfBirth: &dob,
+				FirstName:   &fName,
+				LastName:    &lName,
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "invalid phone not provided",
+			input: dto.RegisterUserInput{
+				UID:         &uid,
+				Gender:      (*enumutils.Gender)(&gender),
+				DateOfBirth: &dob,
+				FirstName:   &fName,
+				LastName:    &lName,
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "invalid first name not provided",
+			input: dto.RegisterUserInput{
+				UID:         &uid,
+				PhoneNumber: &validPhone,
+				Gender:      (*enumutils.Gender)(&gender),
+				DateOfBirth: &dob,
+				LastName:    &lName,
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "invalid last name not provided",
+			input: dto.RegisterUserInput{
+				UID:         &uid,
+				PhoneNumber: &invalidPhone,
+				Gender:      (*enumutils.Gender)(&gender),
+				DateOfBirth: &dob,
+				FirstName:   &fName,
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "invalid date of birth not provided",
+			input: dto.RegisterUserInput{
+				UID:         &uid,
+				PhoneNumber: &invalidPhone,
+				Gender:      (*enumutils.Gender)(&gender),
+				FirstName:   &fName,
+				LastName:    &lName,
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "invalid gender not provided",
+			input: dto.RegisterUserInput{
+				UID:         &uid,
+				PhoneNumber: &invalidPhone,
+				DateOfBirth: &dob,
+				FirstName:   &fName,
+				LastName:    &lName,
+			},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name: "valid user registration input",
+			input: dto.RegisterUserInput{
+				UID:         &uid,
+				PhoneNumber: &validPhone,
+				Gender:      (*enumutils.Gender)(&gender),
+				DateOfBirth: &dob,
+				FirstName:   &fName,
+				LastName:    &lName,
+			},
+			want:    true,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := utils.ValidateRegisterUserInput(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateRegisterUserInput() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ValidateRegisterUserInput() = %v, want %v", got, tt.want)
 			}
 		})
 	}
