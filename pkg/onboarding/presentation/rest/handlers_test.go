@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
@@ -135,15 +136,138 @@ func composeValidRolePayload(t *testing.T, phone string, role profileutils.RoleT
 }
 
 func composeValidUserPayload(t *testing.T, phoneNumber string) *bytes.Buffer {
+	uid := uuid.NewString()
+	fName := "Test"
+	lName := "Test"
+	dob := scalarutils.Date{
+		Month: 1,
+		Day:   1,
+		Year:  2002,
+	}
+	gender := "male"
 	inputData := &dto.RegisterUserInput{
-		FirstName:   "Test",
-		LastName:    "Test",
-		PhoneNumber: phoneNumber,
-		DateOfBirth: scalarutils.Date{
-			Month: 1,
-			Day:   1,
-			Year:  2002,
-		},
+		UID:         &uid,
+		FirstName:   &fName,
+		LastName:    &lName,
+		PhoneNumber: &phoneNumber,
+		DateOfBirth: &dob,
+		Gender:      (*enumutils.Gender)(&gender),
+	}
+	bs, err := json.Marshal(inputData)
+	if err != nil {
+		t.Errorf("unable to marshal token string to JSON: %s", err)
+	}
+	return bytes.NewBuffer(bs)
+}
+
+func composeInvalidUserPayload0(t *testing.T, phoneNumber string) *bytes.Buffer {
+	fName := "Test"
+	lName := "Test"
+	dob := scalarutils.Date{
+		Month: 1,
+		Day:   1,
+		Year:  2002,
+	}
+	gender := "male"
+	inputData := &dto.RegisterUserInput{
+		FirstName:   &fName,
+		LastName:    &lName,
+		PhoneNumber: &phoneNumber,
+		DateOfBirth: &dob,
+		Gender:      (*enumutils.Gender)(&gender),
+	}
+	bs, err := json.Marshal(inputData)
+	if err != nil {
+		t.Errorf("unable to marshal token string to JSON: %s", err)
+	}
+	return bytes.NewBuffer(bs)
+}
+
+func composeInvalidUserPayload1(t *testing.T, phoneNumber string) *bytes.Buffer {
+	uid := uuid.NewString()
+	lName := "Test"
+	dob := scalarutils.Date{
+		Month: 1,
+		Day:   1,
+		Year:  2002,
+	}
+	gender := "male"
+	inputData := &dto.RegisterUserInput{
+		UID:         &uid,
+		LastName:    &lName,
+		PhoneNumber: &phoneNumber,
+		DateOfBirth: &dob,
+		Gender:      (*enumutils.Gender)(&gender),
+	}
+	bs, err := json.Marshal(inputData)
+	if err != nil {
+		t.Errorf("unable to marshal token string to JSON: %s", err)
+	}
+	return bytes.NewBuffer(bs)
+}
+
+func composeInvalidUserPayload2(t *testing.T, phoneNumber string) *bytes.Buffer {
+	uid := uuid.NewString()
+	fName := "Test"
+	dob := scalarutils.Date{
+		Month: 1,
+		Day:   1,
+		Year:  2002,
+	}
+	gender := "male"
+	inputData := &dto.RegisterUserInput{
+		UID:         &uid,
+		FirstName:   &fName,
+		PhoneNumber: &phoneNumber,
+		DateOfBirth: &dob,
+		Gender:      (*enumutils.Gender)(&gender),
+	}
+	bs, err := json.Marshal(inputData)
+	if err != nil {
+		t.Errorf("unable to marshal token string to JSON: %s", err)
+	}
+	return bytes.NewBuffer(bs)
+}
+
+func composeInvalidUserPayload3(t *testing.T, phoneNumber string) *bytes.Buffer {
+	uid := uuid.NewString()
+	fName := "Test"
+	lName := "Test"
+	dob := scalarutils.Date{
+		Month: 1,
+		Day:   1,
+		Year:  2002,
+	}
+	inputData := &dto.RegisterUserInput{
+		UID:         &uid,
+		FirstName:   &fName,
+		LastName:    &lName,
+		PhoneNumber: &phoneNumber,
+		DateOfBirth: &dob,
+	}
+	bs, err := json.Marshal(inputData)
+	if err != nil {
+		t.Errorf("unable to marshal token string to JSON: %s", err)
+	}
+	return bytes.NewBuffer(bs)
+}
+
+func composeInvalidUserPayload4(t *testing.T, phoneNumber string) *bytes.Buffer {
+	uid := uuid.NewString()
+	fName := "Test"
+	lName := "Test"
+	dob := scalarutils.Date{
+		Month: 1,
+		Day:   1,
+		Year:  2002,
+	}
+	gender := "male"
+	inputData := &dto.RegisterUserInput{
+		UID:         &uid,
+		FirstName:   &fName,
+		LastName:    &lName,
+		DateOfBirth: &dob,
+		Gender:      (*enumutils.Gender)(&gender),
 	}
 	bs, err := json.Marshal(inputData)
 	if err != nil {
@@ -4320,17 +4444,16 @@ func TestHandlersInterfacesImpl_RegisterUser(t *testing.T) {
 	email := "test@email.com"
 
 	payload := composeValidUserPayload(t, phoneNumber)
+	payload1 := composeInvalidUserPayload0(t, phoneNumber)
+	payload2 := composeInvalidUserPayload1(t, phoneNumber)
+	payload3 := composeInvalidUserPayload2(t, phoneNumber)
+	payload4 := composeInvalidUserPayload3(t, phoneNumber)
+	payload5 := composeInvalidUserPayload4(t, phoneNumber)
 
 	type args struct {
 		url        string
 		httpMethod string
 		body       io.Reader
-	}
-
-	input := args{
-		url:        fmt.Sprintf("%s/interna/register_user", serverUrl),
-		httpMethod: http.MethodPost,
-		body:       payload,
 	}
 
 	tests := []struct {
@@ -4340,14 +4463,72 @@ func TestHandlersInterfacesImpl_RegisterUser(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name:       "sad: unable to create user profile",
-			args:       input,
+			name: "sad: expected UID",
+			args: args{
+				url:        fmt.Sprintf("%s/interna/register_user", serverUrl),
+				httpMethod: http.MethodPost,
+				body:       payload1,
+			},
+			wantStatus: http.StatusBadRequest,
+			wantErr:    true,
+		},
+		{
+			name: "sad: expected firstName",
+			args: args{
+				url:        fmt.Sprintf("%s/interna/register_user", serverUrl),
+				httpMethod: http.MethodPost,
+				body:       payload2,
+			},
+			wantStatus: http.StatusBadRequest,
+			wantErr:    true,
+		},
+		{
+			name: "sad: expected lastName",
+			args: args{
+				url:        fmt.Sprintf("%s/interna/register_user", serverUrl),
+				httpMethod: http.MethodPost,
+				body:       payload3,
+			},
+			wantStatus: http.StatusBadRequest,
+			wantErr:    true,
+		},
+		{
+			name: "sad: expected gender",
+			args: args{
+				url:        fmt.Sprintf("%s/interna/register_user", serverUrl),
+				httpMethod: http.MethodPost,
+				body:       payload4,
+			},
+			wantStatus: http.StatusBadRequest,
+			wantErr:    true,
+		},
+		{
+			name: "sad: expected phoneNumber",
+			args: args{
+				url:        fmt.Sprintf("%s/interna/register_user", serverUrl),
+				httpMethod: http.MethodPost,
+				body:       payload5,
+			},
+			wantStatus: http.StatusBadRequest,
+			wantErr:    true,
+		},
+		{
+			name: "sad: unable to create user profile",
+			args: args{
+				url:        fmt.Sprintf("%s/interna/register_user", serverUrl),
+				httpMethod: http.MethodPost,
+				body:       payload,
+			},
 			wantStatus: http.StatusInternalServerError,
 			wantErr:    true,
 		},
 		{
-			name:       "happy: registered user",
-			args:       input,
+			name: "happy: registered user",
+			args: args{
+				url:        fmt.Sprintf("%s/interna/register_user", serverUrl),
+				httpMethod: http.MethodPost,
+				body:       payload,
+			},
 			wantStatus: http.StatusBadRequest,
 			wantErr:    false,
 		},
@@ -4363,14 +4544,14 @@ func TestHandlersInterfacesImpl_RegisterUser(t *testing.T) {
 			response := httptest.NewRecorder()
 
 			if tt.name == "sad: unable to create user profile" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return nil, fmt.Errorf("unable to get user profile")
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return "", fmt.Errorf("unable to get logged in user")
 				}
 			}
 
 			if tt.name == "happy: registered user" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{UID: uuid.NewString()}, nil
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
 				}
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
