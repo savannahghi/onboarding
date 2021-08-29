@@ -194,16 +194,6 @@ func (r *mutationResolver) SetUpSupplier(ctx context.Context, accountType profil
 	return supplier, err
 }
 
-func (r *mutationResolver) AddIndividualRiderKyc(ctx context.Context, input domain.IndividualRider) (*domain.IndividualRider, error) {
-	startTime := time.Now()
-
-	individualRider, err := r.interactor.Supplier.AddIndividualRiderKyc(ctx, input)
-
-	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "addIndividualRiderKYC", err)
-
-	return individualRider, err
-}
-
 func (r *mutationResolver) AddOrganizationRiderKyc(ctx context.Context, input domain.OrganizationRider) (*domain.OrganizationRider, error) {
 	startTime := time.Now()
 

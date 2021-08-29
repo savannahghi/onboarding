@@ -78,11 +78,6 @@ type SupplierUseCases interface {
 
 	CheckSupplierKYCSubmitted(ctx context.Context) (bool, error)
 
-	AddIndividualRiderKyc(
-		ctx context.Context,
-		input domain.IndividualRider,
-	) (*domain.IndividualRider, error)
-
 	AddOrganizationRiderKyc(
 		ctx context.Context,
 		input domain.OrganizationRider,
@@ -797,62 +792,6 @@ func (s *SupplierUseCasesImpl) StageKYCProcessingRequest(
 	}
 
 	return s.repo.StageKYCProcessingRequest(ctx, r)
-}
-
-// AddIndividualRiderKyc adds KYC for an individual rider
-func (s *SupplierUseCasesImpl) AddIndividualRiderKyc(
-	ctx context.Context,
-	input domain.IndividualRider,
-) (*domain.IndividualRider, error) {
-	ctx, span := tracer.Start(ctx, "AddIndividualRiderKyc")
-	defer span.End()
-
-	sup, err := s.FindSupplierByUID(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		// this is a wrapped error. No need to wrap it again
-		return nil, err
-	}
-	if !sup.KYCSubmitted {
-		if !input.IdentificationDoc.IdentificationDocType.IsValid() {
-			return nil, exceptions.WrongEnumTypeError(
-				input.IdentificationDoc.IdentificationDocType.String(),
-			)
-		}
-
-		kyc := domain.IndividualRider{
-			IdentificationDoc: domain.Identification{
-				IdentificationDocType:           input.IdentificationDoc.IdentificationDocType,
-				IdentificationDocNumber:         input.IdentificationDoc.IdentificationDocNumber,
-				IdentificationDocNumberUploadID: input.IdentificationDoc.IdentificationDocNumberUploadID,
-			},
-			KRAPIN:                         input.KRAPIN,
-			KRAPINUploadID:                 input.KRAPINUploadID,
-			DrivingLicenseID:               input.DrivingLicenseID,
-			DrivingLicenseUploadID:         input.DrivingLicenseUploadID,
-			CertificateGoodConductUploadID: input.CertificateGoodConductUploadID,
-			SupportingDocuments:            input.SupportingDocuments,
-		}
-
-		kycAsMap, err := s.parseKYCAsMap(kyc)
-		if err != nil {
-			utils.RecordSpanError(span, err)
-			return nil, fmt.Errorf("cannot marshal kyc to json")
-		}
-
-		sup.SupplierKYC = kycAsMap
-		sup.KYCSubmitted = true
-
-		// Notify the supplier and admins
-		if err := s.SaveKYCResponseAndNotifyAdmins(ctx, sup); err != nil {
-			utils.RecordSpanError(span, err)
-			return nil, err
-		}
-
-		return &kyc, nil
-	}
-
-	return nil, exceptions.SupplierKYCAlreadySubmittedNotFoundError()
 }
 
 // AddOrganizationRiderKyc adds KYC for an organization rider

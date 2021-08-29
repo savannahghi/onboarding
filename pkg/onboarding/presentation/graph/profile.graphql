@@ -60,7 +60,6 @@ extend type Mutation {
 
   setUpSupplier(accountType: AccountType!): Supplier
 
-  addIndividualRiderKYC(input: IndividualRiderInput!): IndividualRider!
 
   addOrganizationRiderKYC(input: OrganizationRiderInput!): OrganizationRider!
 
