@@ -20,22 +20,15 @@ import (
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
-	"github.com/savannahghi/profileutils"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
-	crmDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
-
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	chargemasterMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster/mock"
+	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
-
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	messagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging/mock"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
@@ -47,7 +40,13 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases/ussd"
+	"github.com/savannahghi/profileutils"
+	"github.com/savannahghi/scalarutils"
+	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
+	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
+	crmDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
+	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
@@ -129,6 +128,24 @@ func composeValidRolePayload(t *testing.T, phone string, role profileutils.RoleT
 		Role:        &role,
 	}
 	bs, err := json.Marshal(payload)
+	if err != nil {
+		t.Errorf("unable to marshal token string to JSON: %s", err)
+	}
+	return bytes.NewBuffer(bs)
+}
+
+func composeValidUserPayload(t *testing.T, phoneNumber string) *bytes.Buffer {
+	inputData := &dto.RegisterUserInput{
+		FirstName:   "Test",
+		LastName:    "Test",
+		PhoneNumber: phoneNumber,
+		DateOfBirth: scalarutils.Date{
+			Month: 1,
+			Day:   1,
+			Year:  2002,
+		},
+	}
+	bs, err := json.Marshal(inputData)
 	if err != nil {
 		t.Errorf("unable to marshal token string to JSON: %s", err)
 	}
@@ -2607,65 +2624,43 @@ func TestHandlersInterfacesImpl_RemoveUserByPhoneNumber(t *testing.T) {
 }
 
 func TestHandlersInterfacesImpl_SetPrimaryPhoneNumber(t *testing.T) {
-
 	i, err := InitializeFakeOnboardingInteractor()
 	if err != nil {
 		t.Errorf("failed to initialize onboarding interactor: %v", err)
 		return
 	}
-
 	h := rest.NewHandlersInterfaces(i)
+	phone := interserviceclient.TestUserPhoneNumber
+	oto := "112233"
+	payload := composeSetPrimaryPhoneNumberPayload(t, phone, oto)
 
-	primaryPhone := "+254701567839"
-	otp := "890087"
-	validPayload := composeSetPrimaryPhoneNumberPayload(t, primaryPhone, otp)
-
-	primaryPhone1 := "+254765738293"
-	otp1 := "345678"
-	payload1 := composeSetPrimaryPhoneNumberPayload(t, primaryPhone1, otp1)
-
-	primaryPhone2 := " "
-	otp2 := " "
-	payload2 := composeSetPrimaryPhoneNumberPayload(t, primaryPhone2, otp2)
 	type args struct {
 		url        string
 		httpMethod string
 		body       io.Reader
 	}
+
+	input := args{
+		url:        fmt.Sprintf("%s/set_primary_phonenumber", serverUrl),
+		httpMethod: http.MethodPost,
+		body:       payload,
+	}
+
 	tests := []struct {
 		name       string
 		args       args
-		want       http.HandlerFunc
 		wantStatus int
 		wantErr    bool
 	}{
 		{
-			name: "valid:_successfully_set_a_primary_phonenumber",
-			args: args{
-				url:        fmt.Sprintf("%s/set_primary_phonenumber", serverUrl),
-				httpMethod: http.MethodPost,
-				body:       validPayload,
-			},
+			name:       "valid:set_primary_phoneNumber",
+			args:       input,
 			wantStatus: http.StatusOK,
 			wantErr:    false,
 		},
 		{
-			name: "invalid:_fail_to_set_a_primary_phonenumber",
-			args: args{
-				url:        fmt.Sprintf("%s/set_primary_phonenumber", serverUrl),
-				httpMethod: http.MethodPost,
-				body:       payload1,
-			},
-			wantStatus: http.StatusBadRequest,
-			wantErr:    true,
-		},
-		{
-			name: "invalid:_phonenumber_and_otp_missing",
-			args: args{
-				url:        fmt.Sprintf("%s/set_primary_phonenumber", serverUrl),
-				httpMethod: http.MethodPost,
-				body:       payload2,
-			},
+			name:       "invalid:failed_to__primary_phoneNumber",
+			args:       input,
 			wantStatus: http.StatusBadRequest,
 			wantErr:    true,
 		},
@@ -2678,28 +2673,27 @@ func TestHandlersInterfacesImpl_SetPrimaryPhoneNumber(t *testing.T) {
 				return
 			}
 
-			if tt.name == "valid:_successfully_set_a_primary_phonenumber" {
+			response := httptest.NewRecorder()
 
+			if tt.name == "valid:set_primary_phoneNumber" {
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254799774466"
+					phone := "+254777886622"
 					return &phone, nil
 				}
-
 				fakeEngagementSvs.VerifyOTPFn = func(ctx context.Context, phone, OTP string) (bool, error) {
 					return true, nil
 				}
-
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254799774466"
+					phone := "+254755889922"
 					return &phone, nil
 				}
 
 				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
-						ID:           "123",
+						ID:           "ABCDE",
 						PrimaryPhone: &phoneNumber,
 						SecondaryPhoneNumbers: []string{
-							"0721521456", "0721856741",
+							"0765839203", "0789437282",
 						},
 					}, nil
 				}
@@ -2713,43 +2707,15 @@ func TestHandlersInterfacesImpl_SetPrimaryPhoneNumber(t *testing.T) {
 				}
 			}
 
-			if tt.name == "invalid:_fail_to_set_a_primary_phonenumber" {
+			if tt.name == "invalid:failed_to__primary_phoneNumber" {
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254799774466"
+					phone := "+254777886622"
 					return &phone, nil
 				}
-
 				fakeEngagementSvs.VerifyOTPFn = func(ctx context.Context, phone, OTP string) (bool, error) {
-					return true, nil
-				}
-
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					phone := "+254799774466"
-					return &phone, nil
-				}
-
-				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{
-						ID:           "123",
-						PrimaryPhone: &phoneNumber,
-						SecondaryPhoneNumbers: []string{
-							"0721521456", "0721856741",
-						},
-					}, nil
-				}
-
-				fakeRepo.UpdatePrimaryPhoneNumberFn = func(ctx context.Context, id string, phoneNumber string) error {
-					return fmt.Errorf("failed to set a primary phone number")
+					return false, fmt.Errorf("unable to verify otp")
 				}
 			}
-
-			if tt.name == "invalid:_phonenumber_and_otp_missing" {
-				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
-					return nil, fmt.Errorf("empty phone number provided")
-				}
-			}
-
-			response := httptest.NewRecorder()
 
 			svr := h.SetPrimaryPhoneNumber()
 			svr.ServeHTTP(response, req)
@@ -4334,6 +4300,130 @@ func TestHandlers_RemoveRoleByName(t *testing.T) {
 
 			if tt.wantStatus != response.Code {
 				t.Errorf("expected status %d, got %d", tt.wantStatus, response.Code)
+				return
+			}
+		})
+	}
+}
+
+func TestHandlersInterfacesImpl_RegisterUser(t *testing.T) {
+	i, err := InitializeFakeOnboardingInteractor()
+	if err != nil {
+		t.Errorf("failed to initialize onboarding interactor: %v", err)
+		return
+	}
+	h := rest.NewHandlersInterfaces(i)
+
+	phoneNumber := interserviceclient.TestUserPhoneNumber
+	fName := "Test"
+	lName := "Test"
+	email := "test@email.com"
+
+	payload := composeValidUserPayload(t, phoneNumber)
+
+	type args struct {
+		url        string
+		httpMethod string
+		body       io.Reader
+	}
+
+	input := args{
+		url:        fmt.Sprintf("%s/interna/register_user", serverUrl),
+		httpMethod: http.MethodPost,
+		body:       payload,
+	}
+
+	tests := []struct {
+		name       string
+		args       args
+		wantStatus int
+		wantErr    bool
+	}{
+		{
+			name:       "sad: unable to create user profile",
+			args:       input,
+			wantStatus: http.StatusInternalServerError,
+			wantErr:    true,
+		},
+		{
+			name:       "happy: registered user",
+			args:       input,
+			wantStatus: http.StatusBadRequest,
+			wantErr:    false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest(tt.args.httpMethod, tt.args.url, tt.args.body)
+			if err != nil {
+				t.Errorf("can't create new request: %v", err)
+				return
+			}
+
+			response := httptest.NewRecorder()
+
+			if tt.name == "sad: unable to create user profile" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return nil, fmt.Errorf("unable to get user profile")
+				}
+			}
+
+			if tt.name == "happy: registered user" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return &dto.UserInfo{UID: uuid.NewString()}, nil
+				}
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
+				}
+				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
+					return &phoneNumber, nil
+				}
+				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{
+						ID: uuid.NewString(),
+						UserBioData: profileutils.BioData{
+							FirstName: &fName,
+							LastName:  &lName,
+						},
+						PrimaryPhone:        &phoneNumber,
+						PrimaryEmailAddress: &email,
+					}, nil
+				}
+				fakePubSub.NotifyCreateContactFn = func(ctx context.Context, contact crmDomain.CRMContact) error {
+					return nil
+				}
+				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
+					return &profileutils.UserCommunicationsSetting{}, nil
+				}
+				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
+					return "123", nil
+				}
+				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
+					return "pin", "sha"
+				}
+				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+					return true, nil
+				}
+				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
+					return nil
+				}
+			}
+
+			svr := h.RegisterUser()
+			svr.ServeHTTP(response, req)
+
+			if tt.wantStatus != response.Code {
+				t.Errorf("expected status %d, got %d", tt.wantStatus, response.Code)
+				return
+			}
+
+			dataResponse, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				t.Errorf("can't read response body: %v", err)
+				return
+			}
+			if dataResponse == nil {
+				t.Errorf("nil response body data")
 				return
 			}
 		})
