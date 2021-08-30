@@ -13,7 +13,7 @@ import (
 	"github.com/savannahghi/profileutils"
 )
 
-// OnboardingRepository interface that provide access to all persistent storage operations
+// Repository interface that provide access to all persistent storage operations
 type Repository interface {
 	UserProfileRepository
 
@@ -269,4 +269,71 @@ func (d DbService) CheckPreconditions() {
 // StageProfileNudge stages nudges published from this service.
 func (d DbService) StageProfileNudge(ctx context.Context, nudge *feedlib.Nudge) error {
 	return d.firestore.StageProfileNudge(ctx, nudge)
+}
+
+// CreateRole creates a new role and persists it to the database
+func (d DbService) CreateRole(
+	ctx context.Context,
+	profileID string,
+	input dto.RoleInput,
+) (*profileutils.Role, error) {
+	return d.firestore.CreateRole(ctx, profileID, input)
+}
+
+// GetAllRoles returns a list of all created roles
+func (d DbService) GetAllRoles(ctx context.Context) (*[]profileutils.Role, error) {
+	return d.firestore.GetAllRoles(ctx)
+}
+
+// GetRoleByID gets role with matching id
+func (d DbService) GetRoleByID(ctx context.Context, roleID string) (*profileutils.Role, error) {
+	return d.firestore.GetRoleByID(ctx, roleID)
+}
+
+// GetRoleByName retrieves a role using it's name
+func (d DbService) GetRoleByName(ctx context.Context, roleName string) (*profileutils.Role, error) {
+	return d.firestore.GetRoleByName(ctx, roleName)
+}
+
+// GetRolesByIDs gets all roles matching provided roleIDs if specified otherwise all roles
+func (d DbService) GetRolesByIDs(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error) {
+	return d.firestore.GetRolesByIDs(ctx, roleIDs)
+}
+
+// CheckIfRoleNameExists checks if a role with a similar name exists
+// Ensures unique name for each role during creation
+func (d DbService) CheckIfRoleNameExists(ctx context.Context, name string) (bool, error) {
+	return d.firestore.CheckIfRoleNameExists(ctx, name)
+}
+
+// UpdateRoleDetails  updates the details of a role
+func (d DbService) UpdateRoleDetails(ctx context.Context, profileID string, role profileutils.Role) (*profileutils.Role, error) {
+	return d.firestore.UpdateRoleDetails(ctx, profileID, role)
+}
+
+// DeleteRole removes a role permanently from the database
+func (d DbService) DeleteRole(ctx context.Context, roleID string) (bool, error) {
+	return d.firestore.DeleteRole(ctx, roleID)
+}
+
+//CheckIfUserHasPermission checks if a user has the required permission
+func (d DbService) CheckIfUserHasPermission(
+	ctx context.Context,
+	UID string,
+	requiredPermission profileutils.Permission,
+) (bool, error) {
+	return d.firestore.CheckIfUserHasPermission(ctx, UID, requiredPermission)
+}
+
+// GetUserProfilesByRoleID returns a list of user profiles with the role ID
+// i.e users assigned a particular role
+func (d DbService) GetUserProfilesByRoleID(ctx context.Context, role string) ([]*profileutils.UserProfile, error) {
+	return d.firestore.GetUserProfilesByRoleID(ctx, role)
+}
+
+// SaveRoleRevocation records a log for a role revocation
+//
+// userId is the ID of the user removing a role from a user
+func (d DbService) SaveRoleRevocation(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error {
+	return d.firestore.SaveRoleRevocation(ctx, userID, revocation)
 }
