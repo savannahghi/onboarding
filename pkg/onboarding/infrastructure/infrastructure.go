@@ -103,3 +103,13 @@ func (i Interactor) GetUserProfilesByRoleID(ctx context.Context, role string) ([
 func (i Interactor) SaveRoleRevocation(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error {
 	return i.database.SaveRoleRevocation(ctx, userID, revocation)
 }
+
+// GetUserProfileByPhoneOrEmail gets usser profile by phone or email
+func (i Interactor) GetUserProfileByPhoneOrEmail(ctx context.Context, payload *dto.RetrieveUserProfileInput) (*profileutils.UserProfile, error) {
+	return i.database.GetUserProfileByPhoneOrEmail(ctx, payload)
+}
+
+// UpdateUserProfileEmail updates user profile's email
+func (i Interactor) UpdateUserProfileEmail(ctx context.Context, phone string, email string) error {
+	return i.database.UpdateUserProfileEmail(ctx, phone, email)
+}
