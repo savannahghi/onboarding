@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"time"
 
-	"go.opentelemetry.io/otel"
-
 	"firebase.google.com/go/auth"
 	"github.com/google/uuid"
 	"github.com/savannahghi/converterandformatter"
@@ -22,11 +20,11 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/pubsubtools"
 	"github.com/savannahghi/scalarutils"
 	"github.com/savannahghi/serverutils"
+	"go.opentelemetry.io/otel"
 )
 
 // Package that generates trace information
@@ -56,7 +54,7 @@ type Repository struct {
 func NewFirebaseRepository(
 	firestoreClient FirestoreClientExtension,
 	firebaseClient FirebaseClientExtension,
-) repository.OnboardingRepository {
+) *Repository {
 	return &Repository{
 		FirestoreClient: firestoreClient,
 		FirebaseClient:  firebaseClient,
