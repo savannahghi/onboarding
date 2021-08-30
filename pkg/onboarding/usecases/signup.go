@@ -512,19 +512,20 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 	ctx, span := tracer.Start(ctx, "RegisterUser")
 	defer span.End()
 
-	p, err := s.baseExt.GetLoggedInUser(ctx)
+	uid, err := s.baseExt.GetLoggedInUserUID(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		logrus.Printf("error: %v", err)
+		return nil, exceptions.UserNotFoundError(err)
+	}
+
+	profile, err := s.repo.GetUserProfileByUID(ctx, uid, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
-	profile, err := s.repo.GetUserProfileByUID(ctx, p.UID, false)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, err
-	}
-
-	phoneNumber, err := s.baseExt.NormalizeMSISDN(input.PhoneNumber)
+	phoneNumber, err := s.baseExt.NormalizeMSISDN(*input.PhoneNumber)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, exceptions.NormalizeMSISDNError(err)
@@ -534,12 +535,12 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 	timestamp := time.Now().In(pubsubtools.TimeLocation)
 
 	userProfile := profileutils.UserProfile{
-		PrimaryEmailAddress: &input.Email,
+		PrimaryEmailAddress: input.Email,
 		UserBioData: profileutils.BioData{
-			FirstName:   &input.FirstName,
-			LastName:    &input.LastName,
-			Gender:      enumutils.Gender(input.Gender),
-			DateOfBirth: &input.DateOfBirth,
+			FirstName:   input.FirstName,
+			LastName:    input.LastName,
+			Gender:      enumutils.Gender(*input.Gender),
+			DateOfBirth: input.DateOfBirth,
 		},
 		CreatedByID: &profile.ID,
 		Created:     &timestamp,
@@ -574,11 +575,11 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 	}
 
 	message := input.WelcomeMessage
-	if len(message) == 0 {
-		message = profileDomain.WelcomeMessage
+	if message == nil {
+		message = &profileDomain.WelcomeMessage
 	}
 
-	formartedMessage := fmt.Sprintf(message, input.FirstName, otp)
+	formartedMessage := fmt.Sprintf(*message, input.FirstName, otp)
 
 	if err := s.engagement.SendSMS(ctx, []string{*phoneNumber}, formartedMessage); err != nil {
 		return nil, fmt.Errorf("unable to send consumer registration message: %w", err)

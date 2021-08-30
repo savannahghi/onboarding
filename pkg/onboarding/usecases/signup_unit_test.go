@@ -1864,11 +1864,13 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 	fName := "Test"
 	lName := "Test"
 	email := "test@email.com"
+	gender := "male"
 	input := dto.RegisterUserInput{
-		PhoneNumber: phoneNumber,
-		FirstName:   fName,
-		LastName:    lName,
-		Email:       email,
+		PhoneNumber: &phoneNumber,
+		FirstName:   &fName,
+		LastName:    &lName,
+		Email:       &email,
+		Gender:      (*enumutils.Gender)(&gender),
 	}
 
 	type args struct {
@@ -1975,8 +1977,8 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "sad: unable to get logged in user" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return nil, fmt.Errorf("unable to get logged in user")
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return "", fmt.Errorf("unable to get logged in user")
 				}
 			}
 			if tt.name == "sad: unable to get logged in user profile" {
@@ -1989,8 +1991,8 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 			}
 
 			if tt.name == "sad: unable to normalize phonenumber" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{UID: uuid.NewString()}, nil
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
 				}
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
@@ -2001,8 +2003,8 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 			}
 
 			if tt.name == "sad: unable to create user profile" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{UID: uuid.NewString()}, nil
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
 				}
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
@@ -2015,8 +2017,8 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 				}
 			}
 			if tt.name == "sad: unable to create communication settings" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{UID: uuid.NewString()}, nil
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
 				}
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
@@ -2036,8 +2038,8 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 			}
 
 			if tt.name == "sad: unable to create otp" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{UID: uuid.NewString()}, nil
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
 				}
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
@@ -2079,8 +2081,8 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 			}
 
 			if tt.name == "sad: unable to send otp sms" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{UID: uuid.NewString()}, nil
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
 				}
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
@@ -2112,8 +2114,8 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 			}
 
 			if tt.name == "happy: registered consumer" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{UID: uuid.NewString()}, nil
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
 				}
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
