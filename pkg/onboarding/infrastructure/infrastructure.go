@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 
+	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
@@ -102,6 +103,119 @@ func (i Interactor) GetUserProfilesByRoleID(ctx context.Context, role string) ([
 // userId is the ID of the user removing a role from a user
 func (i Interactor) SaveRoleRevocation(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error {
 	return i.database.SaveRoleRevocation(ctx, userID, revocation)
+}
+
+// CheckIfAdmin checks if a user has admin permissions
+func (i Interactor) CheckIfAdmin(profile *profileutils.UserProfile) bool {
+	return i.database.CheckIfAdmin(profile)
+}
+
+// UpdateUserName updates the username of a profile that matches the id
+// this method should be called after asserting the username is unique and not associated with another userProfile
+func (i Interactor) UpdateUserName(ctx context.Context, id string, userName string) error {
+	return i.database.UpdateUserName(ctx, id, userName)
+}
+
+// UpdatePrimaryPhoneNumber append a new primary phone number to the user profile
+// this method should be called after asserting the phone number is unique and not associated with another userProfile
+func (i Interactor) UpdatePrimaryPhoneNumber(ctx context.Context, id string, phoneNumber string) error {
+	return i.database.UpdatePrimaryPhoneNumber(ctx, id, phoneNumber)
+}
+
+// UpdatePrimaryEmailAddress the primary email addresses of the profile that matches the id
+// this method should be called after asserting the emailAddress is unique and not associated with another userProfile
+func (i Interactor) UpdatePrimaryEmailAddress(ctx context.Context, id string, emailAddress string) error {
+	return i.database.UpdatePrimaryEmailAddress(ctx, id, emailAddress)
+}
+
+// UpdateSecondaryPhoneNumbers updates the secondary phone numbers of the profile that matches the id
+// this method should be called after asserting the phone numbers are unique and not associated with another userProfile
+func (i Interactor) UpdateSecondaryPhoneNumbers(ctx context.Context, id string, phoneNumbers []string) error {
+	return i.database.UpdateSecondaryPhoneNumbers(ctx, id, phoneNumbers)
+}
+
+// UpdateSecondaryEmailAddresses the secondary email addresses of the profile that matches the id
+// this method should be called after asserting the emailAddresses  as unique and not associated with another userProfile
+func (i Interactor) UpdateSecondaryEmailAddresses(ctx context.Context, id string, emailAddresses []string) error {
+	return i.database.UpdateSecondaryEmailAddresses(ctx, id, emailAddresses)
+}
+
+// UpdateVerifiedIdentifiers adds a UID to a user profile during login if it does not exist
+func (i Interactor) UpdateVerifiedIdentifiers(
+	ctx context.Context,
+	id string,
+	identifiers []profileutils.VerifiedIdentifier,
+) error {
+	return i.database.UpdateVerifiedIdentifiers(ctx, id, identifiers)
+}
+
+// UpdateVerifiedUIDS adds a UID to a user profile during login if it does not exist
+func (i Interactor) UpdateVerifiedUIDS(ctx context.Context, id string, uids []string) error {
+	return i.database.UpdateVerifiedUIDS(ctx, id, uids)
+}
+
+// UpdateSuspended updates the suspend attribute of the profile that matches the id
+func (i Interactor) UpdateSuspended(ctx context.Context, id string, status bool) error {
+	return i.database.UpdateSuspended(ctx, id, status)
+}
+
+// UpdatePhotoUploadID updates the photoUploadID attribute of the profile that matches the id
+func (i Interactor) UpdatePhotoUploadID(ctx context.Context, id string, uploadID string) error {
+	return i.database.UpdatePhotoUploadID(ctx, id, uploadID)
+}
+
+// UpdateCovers updates the covers attribute of the profile that matches the id
+func (i Interactor) UpdateCovers(ctx context.Context, id string, covers []profileutils.Cover) error {
+	return i.database.UpdateCovers(ctx, id, covers)
+}
+
+// UpdatePushTokens updates the pushTokens attribute of the profile that matches the id. This function does a hard reset instead of prior
+// matching
+func (i Interactor) UpdatePushTokens(ctx context.Context, id string, pushToken []string) error {
+	return i.database.UpdatePushTokens(ctx, id, pushToken)
+}
+
+// UpdatePermissions update the permissions of the user profile
+func (i Interactor) UpdatePermissions(ctx context.Context, id string, perms []profileutils.PermissionType) error {
+	return i.database.UpdatePermissions(ctx, id, perms)
+}
+
+// UpdateRole update the permissions of the user profile
+func (i Interactor) UpdateRole(ctx context.Context, id string, role profileutils.RoleType) error {
+	return i.database.UpdateRole(ctx, id, role)
+}
+
+// UpdateUserRoleIDs updates the roles for a user
+func (i Interactor) UpdateUserRoleIDs(ctx context.Context, id string, roleIDs []string) error {
+	return i.database.UpdateUserRoleIDs(ctx, id, roleIDs)
+}
+
+// UpdateBioData updates the biodate of the profile that matches the id
+func (i Interactor) UpdateBioData(ctx context.Context, id string, data profileutils.BioData) error {
+	return i.database.UpdateBioData(ctx, id, data)
+}
+
+// UpdateAddresses persists a user's home or work address information to the database
+func (i Interactor) UpdateAddresses(
+	ctx context.Context,
+	id string,
+	address profileutils.Address,
+	addressType enumutils.AddressType,
+) error {
+	return i.database.UpdateAddresses(ctx, id, address, addressType)
+}
+
+// UpdateFavNavActions update the permissions of the user profile
+func (i Interactor) UpdateFavNavActions(ctx context.Context, id string, favActions []string) error {
+	return i.database.UpdateFavNavActions(ctx, id, favActions)
+}
+
+// ListUserProfiles fetches all users with the specified role from the database
+func (i Interactor) ListUserProfiles(
+	ctx context.Context,
+	role profileutils.RoleType,
+) ([]*profileutils.UserProfile, error) {
+	return i.database.ListUserProfiles(ctx, role)
 }
 
 // GetUserProfileByPhoneOrEmail gets usser profile by phone or email
