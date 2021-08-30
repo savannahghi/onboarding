@@ -337,3 +337,13 @@ func (d DbService) GetUserProfilesByRoleID(ctx context.Context, role string) ([]
 func (d DbService) SaveRoleRevocation(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error {
 	return d.firestore.SaveRoleRevocation(ctx, userID, revocation)
 }
+
+// GetUserProfileByPhoneOrEmail gets usser profile by phone or email
+func (d DbService) GetUserProfileByPhoneOrEmail(ctx context.Context, payload *dto.RetrieveUserProfileInput) (*profileutils.UserProfile, error) {
+	return d.firestore.GetUserProfileByPhoneOrEmail(ctx, payload)
+}
+
+// UpdateUserProfileEmail updates user profile's email
+func (d DbService) UpdateUserProfileEmail(ctx context.Context, phone string, email string) error {
+	return d.firestore.UpdateUserProfileEmail(ctx, phone, email)
+}
