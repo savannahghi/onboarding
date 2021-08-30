@@ -5,7 +5,7 @@ staging:
     depRootDomain: https://edi-staging.healthcloud.co.ke
 testing:
   - depName: engagement
-    depRootDomain: https://engagement-testing.healthcloud.co.ke
+    depRootDomain: https://engagement-testing.savannahghi.org
   - depName: edi
     depRootDomain: https://edi-testing.healthcloud.co.ke
 demo:
