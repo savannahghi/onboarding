@@ -271,6 +271,119 @@ func (d DbService) StageProfileNudge(ctx context.Context, nudge *feedlib.Nudge) 
 	return d.firestore.StageProfileNudge(ctx, nudge)
 }
 
+// CheckIfAdmin checks if a user has admin permissions
+func (d DbService) CheckIfAdmin(profile *profileutils.UserProfile) bool {
+	return d.firestore.CheckIfAdmin(profile)
+}
+
+// UpdateUserName updates the username of a profile that matches the id
+// this method should be called after asserting the username is unique and not associated with another userProfile
+func (d DbService) UpdateUserName(ctx context.Context, id string, userName string) error {
+	return d.firestore.UpdateUserName(ctx, id, userName)
+}
+
+// UpdatePrimaryPhoneNumber append a new primary phone number to the user profile
+// this method should be called after asserting the phone number is unique and not associated with another userProfile
+func (d DbService) UpdatePrimaryPhoneNumber(ctx context.Context, id string, phoneNumber string) error {
+	return d.firestore.UpdatePrimaryPhoneNumber(ctx, id, phoneNumber)
+}
+
+// UpdatePrimaryEmailAddress the primary email addresses of the profile that matches the id
+// this method should be called after asserting the emailAddress is unique and not associated with another userProfile
+func (d DbService) UpdatePrimaryEmailAddress(ctx context.Context, id string, emailAddress string) error {
+	return d.firestore.UpdatePrimaryEmailAddress(ctx, id, emailAddress)
+}
+
+// UpdateSecondaryPhoneNumbers updates the secondary phone numbers of the profile that matches the id
+// this method should be called after asserting the phone numbers are unique and not associated with another userProfile
+func (d DbService) UpdateSecondaryPhoneNumbers(ctx context.Context, id string, phoneNumbers []string) error {
+	return d.firestore.UpdateSecondaryPhoneNumbers(ctx, id, phoneNumbers)
+}
+
+// UpdateSecondaryEmailAddresses the secondary email addresses of the profile that matches the id
+// this method should be called after asserting the emailAddresses  as unique and not associated with another userProfile
+func (d DbService) UpdateSecondaryEmailAddresses(ctx context.Context, id string, emailAddresses []string) error {
+	return d.firestore.UpdateSecondaryEmailAddresses(ctx, id, emailAddresses)
+}
+
+// UpdateVerifiedIdentifiers adds a UID to a user profile during login if it does not exist
+func (d DbService) UpdateVerifiedIdentifiers(
+	ctx context.Context,
+	id string,
+	identifiers []profileutils.VerifiedIdentifier,
+) error {
+	return d.firestore.UpdateVerifiedIdentifiers(ctx, id, identifiers)
+}
+
+// UpdateVerifiedUIDS adds a UID to a user profile during login if it does not exist
+func (d DbService) UpdateVerifiedUIDS(ctx context.Context, id string, uids []string) error {
+	return d.firestore.UpdateVerifiedUIDS(ctx, id, uids)
+}
+
+// UpdateSuspended updates the suspend attribute of the profile that matches the id
+func (d DbService) UpdateSuspended(ctx context.Context, id string, status bool) error {
+	return d.firestore.UpdateSuspended(ctx, id, status)
+}
+
+// UpdatePhotoUploadID updates the photoUploadID attribute of the profile that matches the id
+func (d DbService) UpdatePhotoUploadID(ctx context.Context, id string, uploadID string) error {
+	return d.firestore.UpdatePhotoUploadID(ctx, id, uploadID)
+}
+
+// UpdateCovers updates the covers attribute of the profile that matches the id
+func (d DbService) UpdateCovers(ctx context.Context, id string, covers []profileutils.Cover) error {
+	return d.firestore.UpdateCovers(ctx, id, covers)
+}
+
+// UpdatePushTokens updates the pushTokens attribute of the profile that matches the id. This function does a hard reset instead of prior
+// matching
+func (d DbService) UpdatePushTokens(ctx context.Context, id string, pushToken []string) error {
+	return d.firestore.UpdatePushTokens(ctx, id, pushToken)
+}
+
+// UpdatePermissions update the permissions of the user profile
+func (d DbService) UpdatePermissions(ctx context.Context, id string, perms []profileutils.PermissionType) error {
+	return d.firestore.UpdatePermissions(ctx, id, perms)
+}
+
+// UpdateRole update the permissions of the user profile
+func (d DbService) UpdateRole(ctx context.Context, id string, role profileutils.RoleType) error {
+	return d.firestore.UpdateRole(ctx, id, role)
+}
+
+// UpdateUserRoleIDs updates the roles for a user
+func (d DbService) UpdateUserRoleIDs(ctx context.Context, id string, roleIDs []string) error {
+	return d.firestore.UpdateUserRoleIDs(ctx, id, roleIDs)
+}
+
+// UpdateBioData updates the biodate of the profile that matches the id
+func (d DbService) UpdateBioData(ctx context.Context, id string, data profileutils.BioData) error {
+	return d.firestore.UpdateBioData(ctx, id, data)
+}
+
+// UpdateAddresses persists a user's home or work address information to the database
+func (d DbService) UpdateAddresses(
+	ctx context.Context,
+	id string,
+	address profileutils.Address,
+	addressType enumutils.AddressType,
+) error {
+	return d.firestore.UpdateAddresses(ctx, id, address, addressType)
+}
+
+// UpdateFavNavActions update the permissions of the user profile
+func (d DbService) UpdateFavNavActions(ctx context.Context, id string, favActions []string) error {
+	return d.firestore.UpdateFavNavActions(ctx, id, favActions)
+}
+
+// ListUserProfiles fetches all users with the specified role from the database
+func (d DbService) ListUserProfiles(
+	ctx context.Context,
+	role profileutils.RoleType,
+) ([]*profileutils.UserProfile, error) {
+	return d.firestore.ListUserProfiles(ctx, role)
+}
+
 // CreateRole creates a new role and persists it to the database
 func (d DbService) CreateRole(
 	ctx context.Context,
