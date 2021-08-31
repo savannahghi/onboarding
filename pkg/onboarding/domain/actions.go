@@ -6,27 +6,18 @@ import (
 
 // On Tap Routes
 const (
-	// DefaultRoute is an empty route used for parent navigation actions
-	// that has nested children
-	DefaultRoute NavActionRoute = ""
-
-	HomeRoute                  NavActionRoute = "/home"
-	PatientRegistrationRoute   NavActionRoute = "/addPatient"
-	PatientIdentificationRoute NavActionRoute = "/patients"
-	GetHelpRouteRoute          NavActionRoute = "/helpCenter"
-
-	// Has KYC and Covers
-	RequestsRoute NavActionRoute = "/admin"
-
-	RoleViewRoute       NavActionRoute = "/viewCreatedRolesPage"
-	RoleCreationRoute   NavActionRoute = "/createRoleStepOne"
-	RoleAssignmentRoute NavActionRoute = "/bewellUserIdentification"
-
-	AgentRegistrationRoute   NavActionRoute = "/agentRegistration"
-	AgentIdentificationRoute NavActionRoute = "/agentIdentification"
-
-	EmployeeRegistrationRoute   NavActionRoute = "/employeeRegistration"
-	EmployeeIdentificationRoute NavActionRoute = "/employeeIdentification"
+	HomeRoute                   = "/home"
+	PatientRegistrationRoute    = "/addPatient"
+	PatientIdentificationRoute  = "/patients"
+	GetHelpRouteRoute           = "/helpCenter"
+	RequestsRoute               = "/admin"
+	RoleViewRoute               = "/viewCreatedRolesPage"
+	RoleCreationRoute           = "/createRoleStepOne"
+	RoleAssignmentRoute         = "/bewellUserIdentification"
+	AgentRegistrationRoute      = "/agentRegistration"
+	AgentIdentificationRoute    = "/agentIdentification"
+	EmployeeRegistrationRoute   = "/employeeRegistration"
+	EmployeeIdentificationRoute = "/employeeIdentification"
 )
 
 // Icon links for navactions
@@ -47,7 +38,7 @@ const (
 )
 
 // Navigation actions
-const (
+var (
 	HomeNavActionTitle       = "Home"
 	HomeNavActionDescription = "Home Navigation action"
 
@@ -191,7 +182,6 @@ var (
 	PartnerNavActions = NavigationAction{
 		Group:              PartnerGroup,
 		Title:              PartnerNavActionTitle,
-		OnTapRoute:         DefaultRoute,
 		Icon:               PartnerNavActionIcon,
 		RequiredPermission: nil,
 		SequenceNumber:     PartnerNavactionSequence,
@@ -201,10 +191,8 @@ var (
 var (
 	//ConsumerNavActions is the navigation actions to consumer management
 	ConsumerNavActions = NavigationAction{
-		Group: ConsumerGroup,
-		Title: ConsumerNavActionTitle,
-		// Not provided yet
-		OnTapRoute:         DefaultRoute,
+		Group:              ConsumerGroup,
+		Title:              ConsumerNavActionTitle,
 		Icon:               ConsumerNavActionIcon,
 		RequiredPermission: nil,
 		SequenceNumber:     ConsumerNavactionSequence,
