@@ -4553,8 +4553,9 @@ func TestHandlersInterfacesImpl_RegisterUser(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.NewString(), nil
 				}
+
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
+					return nil, fmt.Errorf("unable to get user profile")
 				}
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					return &phoneNumber, nil

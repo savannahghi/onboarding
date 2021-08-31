@@ -1893,15 +1893,6 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "sad: unable to get logged in user profile",
-			args: args{
-				ctx:   ctx,
-				input: input,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
 			name: "sad: unable to normalize phonenumber",
 			args: args{
 				ctx:   ctx,
@@ -1979,14 +1970,6 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 			if tt.name == "sad: unable to get logged in user" {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "", fmt.Errorf("unable to get logged in user")
-				}
-			}
-			if tt.name == "sad: unable to get logged in user profile" {
-				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
-					return &dto.UserInfo{UID: uuid.NewString()}, nil
-				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return nil, fmt.Errorf("unable to get user profile")
 				}
 			}
 
@@ -2117,8 +2100,9 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.NewString(), nil
 				}
+
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
-					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
+					return nil, fmt.Errorf("unable to get user profile")
 				}
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					return &phoneNumber, nil

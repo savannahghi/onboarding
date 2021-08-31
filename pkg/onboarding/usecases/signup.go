@@ -518,10 +518,12 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 		return nil, exceptions.UserNotFoundError(err)
 	}
 
+	// create a user profile
+	//make createdByID optional only if the profile of the creating user is found
 	profile, err := s.repo.GetUserProfileByUID(ctx, uid, false)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, err
+	var profileID string
+	if err == nil {
+		profileID = profile.ID
 	}
 
 	phoneNumber, err := s.baseExt.NormalizeMSISDN(*input.PhoneNumber)
@@ -530,7 +532,6 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	// create a user profile
 	timestamp := time.Now().In(pubsubtools.TimeLocation)
 
 	userProfile := profileutils.UserProfile{
@@ -541,7 +542,7 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 			Gender:      enumutils.Gender(*input.Gender),
 			DateOfBirth: input.DateOfBirth,
 		},
-		CreatedByID: &profile.ID,
+		CreatedByID: &profileID,
 		Created:     &timestamp,
 		Roles:       input.RoleIDs,
 	}
