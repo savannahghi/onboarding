@@ -1306,32 +1306,8 @@ func (h *HandlersInterfacesImpl) RegisterUser() http.HandlerFunc {
 		input := &dto.RegisterUserInput{}
 		serverutils.DecodeJSONToTargetStruct(rw, r, input)
 
-		if input.UID == nil {
-			err := fmt.Errorf("expected `UID` to be defined")
-			errorcodeutil.ReportErr(rw, err, http.StatusBadRequest)
-			return
-		}
-
-		if input.FirstName == nil {
-			err := fmt.Errorf("expected `firstName` to be defined")
-			errorcodeutil.ReportErr(rw, err, http.StatusBadRequest)
-			return
-		}
-
-		if input.LastName == nil {
-			err := fmt.Errorf("expected `lastName` to be defined")
-			errorcodeutil.ReportErr(rw, err, http.StatusBadRequest)
-			return
-		}
-
-		if input.PhoneNumber == nil {
-			err := fmt.Errorf("expected `phoneNumber` to be defined")
-			errorcodeutil.ReportErr(rw, err, http.StatusBadRequest)
-			return
-		}
-
-		if input.Gender == nil {
-			err := fmt.Errorf("expected `gender` to be defined")
+		valid, err := utils.ValidateRegisterUserInput(*input)
+		if !valid {
 			errorcodeutil.ReportErr(rw, err, http.StatusBadRequest)
 			return
 		}

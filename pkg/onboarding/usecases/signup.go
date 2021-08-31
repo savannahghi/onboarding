@@ -515,7 +515,6 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 	uid, err := s.baseExt.GetLoggedInUserUID(ctx)
 	if err != nil {
 		utils.RecordSpanError(span, err)
-		logrus.Printf("error: %v", err)
 		return nil, exceptions.UserNotFoundError(err)
 	}
 
@@ -579,7 +578,7 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 		message = &profileDomain.WelcomeMessage
 	}
 
-	formartedMessage := fmt.Sprintf(*message, input.FirstName, otp)
+	formartedMessage := fmt.Sprintf(*message, *input.FirstName, otp)
 
 	if err := s.engagement.SendSMS(ctx, []string{*phoneNumber}, formartedMessage); err != nil {
 		return nil, fmt.Errorf("unable to send consumer registration message: %w", err)
