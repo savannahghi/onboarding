@@ -1849,7 +1849,7 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 	}
 }
 
-func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
+func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 	ctx := context.Background()
 
 	i, err := InitializeFakeOnboardingInteractor()
@@ -1999,6 +1999,49 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 					return nil, fmt.Errorf("unable to create user profile")
 				}
 			}
+			if tt.name == "sad: unable to create supplier profile" {
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
+				}
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
+				}
+				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
+					return &phoneNumber, nil
+				}
+				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{
+						ID:           uuid.NewString(),
+						PrimaryPhone: &phoneNumber,
+					}, nil
+				}
+				fakeRepo.CreateEmptySupplierProfileFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+					return nil, fmt.Errorf("unable to create supplier profile")
+				}
+			}
+			if tt.name == "sad: unable to create customer profile" {
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
+				}
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
+				}
+				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
+					return &phoneNumber, nil
+				}
+				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{
+						ID:           uuid.NewString(),
+						PrimaryPhone: &phoneNumber,
+					}, nil
+				}
+				fakeRepo.CreateEmptySupplierProfileFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+					return &profileutils.Supplier{}, nil
+				}
+				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
+					return nil, fmt.Errorf("unable to create customer profile")
+				}
+			}
 			if tt.name == "sad: unable to create communication settings" {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.NewString(), nil
@@ -2014,6 +2057,12 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 						ID:           uuid.NewString(),
 						PrimaryPhone: &phoneNumber,
 					}, nil
+				}
+				fakeRepo.CreateEmptySupplierProfileFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+					return &profileutils.Supplier{}, nil
+				}
+				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
+					return &profileutils.Customer{}, nil
 				}
 				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return nil, fmt.Errorf("unable to create communication settings")
@@ -2049,6 +2098,12 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 				fakePubSub.NotifyCreateContactFn = func(ctx context.Context, contact crmDomain.CRMContact) error {
 					return nil
 				}
+				fakeRepo.CreateEmptySupplierProfileFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+					return &profileutils.Supplier{}, nil
+				}
+				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
+					return &profileutils.Customer{}, nil
+				}
 				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return &profileutils.UserCommunicationsSetting{}, nil
 				}
@@ -2078,6 +2133,12 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 						ID:           uuid.NewString(),
 						PrimaryPhone: &phoneNumber,
 					}, nil
+				}
+				fakeRepo.CreateEmptySupplierProfileFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+					return &profileutils.Supplier{}, nil
+				}
+				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
+					return &profileutils.Customer{}, nil
 				}
 				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return &profileutils.UserCommunicationsSetting{}, nil
@@ -2118,8 +2179,11 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 						PrimaryEmailAddress: &email,
 					}, nil
 				}
-				fakePubSub.NotifyCreateContactFn = func(ctx context.Context, contact crmDomain.CRMContact) error {
-					return nil
+				fakeRepo.CreateEmptySupplierProfileFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+					return &profileutils.Supplier{}, nil
+				}
+				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
+					return &profileutils.Customer{}, nil
 				}
 				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return &profileutils.UserCommunicationsSetting{}, nil
@@ -2140,11 +2204,11 @@ func TestAgentUseCaseImpl_RegisterUser(t *testing.T) {
 
 			got, err := i.Signup.RegisterUser(tt.args.ctx, tt.args.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("AgentUseCasesImpl.RegisterUser() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("SignUpUseCasesImpl.RegisterUser() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !tt.wantErr && got == nil {
-				t.Errorf("AgentUseCasesImpl.RegisterUser() = %v, want %v", got, tt.want)
+				t.Errorf("SignUpUseCasesImpl.RegisterUser() = %v, want %v", got, tt.want)
 			}
 		})
 	}
