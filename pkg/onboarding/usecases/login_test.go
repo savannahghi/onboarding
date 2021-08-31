@@ -20,6 +20,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
@@ -130,6 +131,7 @@ func InitializeTestFirebaseClient(ctx context.Context) (*firestore.Client, *auth
 }
 
 func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
+	db := database.NewDbService()
 	fc := firebasetools.FirebaseClient{}
 	fa, err := fc.InitFirebase()
 	if err != nil {
@@ -175,7 +177,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
-		repo,
+		*db,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)

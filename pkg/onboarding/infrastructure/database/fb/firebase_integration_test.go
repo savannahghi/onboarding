@@ -22,6 +22,7 @@ import (
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
@@ -104,6 +105,7 @@ func TestMain(m *testing.M) {
 }
 
 func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
+	db := database.NewDbService()
 	fsc, fbc := InitializeTestFirebaseClient(ctx)
 	if fsc == nil {
 		return nil, fmt.Errorf("failed to initialize test FireStore client")
@@ -139,7 +141,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
-		fr,
+		*db,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
