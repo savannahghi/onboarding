@@ -4571,11 +4571,8 @@ func TestHandlersInterfacesImpl_RegisterUser(t *testing.T) {
 						PrimaryEmailAddress: &email,
 					}, nil
 				}
-				fakeRepo.CreateEmptySupplierProfileFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
-					return &profileutils.Supplier{}, nil
-				}
-				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
-					return &profileutils.Customer{}, nil
+				fakePubSub.NotifyCreateContactFn = func(ctx context.Context, contact crmDomain.CRMContact) error {
+					return nil
 				}
 				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return &profileutils.UserCommunicationsSetting{}, nil

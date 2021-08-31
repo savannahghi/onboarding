@@ -553,16 +553,6 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 		return nil, err
 	}
 
-	_, err = s.repo.CreateEmptySupplierProfile(ctx, createdProfile.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = s.repo.CreateEmptyCustomerProfile(ctx, createdProfile.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	// set the user default communications settings
 	defaultCommunicationSetting := true
 	_, err = s.repo.SetUserCommunicationsSettings(
@@ -598,6 +588,7 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 	response := dto.RegisteredUserResponse{
 		ID:          createdProfile.ID,
 		DisplayName: *createdProfile.UserBioData.FirstName,
+		Email:       *createdProfile.PrimaryEmailAddress,
 		PhoneNumber: *createdProfile.PrimaryPhone,
 	}
 

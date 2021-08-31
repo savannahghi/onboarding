@@ -166,5 +166,6 @@ type GroupedNavigationActions struct {
 type RegisteredUserResponse struct {
 	ID          string `json:"id,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
+	Email       string `json:"email,omitempty"`
 	PhoneNumber string `json:"phoneNumber,omitempty"`
 }
