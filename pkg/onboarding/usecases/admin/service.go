@@ -25,9 +25,9 @@ import (
 var tracer = otel.Tracer("github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin")
 
 const (
-	validURLSchema         = "https"
-	validGrapthEndpoinTail = "/graphql"
-	invalidGraphEndpoint   = "Invalid graph detected. Please add a endpoint that ends with > graphql"
+	validURLSchema        = "https"
+	validGraphEndpoinTail = "/graphql"
+	invalidGraphEndpoint  = "Invalid graph detected. Please add a endpoint that ends with > graphql"
 )
 
 // Usecase ...
@@ -36,7 +36,6 @@ type Usecase interface {
 		ctx context.Context,
 		input domain.Microservice,
 	) (*domain.Microservice, error)
-	CheckHealthEndpoint(ctx context.Context, healthEndpoint string) bool
 	ListMicroservices(ctx context.Context) ([]*domain.Microservice, error)
 	DeregisterMicroservice(ctx context.Context, id string) (bool, error)
 	DeregisterAllMicroservices(ctx context.Context) (bool, error)
@@ -97,7 +96,7 @@ func (s *Service) RegisterMicroservice(
 		return nil, fmt.Errorf("expected a secure URL, Found %v ", input.URL)
 	}
 
-	if parseURL.Path != validGrapthEndpoinTail {
+	if parseURL.Path != validGraphEndpoinTail {
 		return nil, fmt.Errorf("%v", invalidGraphEndpoint)
 	}
 
@@ -271,7 +270,7 @@ func (s *Service) DeregisterAllMicroservices(ctx context.Context) (bool, error) 
 	}
 
 	// not fatal. Recreation will happen in the next step of CLI mode
-	return false, fmt.Errorf("unable to deregiseter all services")
+	return false, fmt.Errorf("unable to deregister all services")
 }
 
 // FindMicroserviceByID retrieves a micro-service by it's ID

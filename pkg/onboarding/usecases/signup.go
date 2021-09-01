@@ -9,9 +9,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
 )
@@ -61,30 +59,24 @@ type SignUpUseCases interface {
 
 // SignUpUseCasesImpl represents usecase implementation object
 type SignUpUseCasesImpl struct {
-	onboardingRepository repository.OnboardingRepository
-	profileUsecase       ProfileUseCase
-	pinUsecase           UserPINUseCases
-	baseExt              extension.BaseExtension
-	engagement           engagement.ServiceEngagement
-	pubsub               pubsubmessaging.ServicePubSub
+	infrastructure infrastructure.Infrastructure
+	profileUsecase ProfileUseCase
+	pinUsecase     UserPINUseCases
+	baseExt        extension.BaseExtension
 }
 
 // NewSignUpUseCases returns a new a onboarding usecase
 func NewSignUpUseCases(
-	r repository.OnboardingRepository,
+	infrastructure infrastructure.Infrastructure,
 	profile ProfileUseCase,
 	pin UserPINUseCases,
 	ext extension.BaseExtension,
-	eng engagement.ServiceEngagement,
-	pubsub pubsubmessaging.ServicePubSub,
 ) SignUpUseCases {
 	return &SignUpUseCasesImpl{
-		onboardingRepository: r,
-		profileUsecase:       profile,
-		pinUsecase:           pin,
-		baseExt:              ext,
-		engagement:           eng,
-		pubsub:               pubsub,
+		infrastructure: infrastructure,
+		profileUsecase: profile,
+		pinUsecase:     pin,
+		baseExt:        ext,
 	}
 }
 
@@ -113,7 +105,7 @@ func (s *SignUpUseCasesImpl) VerifyPhoneNumber(
 		return nil, exceptions.CheckPhoneNumberExistError()
 	}
 	// generate and send otp to the phone number
-	otpResp, err := s.engagement.GenerateAndSendOTP(ctx, *phoneNumber, appID)
+	otpResp, err := s.infrastructure.GenerateAndSendOTP(ctx, *phoneNumber, appID)
 
 	if err != nil {
 		utils.RecordSpanError(span, err)
@@ -137,7 +129,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
-	verified, err := s.engagement.VerifyOTP(
+	verified, err := s.infrastructure.VerifyOTP(
 		ctx,
 		*userData.PhoneNumber,
 		*userData.OTP,
@@ -152,14 +144,14 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	}
 
 	// get or create user via their phone number
-	user, err := s.onboardingRepository.GetOrCreatePhoneNumberUser(ctx, *userData.PhoneNumber)
+	user, err := s.infrastructure.GetOrCreatePhoneNumberUser(ctx, *userData.PhoneNumber)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
 	// create a user profile
-	profile, err := s.onboardingRepository.CreateUserProfile(
+	profile, err := s.infrastructure.CreateUserProfile(
 		ctx,
 		*userData.PhoneNumber,
 		user.UID,
@@ -169,7 +161,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		return nil, exceptions.InternalServerError(err)
 	}
 	// generate auth credentials
-	auth, err := s.onboardingRepository.GenerateAuthCredentials(
+	auth, err := s.infrastructure.GenerateAuthCredentials(
 		ctx,
 		*userData.PhoneNumber,
 		profile,
@@ -190,7 +182,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	}
 	// set the user default communications settings
 	defaultCommunicationSetting := true
-	comms, err := s.onboardingRepository.SetUserCommunicationsSettings(
+	comms, err := s.infrastructure.SetUserCommunicationsSettings(
 		ctx,
 		profile.ID,
 		&defaultCommunicationSetting,
@@ -204,7 +196,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	}
 
 	// get navigation actions
-	roles, err := s.onboardingRepository.GetRolesByIDs(ctx, profile.Roles)
+	roles, err := s.infrastructure.GetRolesByIDs(ctx, profile.Roles)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +326,7 @@ func (s *SignUpUseCasesImpl) GetUserRecoveryPhoneNumbers(
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	pr, err := s.onboardingRepository.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
+	pr, err := s.infrastructure.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
@@ -391,5 +383,5 @@ func (s *SignUpUseCasesImpl) RemoveUserByPhoneNumber(ctx context.Context, phone 
 		utils.RecordSpanError(span, err)
 		return exceptions.NormalizeMSISDNError(err)
 	}
-	return s.onboardingRepository.PurgeUserByPhoneNumber(ctx, *phoneNumber)
+	return s.infrastructure.PurgeUserByPhoneNumber(ctx, *phoneNumber)
 }

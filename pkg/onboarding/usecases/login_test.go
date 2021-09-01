@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go/auth"
 	"github.com/google/uuid"
 	"github.com/savannahghi/feedlib"
@@ -18,9 +17,8 @@ import (
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
@@ -40,11 +38,6 @@ import (
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	pubsubmessagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub/mock"
 	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
-)
-
-const (
-	otpService        = "otp"
-	engagementService = "engagement"
 )
 
 func TestMain(m *testing.M) {
@@ -131,63 +124,17 @@ func InitializeTestFirebaseClient(ctx context.Context) (*firestore.Client, *auth
 }
 
 func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
-	db := database.NewDbService()
-	fc := firebasetools.FirebaseClient{}
-	fa, err := fc.InitFirebase()
-	if err != nil {
-		log.Fatalf("unable to initialize Firestore for the Feed: %s", err)
-	}
 
-	fsc, err := fa.Firestore(ctx)
-	if err != nil {
-		log.Fatalf("unable to initialize Firestore: %s", err)
-	}
+	infrastructure, _ := infrastructure.NewInfrastructureInteractor()
 
-	fbc, err := fa.Auth(ctx)
-	if err != nil {
-		log.Panicf("can't initialize Firebase auth when setting up profile service: %s", err)
-	}
+	ext := extension.NewBaseExtensionImpl()
 
-	var repo repository.OnboardingRepository
-
-	if serverutils.MustGetEnvVar(domain.Repo) == domain.FirebaseRepository {
-		firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-		repo = fb.NewFirebaseRepository(firestoreExtension, fbc)
-	}
-
-	projectID, err := serverutils.GetEnvVar(serverutils.GoogleCloudProjectIDEnvVarName)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"can't get projectID from env var `%s`: %w",
-			serverutils.GoogleCloudProjectIDEnvVarName,
-			err,
-		)
-	}
-	pubSubClient, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize pubsub client: %w", err)
-	}
-
-	ext := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
-
-	// Initialize ISC clients
-	engagementClient := utils.NewInterServiceClient(engagementService, ext)
-	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-
-	ps, err := pubsubmessaging.NewServicePubSubMessaging(
-		pubSubClient,
-		ext,
-		*db,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
-	}
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(repo, ext, engage, ps)
-	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(repo, ext)
-	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, ext, engage, ps)
+	profile := usecases.NewProfileUseCase(infrastructure, ext)
+	login := usecases.NewLoginUseCases(infrastructure, profile, ext, pinExt)
+	survey := usecases.NewSurveyUseCases(infrastructure, ext)
+	userpin := usecases.NewUserPinUseCase(infrastructure, profile, ext, pinExt)
+	su := usecases.NewSignUpUseCases(infrastructure, profile, userpin, ext)
 
 	return &interactor.Interactor{
 		Onboarding: profile,
@@ -195,19 +142,17 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		Login:      login,
 		Survey:     survey,
 		UserPIN:    userpin,
-		Engagement: engage,
-		PubSub:     ps,
 	}, nil
 }
 
 func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, error) {
 	ctx := context.Background()
-	s, err := InitializeTestService(ctx)
+	infrastructure, err := infrastructure.NewInfrastructureInteractor()
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize test service: %v", err)
 	}
 	testAppID := uuid.New().String()
-	return s.Engagement.GenerateAndSendOTP(ctx, phone, &testAppID)
+	return infrastructure.GenerateAndSendOTP(ctx, phone, &testAppID)
 }
 
 // CreateTestUserByPhone creates a user that is to be used in
@@ -410,18 +355,26 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
 
-	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps)
-	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(r, ext)
-	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
-	su := usecases.NewSignUpUseCases(r, profile, userpin, ext, engagementSvc, ps)
+	type InfrastructureMock struct {
+		repository.OnboardingRepository
+		engagement.ServiceEngagement
+		pubsubmessaging.ServicePubSub
+	}
+	infra := func() infrastructure.Infrastructure {
+		return &InfrastructureMock{r, engagementSvc, ps}
+	}()
+
+	profile := usecases.NewProfileUseCase(infra, ext)
+	login := usecases.NewLoginUseCases(infra, profile, ext, pinExt)
+	survey := usecases.NewSurveyUseCases(infra, ext)
+	userpin := usecases.NewUserPinUseCase(infra, profile, ext, pinExt)
+	su := usecases.NewSignUpUseCases(infra, profile, userpin, ext)
 	adminSrv := adminSrv.NewService(ext)
-	role := usecases.NewRoleUseCases(r, ext)
+	role := usecases.NewRoleUseCases(infra, ext)
 
 	i, err := interactor.NewOnboardingInteractor(
 		profile, su, login,
 		survey, userpin,
-		engagementSvc, ps,
 		adminSrv, role,
 	)
 	if err != nil {

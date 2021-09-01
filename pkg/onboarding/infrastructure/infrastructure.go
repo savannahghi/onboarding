@@ -3,13 +3,14 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
-	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
+	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
@@ -43,12 +44,12 @@ type Interactor struct {
 }
 
 // NewInfrastructureInteractor initializes a new infrastructure interactor
-func NewInfrastructureInteractor() (*Interactor, error) {
+func NewInfrastructureInteractor() (Infrastructure, error) {
 	ctx := context.Background()
-	db := database.NewDbService()
-	iscExt := extension.NewISCExtension()
 
-	fc := &firebasetools.FirebaseClient{}
+	db := database.NewDbService()
+
+	baseExtension := extension.NewBaseExtensionImpl()
 
 	projectID, err := serverutils.GetEnvVar(serverutils.GoogleCloudProjectIDEnvVarName)
 	if err != nil {
@@ -59,14 +60,13 @@ func NewInfrastructureInteractor() (*Interactor, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	baseExt := extension.NewBaseExtensionImpl(fc)
-
-	engagement := engagement.NewServiceEngagementImpl(iscExt, baseExt)
-	pubsub, err := pubsubmessaging.NewServicePubSubMessaging(pubSubClient, baseExt, *db)
+	pubsub, err := pubsubmessaging.NewServicePubSubMessaging(pubSubClient, baseExtension, db)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
 	}
+
+	engagementClient := utils.NewInterServiceClient("engagement", baseExtension)
+	engagement := engagement.NewServiceEngagementImpl(engagementClient, baseExtension)
 
 	return &Interactor{
 		database:   db,
@@ -263,7 +263,7 @@ func (i Interactor) ListUserProfiles(
 	return i.database.ListUserProfiles(ctx, role)
 }
 
-// GetUserProfileByPhoneOrEmail gets usser profile by phone or email
+// GetUserProfileByPhoneOrEmail gets user profile by phone or email
 func (i Interactor) GetUserProfileByPhoneOrEmail(ctx context.Context, payload *dto.RetrieveUserProfileInput) (*profileutils.UserProfile, error) {
 	return i.database.GetUserProfileByPhoneOrEmail(ctx, payload)
 }
@@ -516,7 +516,7 @@ func (i Interactor) TopicIDs() []string {
 	return i.PubSub.TopicIDs()
 }
 
-// PublishToPubsub sends a message to a specifeid Topic
+// PublishToPubsub sends a message to a specified Topic
 func (i Interactor) PublishToPubsub(
 	ctx context.Context,
 	topicID string,
@@ -553,4 +553,12 @@ func (i Interactor) EnsureSubscriptionsExist(
 // SubscriptionIDs returns a map of topic IDs to subscription IDs
 func (i Interactor) SubscriptionIDs() map[string]string {
 	return i.PubSub.SubscriptionIDs()
+}
+
+// ReceivePubSubPushMessages ...
+func (i Interactor) ReceivePubSubPushMessages(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	//TODO: Should be a handler
 }

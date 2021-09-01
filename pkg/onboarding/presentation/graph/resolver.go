@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/savannahghi/firebasetools"
-	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
+	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 
 	"firebase.google.com/go/auth"
 )
@@ -18,7 +18,7 @@ import (
 
 // Resolver sets up a GraphQL resolver with all necessary dependencies
 type Resolver struct {
-	interactor *interactor.Interactor
+	usecases usecases.Usecases
 }
 
 //go:generate go run github.com/99designs/gqlgen
@@ -26,22 +26,18 @@ type Resolver struct {
 // NewResolver sets up the dependencies needed for query and mutation resolvers to work
 func NewResolver(
 	ctx context.Context,
-	interactor *interactor.Interactor,
-
+	usecases usecases.Usecases,
 ) (*Resolver, error) {
 	return &Resolver{
-		interactor: interactor,
+		usecases: usecases,
 	}, nil
 }
 
 func (r Resolver) checkPreconditions() {
-	if r.interactor.Onboarding == nil {
+	if r.usecases == nil {
 		log.Panicf("expected onboarding usecases to be defined resolver")
 	}
 
-	if r.interactor.Signup == nil {
-		log.Panicf("expected signup usecases to be define in resolver ")
-	}
 }
 
 // CheckUserTokenInContext ensures that the context has a valid Firebase auth token

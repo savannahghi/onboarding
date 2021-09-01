@@ -21,7 +21,7 @@ import (
 func (r *mutationResolver) CompleteSignup(ctx context.Context, flavour feedlib.Flavour) (bool, error) {
 	startTime := time.Now()
 
-	completeSignup, err := r.interactor.Signup.CompleteSignup(ctx, flavour)
+	completeSignup, err := r.usecases.CompleteSignup(ctx, flavour)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "completeSignup", err)
 
@@ -31,7 +31,7 @@ func (r *mutationResolver) CompleteSignup(ctx context.Context, flavour feedlib.F
 func (r *mutationResolver) UpdateUserProfile(ctx context.Context, input dto.UserProfileInput) (*profileutils.UserProfile, error) {
 	startTime := time.Now()
 
-	updateUserProfile, err := r.interactor.Signup.UpdateUserProfile(ctx, &input)
+	updateUserProfile, err := r.usecases.UpdateUserProfile(ctx, &input)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "updateUserProfile", err)
 
@@ -41,7 +41,7 @@ func (r *mutationResolver) UpdateUserProfile(ctx context.Context, input dto.User
 func (r *mutationResolver) UpdateUserPin(ctx context.Context, phone string, pin string) (bool, error) {
 	startTime := time.Now()
 
-	updateUserPIN, err := r.interactor.UserPIN.ChangeUserPIN(ctx, phone, pin)
+	updateUserPIN, err := r.usecases.ChangeUserPIN(ctx, phone, pin)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "updateUserPIN", err)
 
@@ -51,7 +51,7 @@ func (r *mutationResolver) UpdateUserPin(ctx context.Context, phone string, pin 
 func (r *mutationResolver) SetPrimaryPhoneNumber(ctx context.Context, phone string, otp string) (bool, error) {
 	startTime := time.Now()
 
-	err := r.interactor.Onboarding.SetPrimaryPhoneNumber(ctx, phone, otp, true)
+	err := r.usecases.SetPrimaryPhoneNumber(ctx, phone, otp, true)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "setPrimaryPhoneNumber", err)
 
@@ -65,7 +65,7 @@ func (r *mutationResolver) SetPrimaryPhoneNumber(ctx context.Context, phone stri
 func (r *mutationResolver) SetPrimaryEmailAddress(ctx context.Context, email string, otp string) (bool, error) {
 	startTime := time.Now()
 
-	err := r.interactor.Onboarding.SetPrimaryEmailAddress(ctx, email, otp)
+	err := r.usecases.SetPrimaryEmailAddress(ctx, email, otp)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "setPrimaryEmailAddress", err)
 
@@ -79,7 +79,7 @@ func (r *mutationResolver) SetPrimaryEmailAddress(ctx context.Context, email str
 func (r *mutationResolver) AddSecondaryPhoneNumber(ctx context.Context, phone []string) (bool, error) {
 	startTime := time.Now()
 
-	err := r.interactor.Onboarding.UpdateSecondaryPhoneNumbers(ctx, phone)
+	err := r.usecases.UpdateSecondaryPhoneNumbers(ctx, phone)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "addSecondaryPhoneNumber", err)
 
@@ -93,7 +93,7 @@ func (r *mutationResolver) AddSecondaryPhoneNumber(ctx context.Context, phone []
 func (r *mutationResolver) RetireSecondaryPhoneNumbers(ctx context.Context, phones []string) (bool, error) {
 	startTime := time.Now()
 
-	retireSecondaryPhoneNumbers, err := r.interactor.Onboarding.RetireSecondaryPhoneNumbers(
+	retireSecondaryPhoneNumbers, err := r.usecases.RetireSecondaryPhoneNumbers(
 		ctx,
 		phones,
 	)
@@ -111,7 +111,7 @@ func (r *mutationResolver) RetireSecondaryPhoneNumbers(ctx context.Context, phon
 func (r *mutationResolver) AddSecondaryEmailAddress(ctx context.Context, email []string) (bool, error) {
 	startTime := time.Now()
 
-	err := r.interactor.Onboarding.UpdateSecondaryEmailAddresses(ctx, email)
+	err := r.usecases.UpdateSecondaryEmailAddresses(ctx, email)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "addSecondaryEmailAddress", err)
 
@@ -125,7 +125,7 @@ func (r *mutationResolver) AddSecondaryEmailAddress(ctx context.Context, email [
 func (r *mutationResolver) RetireSecondaryEmailAddresses(ctx context.Context, emails []string) (bool, error) {
 	startTime := time.Now()
 
-	retireSecondaryEmailAddresses, err := r.interactor.Onboarding.RetireSecondaryEmailAddress(
+	retireSecondaryEmailAddresses, err := r.usecases.RetireSecondaryEmailAddress(
 		ctx,
 		emails,
 	)
@@ -143,7 +143,7 @@ func (r *mutationResolver) RetireSecondaryEmailAddresses(ctx context.Context, em
 func (r *mutationResolver) UpdateUserName(ctx context.Context, username string) (bool, error) {
 	startTime := time.Now()
 
-	err := r.interactor.Onboarding.UpdateUserName(ctx, username)
+	err := r.usecases.UpdateUserName(ctx, username)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "updateUserName", err)
 
@@ -157,7 +157,7 @@ func (r *mutationResolver) UpdateUserName(ctx context.Context, username string) 
 func (r *mutationResolver) RegisterPushToken(ctx context.Context, token string) (bool, error) {
 	startTime := time.Now()
 
-	registerPushToken, err := r.interactor.Signup.RegisterPushToken(ctx, token)
+	registerPushToken, err := r.usecases.RegisterPushToken(ctx, token)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "registerPushToken", err)
 
@@ -167,7 +167,7 @@ func (r *mutationResolver) RegisterPushToken(ctx context.Context, token string) 
 func (r *mutationResolver) RecordPostVisitSurvey(ctx context.Context, input dto.PostVisitSurveyInput) (bool, error) {
 	startTime := time.Now()
 
-	recordPostVisitSurvey, err := r.interactor.Survey.RecordPostVisitSurvey(ctx, input)
+	recordPostVisitSurvey, err := r.usecases.RecordPostVisitSurvey(ctx, input)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "recordPostVisitSurvey", err)
 
@@ -177,7 +177,7 @@ func (r *mutationResolver) RecordPostVisitSurvey(ctx context.Context, input dto.
 func (r *mutationResolver) SetupAsExperimentParticipant(ctx context.Context, participate *bool) (bool, error) {
 	startTime := time.Now()
 
-	setupAsExperimentParticipant, err := r.interactor.Onboarding.SetupAsExperimentParticipant(
+	setupAsExperimentParticipant, err := r.usecases.SetupAsExperimentParticipant(
 		ctx,
 		participate,
 	)
@@ -195,7 +195,7 @@ func (r *mutationResolver) SetupAsExperimentParticipant(ctx context.Context, par
 func (r *mutationResolver) AddAddress(ctx context.Context, input dto.UserAddressInput, addressType enumutils.AddressType) (*profileutils.Address, error) {
 	startTime := time.Now()
 
-	addAddress, err := r.interactor.Onboarding.AddAddress(
+	addAddress, err := r.usecases.AddAddress(
 		ctx,
 		input,
 		addressType,
@@ -209,7 +209,7 @@ func (r *mutationResolver) AddAddress(ctx context.Context, input dto.UserAddress
 func (r *mutationResolver) SetUserCommunicationsSettings(ctx context.Context, allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 	startTime := time.Now()
 
-	setUserCommunicationsSettings, err := r.interactor.Onboarding.SetUserCommunicationsSettings(
+	setUserCommunicationsSettings, err := r.usecases.SetUserCommunicationsSettings(
 		ctx,
 		allowWhatsApp,
 		allowTextSms,
@@ -230,7 +230,7 @@ func (r *mutationResolver) SetUserCommunicationsSettings(ctx context.Context, al
 func (r *mutationResolver) SaveFavoriteNavAction(ctx context.Context, title string) (bool, error) {
 	startTime := time.Now()
 
-	success, err := r.interactor.Onboarding.SaveFavoriteNavActions(ctx, title)
+	success, err := r.usecases.SaveFavoriteNavActions(ctx, title)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "saveFavoriteNavAction", err)
 
@@ -240,7 +240,7 @@ func (r *mutationResolver) SaveFavoriteNavAction(ctx context.Context, title stri
 func (r *mutationResolver) DeleteFavoriteNavAction(ctx context.Context, title string) (bool, error) {
 	startTime := time.Now()
 
-	success, err := r.interactor.Onboarding.DeleteFavoriteNavActions(ctx, title)
+	success, err := r.usecases.DeleteFavoriteNavActions(ctx, title)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "deleteFavoriteNavAction", err)
 
@@ -250,7 +250,7 @@ func (r *mutationResolver) DeleteFavoriteNavAction(ctx context.Context, title st
 func (r *mutationResolver) RegisterMicroservice(ctx context.Context, input domain.Microservice) (*domain.Microservice, error) {
 	startTime := time.Now()
 
-	service, err := r.interactor.AdminSrv.RegisterMicroservice(ctx, input)
+	service, err := r.usecases.RegisterMicroservice(ctx, input)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "registerMicroservice", err)
 
 	return service, err
@@ -259,7 +259,7 @@ func (r *mutationResolver) RegisterMicroservice(ctx context.Context, input domai
 func (r *mutationResolver) DeregisterMicroservice(ctx context.Context, id string) (bool, error) {
 	startTime := time.Now()
 
-	status, err := r.interactor.AdminSrv.DeregisterMicroservice(ctx, id)
+	status, err := r.usecases.DeregisterMicroservice(ctx, id)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "deregisterMicroservice", err)
 
 	return status, err
@@ -268,7 +268,7 @@ func (r *mutationResolver) DeregisterMicroservice(ctx context.Context, id string
 func (r *mutationResolver) DeregisterAllMicroservices(ctx context.Context) (bool, error) {
 	startTime := time.Now()
 
-	status, err := r.interactor.AdminSrv.DeregisterAllMicroservices(ctx)
+	status, err := r.usecases.DeregisterAllMicroservices(ctx)
 	defer serverutils.RecordGraphqlResolverMetrics(
 		ctx,
 		startTime,
@@ -282,7 +282,7 @@ func (r *mutationResolver) DeregisterAllMicroservices(ctx context.Context) (bool
 func (r *mutationResolver) CreateRole(ctx context.Context, input dto.RoleInput) (*dto.RoleOutput, error) {
 	startTime := time.Now()
 
-	role, err := r.interactor.Role.CreateRole(ctx, input)
+	role, err := r.usecases.CreateRole(ctx, input)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "createRole", err)
 
 	return role, err
@@ -291,7 +291,7 @@ func (r *mutationResolver) CreateRole(ctx context.Context, input dto.RoleInput) 
 func (r *mutationResolver) DeleteRole(ctx context.Context, roleID string) (bool, error) {
 	startTime := time.Now()
 
-	success, err := r.interactor.Role.DeleteRole(ctx, roleID)
+	success, err := r.usecases.DeleteRole(ctx, roleID)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "deleteRole", err)
 
 	return success, err
@@ -300,7 +300,7 @@ func (r *mutationResolver) DeleteRole(ctx context.Context, roleID string) (bool,
 func (r *mutationResolver) AddPermissionsToRole(ctx context.Context, input dto.RolePermissionInput) (*dto.RoleOutput, error) {
 	startTime := time.Now()
 
-	role, err := r.interactor.Role.AddPermissionsToRole(ctx, input)
+	role, err := r.usecases.AddPermissionsToRole(ctx, input)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "addPermissionsToRole", err)
 
@@ -310,7 +310,7 @@ func (r *mutationResolver) AddPermissionsToRole(ctx context.Context, input dto.R
 func (r *mutationResolver) RevokeRolePermission(ctx context.Context, input dto.RolePermissionInput) (*dto.RoleOutput, error) {
 	startTime := time.Now()
 
-	role, err := r.interactor.Role.RevokeRolePermission(ctx, input)
+	role, err := r.usecases.RevokeRolePermission(ctx, input)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "revokeRolePermission", err)
 
@@ -320,7 +320,7 @@ func (r *mutationResolver) RevokeRolePermission(ctx context.Context, input dto.R
 func (r *mutationResolver) UpdateRolePermissions(ctx context.Context, input dto.RolePermissionInput) (*dto.RoleOutput, error) {
 	startTime := time.Now()
 
-	role, err := r.interactor.Role.UpdateRolePermissions(ctx, input)
+	role, err := r.usecases.UpdateRolePermissions(ctx, input)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "updateRolePermissions", err)
 
@@ -330,7 +330,7 @@ func (r *mutationResolver) UpdateRolePermissions(ctx context.Context, input dto.
 func (r *mutationResolver) AssignRole(ctx context.Context, userID string, roleID string) (bool, error) {
 	startTime := time.Now()
 
-	status, err := r.interactor.Role.AssignRole(ctx, userID, roleID)
+	status, err := r.usecases.AssignRole(ctx, userID, roleID)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "assignRole", err)
 
 	return status, err
@@ -339,7 +339,7 @@ func (r *mutationResolver) AssignRole(ctx context.Context, userID string, roleID
 func (r *mutationResolver) AssignMultipleRoles(ctx context.Context, userID string, roleIDs []string) (bool, error) {
 	startTime := time.Now()
 
-	status, err := r.interactor.Role.AssignMultipleRoles(ctx, userID, roleIDs)
+	status, err := r.usecases.AssignMultipleRoles(ctx, userID, roleIDs)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "assignMultipleRoles", err)
 
 	return status, err
@@ -348,7 +348,7 @@ func (r *mutationResolver) AssignMultipleRoles(ctx context.Context, userID strin
 func (r *mutationResolver) RevokeRole(ctx context.Context, userID string, roleID string, reason string) (bool, error) {
 	startTime := time.Now()
 
-	status, err := r.interactor.Role.RevokeRole(ctx, userID, roleID, reason)
+	status, err := r.usecases.RevokeRole(ctx, userID, roleID, reason)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "revokeRole", err)
 
 	return status, err
@@ -357,7 +357,7 @@ func (r *mutationResolver) RevokeRole(ctx context.Context, userID string, roleID
 func (r *mutationResolver) ActivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error) {
 	startTime := time.Now()
 
-	role, err := r.interactor.Role.ActivateRole(ctx, roleID)
+	role, err := r.usecases.ActivateRole(ctx, roleID)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "activateRole", err)
 
 	return role, err
@@ -366,7 +366,7 @@ func (r *mutationResolver) ActivateRole(ctx context.Context, roleID string) (*dt
 func (r *mutationResolver) DeactivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error) {
 	startTime := time.Now()
 
-	role, err := r.interactor.Role.DeactivateRole(ctx, roleID)
+	role, err := r.usecases.DeactivateRole(ctx, roleID)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "deactivateRole", err)
 
 	return role, err
@@ -385,7 +385,7 @@ func (r *queryResolver) UserProfile(ctx context.Context) (*profileutils.UserProf
 
 	startTime := time.Now()
 
-	userProfile, err := r.interactor.Onboarding.UserProfile(ctx)
+	userProfile, err := r.usecases.UserProfile(ctx)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "userProfile", err)
 
@@ -395,7 +395,7 @@ func (r *queryResolver) UserProfile(ctx context.Context) (*profileutils.UserProf
 func (r *queryResolver) ResumeWithPin(ctx context.Context, pin string) (bool, error) {
 	startTime := time.Now()
 
-	resumeWithPin, err := r.interactor.Login.ResumeWithPin(ctx, pin)
+	resumeWithPin, err := r.usecases.ResumeWithPin(ctx, pin)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "resumeWithPin", err)
 
@@ -405,7 +405,7 @@ func (r *queryResolver) ResumeWithPin(ctx context.Context, pin string) (bool, er
 func (r *queryResolver) GetAddresses(ctx context.Context) (*domain.UserAddresses, error) {
 	startTime := time.Now()
 
-	addresses, err := r.interactor.Onboarding.GetAddresses(ctx)
+	addresses, err := r.usecases.GetAddresses(ctx)
 
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "getAddresses", err)
 
@@ -415,7 +415,7 @@ func (r *queryResolver) GetAddresses(ctx context.Context) (*domain.UserAddresses
 func (r *queryResolver) GetUserCommunicationsSettings(ctx context.Context) (*profileutils.UserCommunicationsSetting, error) {
 	startTime := time.Now()
 
-	userCommunicationsSettings, err := r.interactor.Onboarding.GetUserCommunicationsSettings(ctx)
+	userCommunicationsSettings, err := r.usecases.GetUserCommunicationsSettings(ctx)
 
 	defer serverutils.RecordGraphqlResolverMetrics(
 		ctx,
@@ -430,7 +430,7 @@ func (r *queryResolver) GetUserCommunicationsSettings(ctx context.Context) (*pro
 func (r *queryResolver) FetchUserNavigationActions(ctx context.Context) (*profileutils.NavigationActions, error) {
 	startTime := time.Now()
 
-	navactions, err := r.interactor.Onboarding.RefreshNavigationActions(ctx)
+	navactions, err := r.usecases.RefreshNavigationActions(ctx)
 
 	defer serverutils.RecordGraphqlResolverMetrics(
 		ctx,
@@ -445,7 +445,7 @@ func (r *queryResolver) FetchUserNavigationActions(ctx context.Context) (*profil
 func (r *queryResolver) ListMicroservices(ctx context.Context) ([]*domain.Microservice, error) {
 	startTime := time.Now()
 
-	services, err := r.interactor.AdminSrv.ListMicroservices(ctx)
+	services, err := r.usecases.ListMicroservices(ctx)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "listMicroservices", err)
 
 	return services, err
@@ -454,7 +454,7 @@ func (r *queryResolver) ListMicroservices(ctx context.Context) ([]*domain.Micros
 func (r *queryResolver) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, error) {
 	startTime := time.Now()
 
-	roles, err := r.interactor.Role.GetAllRoles(ctx)
+	roles, err := r.usecases.GetAllRoles(ctx)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "getAllRoles", err)
 
 	return roles, err
@@ -463,7 +463,7 @@ func (r *queryResolver) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, err
 func (r *queryResolver) FindRoleByName(ctx context.Context, roleName *string) ([]*dto.RoleOutput, error) {
 	startTime := time.Now()
 
-	roles, err := r.interactor.Role.FindRoleByName(ctx, roleName)
+	roles, err := r.usecases.FindRoleByName(ctx, roleName)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "findRoleByName", err)
 
 	return roles, err
@@ -472,7 +472,7 @@ func (r *queryResolver) FindRoleByName(ctx context.Context, roleName *string) ([
 func (r *queryResolver) GetAllPermissions(ctx context.Context) ([]*profileutils.Permission, error) {
 	startTime := time.Now()
 
-	permissions, err := r.interactor.Role.GetAllPermissions(ctx)
+	permissions, err := r.usecases.GetAllPermissions(ctx)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "getAllPermissions", err)
 
 	return permissions, err
@@ -481,7 +481,7 @@ func (r *queryResolver) GetAllPermissions(ctx context.Context) ([]*profileutils.
 func (r *queryResolver) FindUserByPhone(ctx context.Context, phoneNumber string) (*profileutils.UserProfile, error) {
 	startTime := time.Now()
 
-	profile, err := r.interactor.Onboarding.FindUserByPhone(ctx, phoneNumber)
+	profile, err := r.usecases.FindUserByPhone(ctx, phoneNumber)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "findUserByPhone", err)
 
 	return profile, err
@@ -490,7 +490,7 @@ func (r *queryResolver) FindUserByPhone(ctx context.Context, phoneNumber string)
 func (r *queryResolver) GetNavigationActions(ctx context.Context) (*dto.GroupedNavigationActions, error) {
 	startTime := time.Now()
 
-	navActions, err := r.interactor.Onboarding.GetNavigationActions(ctx)
+	navActions, err := r.usecases.GetNavigationActions(ctx)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "getNavigationActions", err)
 
 	return navActions, err
