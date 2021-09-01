@@ -18,6 +18,7 @@ const (
 	AgentIdentificationRoute    = "/agentIdentification"
 	EmployeeRegistrationRoute   = "/employeeRegistration"
 	EmployeeIdentificationRoute = "/employeeIdentification"
+	ConsumerRegistrationRoute   = "/bewellUserRegistration"
 )
 
 // Icon links for navactions
@@ -194,6 +195,7 @@ var (
 		Group:              ConsumerGroup,
 		Title:              ConsumerNavActionTitle,
 		Icon:               ConsumerNavActionIcon,
+		OnTapRoute:         ConsumerRegistrationRoute,
 		RequiredPermission: nil,
 		SequenceNumber:     ConsumerNavactionSequence,
 	}

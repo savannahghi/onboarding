@@ -101,6 +101,7 @@ func TestGetUserNavigationActions(t *testing.T) {
 			want: &dto.GroupedNavigationActions{
 				Primary: []domain.NavigationAction{
 					homeNavAction,
+					domain.ConsumerNavActions,
 					domain.HelpNavAction,
 				},
 				Secondary: []domain.NavigationAction{
