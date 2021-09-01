@@ -18,10 +18,6 @@ import (
 	"github.com/savannahghi/pubsubtools"
 )
 
-const (
-	adminWelcomeMessage = " You can now access the administrator panel"
-)
-
 // AdminUseCase represent the business logic required for management of admins
 type AdminUseCase interface {
 	RegisterAdmin(
@@ -179,7 +175,6 @@ func (a *AdminUseCaseImpl) RegisterAdmin(
 	}
 
 	message := fmt.Sprintf(domain.WelcomeMessage, input.FirstName, otp)
-	message += adminWelcomeMessage
 
 	if err := a.engagement.SendSMS(ctx, []string{*phoneNumber}, message); err != nil {
 		return nil, fmt.Errorf("unable to send admin registration message: %w", err)

@@ -4073,7 +4073,6 @@ func TestProfileUseCaseImpl_GetNavigationActions(t *testing.T) {
 			want: &dto.GroupedNavigationActions{
 				Primary: []domain.NavigationAction{
 					domain.HomeNavAction,
-					domain.ConsumerNavActions,
 					domain.HelpNavAction,
 				},
 				Secondary: []domain.NavigationAction{

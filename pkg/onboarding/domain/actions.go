@@ -196,7 +196,7 @@ var (
 		Title:              ConsumerNavActionTitle,
 		Icon:               ConsumerNavActionIcon,
 		OnTapRoute:         ConsumerRegistrationRoute,
-		RequiredPermission: nil,
+		RequiredPermission: &profileutils.CanCreateConsumer,
 		SequenceNumber:     ConsumerNavactionSequence,
 	}
 )
