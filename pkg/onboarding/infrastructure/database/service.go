@@ -444,6 +444,194 @@ func (d DbService) GetUserProfilesByRoleID(ctx context.Context, role string) ([]
 	return d.firestore.GetUserProfilesByRoleID(ctx, role)
 }
 
+// CreateUserProfile creates a user profile of using the provided phone number and uid
+func (d DbService) CreateUserProfile(
+	ctx context.Context,
+	phoneNumber, uid string,
+) (*profileutils.UserProfile, error) {
+	return d.firestore.CreateUserProfile(ctx, phoneNumber, uid)
+}
+
+// CreateDetailedUserProfile creates a new user profile that is pre-filled using the provided phone number
+func (d DbService) CreateDetailedUserProfile(
+	ctx context.Context,
+	phoneNumber string,
+	profile profileutils.UserProfile,
+) (*profileutils.UserProfile, error) {
+	return d.firestore.CreateDetailedUserProfile(ctx, phoneNumber, profile)
+}
+
+// GetUserProfileByUID fetches a user profile by uid
+func (d DbService) GetUserProfileByUID(
+	ctx context.Context,
+	uid string,
+	suspended bool,
+) (*profileutils.UserProfile, error) {
+	return d.firestore.GetUserProfileByUID(ctx, uid, suspended)
+}
+
+// GetUserProfileByID fetches a user profile by id. returns the unsuspend profile
+func (d DbService) GetUserProfileByID(
+	ctx context.Context,
+	id string,
+	suspended bool,
+) (*profileutils.UserProfile, error) {
+	return d.firestore.GetUserProfileByID(ctx, id, suspended)
+}
+
+// GetUserProfileByPhoneNumber fetches a user profile by phone number
+func (d DbService) GetUserProfileByPhoneNumber(
+	ctx context.Context,
+	phoneNumber string,
+	suspended bool,
+) (*profileutils.UserProfile, error) {
+	return d.firestore.GetUserProfileByPhoneNumber(ctx, phoneNumber, suspended)
+}
+
+// GetUserProfileByPrimaryPhoneNumber fetches a user profile by primary phone number
+func (d DbService) GetUserProfileByPrimaryPhoneNumber(
+	ctx context.Context,
+	phoneNumber string,
+	suspend bool,
+) (*profileutils.UserProfile, error) {
+	return d.firestore.GetUserProfileByPrimaryPhoneNumber(ctx, phoneNumber, suspend)
+}
+
+// CheckIfPhoneNumberExists checks if a specific phone number has already been registered to another user
+func (d DbService) CheckIfPhoneNumberExists(ctx context.Context, phone string) (bool, error) {
+	return d.firestore.CheckIfPhoneNumberExists(ctx, phone)
+}
+
+// CheckIfEmailExists checks if a specific email has already been registered to another user
+func (d DbService) CheckIfEmailExists(ctx context.Context, email string) (bool, error) {
+	return d.firestore.CheckIfEmailExists(ctx, email)
+}
+
+// CheckIfUsernameExists checks if a specific username has already been registered to another user
+func (d DbService) CheckIfUsernameExists(ctx context.Context, phone string) (bool, error) {
+	username := phone
+	return d.firestore.CheckIfUsernameExists(ctx, username)
+}
+
+// GenerateAuthCredentialsForAnonymousUser ...
+func (d DbService) GenerateAuthCredentialsForAnonymousUser(
+	ctx context.Context,
+) (*profileutils.AuthCredentialResponse, error) {
+	return d.firestore.GenerateAuthCredentialsForAnonymousUser(ctx)
+}
+
+// GenerateAuthCredentials ...
+func (d DbService) GenerateAuthCredentials(
+	ctx context.Context,
+	phone string,
+	profile *profileutils.UserProfile,
+) (*profileutils.AuthCredentialResponse, error) {
+	return d.firestore.GenerateAuthCredentials(ctx, phone, profile)
+}
+
+// FetchAdminUsers ...
+func (d DbService) FetchAdminUsers(ctx context.Context) ([]*profileutils.UserProfile, error) {
+	return d.firestore.FetchAdminUsers(ctx)
+}
+
+// PurgeUserByPhoneNumber removes user completely. This should be used only under testing environment
+func (d DbService) PurgeUserByPhoneNumber(ctx context.Context, phone string) error {
+	return d.firestore.PurgeUserByPhoneNumber(ctx, phone)
+}
+
+// HardResetSecondaryPhoneNumbers ...
+func (d DbService) HardResetSecondaryPhoneNumbers(
+	ctx context.Context,
+	profile *profileutils.UserProfile,
+	newSecondaryPhones []string,
+) error {
+	return d.firestore.HardResetSecondaryPhoneNumbers(ctx, profile, newSecondaryPhones)
+}
+
+// HardResetSecondaryEmailAddress ...
+func (d DbService) HardResetSecondaryEmailAddress(
+	ctx context.Context,
+	profile *profileutils.UserProfile,
+	newSecondaryEmails []string,
+) error {
+	return d.firestore.HardResetSecondaryEmailAddress(ctx, profile, newSecondaryEmails)
+}
+
+// GetPINByProfileID ...
+func (d DbService) GetPINByProfileID(
+	ctx context.Context,
+	ProfileID string,
+) (*domain.PIN, error) {
+	return d.firestore.GetPINByProfileID(ctx, ProfileID)
+}
+
+// RecordPostVisitSurvey records the  post visit survey
+func (d DbService) RecordPostVisitSurvey(
+	ctx context.Context,
+	input dto.PostVisitSurveyInput,
+	UID string,
+) error {
+	return d.firestore.RecordPostVisitSurvey(ctx, input, UID)
+}
+
+// SavePIN  User Pin methods
+func (d DbService) SavePIN(ctx context.Context, pin *domain.PIN) (bool, error) {
+	return d.firestore.SavePIN(ctx, pin)
+}
+
+// UpdatePIN ...
+func (d DbService) UpdatePIN(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
+	return d.firestore.UpdatePIN(ctx, id, pin)
+}
+
+// ExchangeRefreshTokenForIDToken ...
+func (d DbService) ExchangeRefreshTokenForIDToken(
+	ctx context.Context,
+	token string,
+) (*profileutils.AuthCredentialResponse, error) {
+	return d.firestore.ExchangeRefreshTokenForIDToken(ctx, token)
+}
+
+// GetOrCreatePhoneNumberUser ...
+func (d DbService) GetOrCreatePhoneNumberUser(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
+	return d.firestore.GetOrCreatePhoneNumberUser(ctx, phone)
+}
+
+// AddUserAsExperimentParticipant ...
+func (d DbService) AddUserAsExperimentParticipant(
+	ctx context.Context,
+	profile *profileutils.UserProfile,
+) (bool, error) {
+	return d.firestore.AddUserAsExperimentParticipant(ctx, profile)
+}
+
+// RemoveUserAsExperimentParticipant ...
+func (d DbService) RemoveUserAsExperimentParticipant(
+	ctx context.Context,
+	profile *profileutils.UserProfile,
+) (bool, error) {
+	return d.firestore.RemoveUserAsExperimentParticipant(ctx, profile)
+}
+
+// CheckIfExperimentParticipant ...
+func (d DbService) CheckIfExperimentParticipant(ctx context.Context, profileID string) (bool, error) {
+	return d.firestore.CheckIfExperimentParticipant(ctx, profileID)
+}
+
+// GetUserCommunicationsSettings ...
+func (d DbService) GetUserCommunicationsSettings(
+	ctx context.Context,
+	profileID string,
+) (*profileutils.UserCommunicationsSetting, error) {
+	return d.firestore.GetUserCommunicationsSettings(ctx, profileID)
+}
+
+// SetUserCommunicationsSettings ...
+func (d DbService) SetUserCommunicationsSettings(ctx context.Context, profileID string,
+	allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
+	return d.firestore.SetUserCommunicationsSettings(ctx, profileID, allowWhatsApp, allowTextSms, allowPush, allowEmail)
+}
+
 // SaveRoleRevocation records a log for a role revocation
 //
 // userId is the ID of the user removing a role from a user

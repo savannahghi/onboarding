@@ -6,6 +6,7 @@ import (
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
+	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 	"github.com/savannahghi/profileutils"
 )
@@ -226,4 +227,191 @@ func (i Interactor) GetUserProfileByPhoneOrEmail(ctx context.Context, payload *d
 // UpdateUserProfileEmail updates user profile's email
 func (i Interactor) UpdateUserProfileEmail(ctx context.Context, phone string, email string) error {
 	return i.database.UpdateUserProfileEmail(ctx, phone, email)
+}
+
+// CreateUserProfile creates a user profile of using the provided phone number and uid
+func (i Interactor) CreateUserProfile(
+	ctx context.Context,
+	phoneNumber, uid string,
+) (*profileutils.UserProfile, error) {
+	return i.database.CreateUserProfile(ctx, phoneNumber, uid)
+}
+
+// CreateDetailedUserProfile creates a new user profile that is pre-filled using the provided phone number
+func (i Interactor) CreateDetailedUserProfile(
+	ctx context.Context,
+	phoneNumber string,
+	profile profileutils.UserProfile,
+) (*profileutils.UserProfile, error) {
+	return i.database.CreateDetailedUserProfile(ctx, phoneNumber, profile)
+}
+
+// GetUserProfileByUID fetches a user profile by uid
+func (i Interactor) GetUserProfileByUID(
+	ctx context.Context,
+	uid string,
+	suspended bool,
+) (*profileutils.UserProfile, error) {
+	return i.database.GetUserProfileByUID(ctx, uid, suspended)
+}
+
+// GetUserProfileByID fetches a user profile by id. returns the unsuspend profile
+func (i Interactor) GetUserProfileByID(
+	ctx context.Context,
+	id string,
+	suspended bool,
+) (*profileutils.UserProfile, error) {
+	return i.database.GetUserProfileByID(ctx, id, suspended)
+}
+
+// GetUserProfileByPhoneNumber fetches a user profile by phone number
+func (i Interactor) GetUserProfileByPhoneNumber(
+	ctx context.Context,
+	phoneNumber string,
+	suspended bool,
+) (*profileutils.UserProfile, error) {
+	return i.database.GetUserProfileByPhoneNumber(ctx, phoneNumber, suspended)
+}
+
+// GetUserProfileByPrimaryPhoneNumber fetches a user profile by primary phone number
+func (i Interactor) GetUserProfileByPrimaryPhoneNumber(
+	ctx context.Context,
+	phoneNumber string,
+	suspend bool,
+) (*profileutils.UserProfile, error) {
+	return i.database.GetUserProfileByPrimaryPhoneNumber(ctx, phoneNumber, suspend)
+}
+
+// CheckIfPhoneNumberExists checks if a specific phone number has already been registered to another user
+func (i Interactor) CheckIfPhoneNumberExists(ctx context.Context, phone string) (bool, error) {
+	return i.database.CheckIfPhoneNumberExists(ctx, phone)
+}
+
+// CheckIfEmailExists checks if a specific email has already been registered to another user
+func (i Interactor) CheckIfEmailExists(ctx context.Context, email string) (bool, error) {
+	return i.database.CheckIfEmailExists(ctx, email)
+}
+
+// CheckIfUsernameExists checks if a specific username has already been registered to another user
+func (i Interactor) CheckIfUsernameExists(ctx context.Context, username string) (bool, error) {
+	return i.database.CheckIfUsernameExists(ctx, username)
+}
+
+// GenerateAuthCredentialsForAnonymousUser ...
+func (i Interactor) GenerateAuthCredentialsForAnonymousUser(
+	ctx context.Context,
+) (*profileutils.AuthCredentialResponse, error) {
+	return i.database.GenerateAuthCredentialsForAnonymousUser(ctx)
+}
+
+// GenerateAuthCredentials ...
+func (i Interactor) GenerateAuthCredentials(
+	ctx context.Context,
+	phone string,
+	profile *profileutils.UserProfile,
+) (*profileutils.AuthCredentialResponse, error) {
+	return i.database.GenerateAuthCredentials(ctx, phone, profile)
+}
+
+// FetchAdminUsers ...
+func (i Interactor) FetchAdminUsers(ctx context.Context) ([]*profileutils.UserProfile, error) {
+	return i.database.FetchAdminUsers(ctx)
+}
+
+// PurgeUserByPhoneNumber removes user completely. This should be used only under testing environment
+func (i Interactor) PurgeUserByPhoneNumber(ctx context.Context, phone string) error {
+	return i.database.PurgeUserByPhoneNumber(ctx, phone)
+}
+
+// HardResetSecondaryPhoneNumbers ...
+func (i Interactor) HardResetSecondaryPhoneNumbers(
+	ctx context.Context,
+	profile *profileutils.UserProfile,
+	newSecondaryPhones []string,
+) error {
+	return i.database.HardResetSecondaryPhoneNumbers(ctx, profile, newSecondaryPhones)
+}
+
+// HardResetSecondaryEmailAddress ...
+func (i Interactor) HardResetSecondaryEmailAddress(
+	ctx context.Context,
+	profile *profileutils.UserProfile,
+	newSecondaryEmails []string,
+) error {
+	return i.database.HardResetSecondaryEmailAddress(ctx, profile, newSecondaryEmails)
+}
+
+// GetPINByProfileID ...
+func (i Interactor) GetPINByProfileID(
+	ctx context.Context,
+	ProfileID string,
+) (*domain.PIN, error) {
+	return i.database.GetPINByProfileID(ctx, ProfileID)
+}
+
+// RecordPostVisitSurvey records the  post visit survey
+func (i Interactor) RecordPostVisitSurvey(
+	ctx context.Context,
+	input dto.PostVisitSurveyInput,
+	UID string,
+) error {
+	return i.database.RecordPostVisitSurvey(ctx, input, UID)
+}
+
+// SavePIN  User Pin methods
+func (i Interactor) SavePIN(ctx context.Context, pin *domain.PIN) (bool, error) {
+	return i.database.SavePIN(ctx, pin)
+}
+
+// UpdatePIN ...
+func (i Interactor) UpdatePIN(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
+	return i.database.UpdatePIN(ctx, id, pin)
+}
+
+// ExchangeRefreshTokenForIDToken ...
+func (i Interactor) ExchangeRefreshTokenForIDToken(
+	ctx context.Context,
+	token string,
+) (*profileutils.AuthCredentialResponse, error) {
+	return i.database.ExchangeRefreshTokenForIDToken(ctx, token)
+}
+
+// GetOrCreatePhoneNumberUser ...
+func (i Interactor) GetOrCreatePhoneNumberUser(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
+	return i.database.GetOrCreatePhoneNumberUser(ctx, phone)
+}
+
+// AddUserAsExperimentParticipant ...
+func (i Interactor) AddUserAsExperimentParticipant(
+	ctx context.Context,
+	profile *profileutils.UserProfile,
+) (bool, error) {
+	return i.database.AddUserAsExperimentParticipant(ctx, profile)
+}
+
+// RemoveUserAsExperimentParticipant ...
+func (i Interactor) RemoveUserAsExperimentParticipant(
+	ctx context.Context,
+	profile *profileutils.UserProfile,
+) (bool, error) {
+	return i.database.RemoveUserAsExperimentParticipant(ctx, profile)
+}
+
+// CheckIfExperimentParticipant ...
+func (i Interactor) CheckIfExperimentParticipant(ctx context.Context, profileID string) (bool, error) {
+	return i.database.CheckIfExperimentParticipant(ctx, profileID)
+}
+
+// GetUserCommunicationsSettings ...
+func (i Interactor) GetUserCommunicationsSettings(
+	ctx context.Context,
+	profileID string,
+) (*profileutils.UserCommunicationsSetting, error) {
+	return i.database.GetUserCommunicationsSettings(ctx, profileID)
+}
+
+// SetUserCommunicationsSettings ...
+func (i Interactor) SetUserCommunicationsSettings(ctx context.Context, profileID string,
+	allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
+	return i.database.SetUserCommunicationsSettings(ctx, profileID, allowWhatsApp, allowTextSms, allowPush, allowEmail)
 }
