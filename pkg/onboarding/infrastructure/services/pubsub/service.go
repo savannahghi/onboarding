@@ -7,7 +7,7 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 )
 
 const (
@@ -49,21 +49,21 @@ type ServicePubSub interface {
 
 // ServicePubSubMessaging sends "real" (production) notifications
 type ServicePubSubMessaging struct {
-	client  *pubsub.Client
-	baseExt extension.BaseExtension
-	repo    repository.OnboardingRepository
+	client   *pubsub.Client
+	baseExt  extension.BaseExtension
+	database database.DbService
 }
 
 // NewServicePubSubMessaging ...
 func NewServicePubSubMessaging(
 	client *pubsub.Client,
 	ext extension.BaseExtension,
-	repo repository.OnboardingRepository,
+	db database.DbService,
 ) (*ServicePubSubMessaging, error) {
 	s := &ServicePubSubMessaging{
-		client:  client,
-		baseExt: ext,
-		repo:    repo,
+		client:   client,
+		baseExt:  ext,
+		database: db,
 	}
 
 	ctx := context.Background()

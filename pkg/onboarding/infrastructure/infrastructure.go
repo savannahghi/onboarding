@@ -2,33 +2,77 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
+	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
+	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
+	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/profileutils"
+	"github.com/savannahghi/serverutils"
+)
+
+const (
+	// ServiceName ..
+	ServiceName = "onboarding"
+
+	// TopicVersion ...
+	TopicVersion = "v1"
 )
 
 // Infrastructure defines the contract provided by the infrastructure layer
 // It's a combination of interactions with external services/dependencies
 type Infrastructure interface {
 	database.Repository
+	engagement.ServiceEngagement
+	pubsubmessaging.ServicePubSub
 }
 
 // Interactor is an implementation of the infrastructure interface
 // It combines each individual service implementation
 type Interactor struct {
-	database *database.DbService
+	database   *database.DbService
+	Engagement engagement.ServiceEngagement
+	PubSub     pubsubmessaging.ServicePubSub
 }
 
 // NewInfrastructureInteractor initializes a new infrastructure interactor
-func NewInfrastructureInteractor() *Interactor {
+func NewInfrastructureInteractor() (*Interactor, error) {
+	ctx := context.Background()
 	db := database.NewDbService()
-	return &Interactor{
-		database: db,
+	iscExt := extension.NewISCExtension()
+
+	fc := &firebasetools.FirebaseClient{}
+
+	projectID, err := serverutils.GetEnvVar(serverutils.GoogleCloudProjectIDEnvVarName)
+	if err != nil {
+		return nil, err
 	}
+
+	pubSubClient, err := pubsub.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	baseExt := extension.NewBaseExtensionImpl(fc)
+
+	engagement := engagement.NewServiceEngagementImpl(iscExt, baseExt)
+	pubsub, err := pubsubmessaging.NewServicePubSubMessaging(pubSubClient, baseExt, *db)
+	if err != nil {
+		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
+	}
+
+	return &Interactor{
+		database:   db,
+		Engagement: engagement,
+		PubSub:     pubsub,
+	}, nil
 }
 
 // CheckPreconditions ensures correct initialization
@@ -414,4 +458,99 @@ func (i Interactor) GetUserCommunicationsSettings(
 func (i Interactor) SetUserCommunicationsSettings(ctx context.Context, profileID string,
 	allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 	return i.database.SetUserCommunicationsSettings(ctx, profileID, allowWhatsApp, allowTextSms, allowPush, allowEmail)
+}
+
+// ResolveDefaultNudgeByTitle ...
+func (i Interactor) ResolveDefaultNudgeByTitle(ctx context.Context, UID string, flavour feedlib.Flavour,
+	nudgeTitle string) error {
+	return i.Engagement.ResolveDefaultNudgeByTitle(ctx, UID, flavour, nudgeTitle)
+}
+
+// SendMail ...
+func (i Interactor) SendMail(ctx context.Context, email string, message string, subject string) error {
+	return i.Engagement.SendMail(ctx, email, message, subject)
+}
+
+// GenerateAndSendOTP ...
+func (i Interactor) GenerateAndSendOTP(ctx context.Context, phone string, appID *string) (*profileutils.OtpResponse, error) {
+	return i.Engagement.GenerateAndSendOTP(ctx, phone, appID)
+}
+
+// SendRetryOTP ...
+func (i Interactor) SendRetryOTP(ctx context.Context, msisdn string, retryStep int, appID *string) (*profileutils.OtpResponse, error) {
+	return i.Engagement.SendRetryOTP(ctx, msisdn, retryStep, appID)
+}
+
+// VerifyOTP ...
+func (i Interactor) VerifyOTP(ctx context.Context, phone, OTP string) (bool, error) {
+	return i.Engagement.VerifyOTP(ctx, phone, OTP)
+}
+
+// VerifyEmailOTP ...
+func (i Interactor) VerifyEmailOTP(ctx context.Context, email, OTP string) (bool, error) {
+	return i.Engagement.VerifyEmailOTP(ctx, email, OTP)
+}
+
+// SendSMS ...
+func (i Interactor) SendSMS(ctx context.Context, phoneNumbers []string, message string) error {
+	return i.Engagement.SendSMS(ctx, phoneNumbers, message)
+}
+
+// AddEngagementPubsubNameSpace creates a namespaced topic that resembles the one in
+// engagement service, which is prepended with the word "engagement". This solves the problem
+// where namespaced topics from "onboarding" are different from the ones in engagement.
+// This fix allows for uniformity of topic names between the engagement and onboarding services.
+func (i Interactor) AddEngagementPubsubNameSpace(
+	topic string,
+) string {
+	return i.PubSub.AddEngagementPubsubNameSpace(topic)
+}
+
+// AddPubSubNamespace creates a namespaced topic name
+func (i Interactor) AddPubSubNamespace(topicName string) string {
+	return i.PubSub.AddPubSubNamespace(topicName)
+}
+
+// TopicIDs returns the known (registered) topic IDs
+func (i Interactor) TopicIDs() []string {
+	return i.PubSub.TopicIDs()
+}
+
+// PublishToPubsub sends a message to a specifeid Topic
+func (i Interactor) PublishToPubsub(
+	ctx context.Context,
+	topicID string,
+	payload []byte,
+) error {
+	return i.PubSub.PublishToPubsub(
+		ctx,
+		topicID,
+		payload,
+	)
+}
+
+// EnsureTopicsExist creates the topic(s) in the suppplied list if they do not
+// already exist.
+func (i Interactor) EnsureTopicsExist(
+	ctx context.Context,
+	topicIDs []string,
+) error {
+	return i.PubSub.EnsureTopicsExist(
+		ctx,
+		topicIDs,
+	)
+}
+
+// EnsureSubscriptionsExist ensures that the subscriptions named in the supplied
+// topic:subscription map exist. If any does not exist, it is created.
+func (i Interactor) EnsureSubscriptionsExist(
+	ctx context.Context,
+) error {
+
+	return i.PubSub.EnsureSubscriptionsExist(ctx)
+}
+
+// SubscriptionIDs returns a map of topic IDs to subscription IDs
+func (i Interactor) SubscriptionIDs() map[string]string {
+	return i.PubSub.SubscriptionIDs()
 }

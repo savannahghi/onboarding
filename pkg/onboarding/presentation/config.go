@@ -16,6 +16,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 
@@ -60,6 +61,7 @@ var allowedHeaders = []string{
 // Router sets up the ginContext router
 func Router(ctx context.Context) (*mux.Router, error) {
 	fc := &firebasetools.FirebaseClient{}
+	db := database.NewDbService()
 	firebaseApp, err := fc.InitFirebase()
 	if err != nil {
 		return nil, err
@@ -108,7 +110,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	pubSub, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		baseExt,
-		repo,
+		*db,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)

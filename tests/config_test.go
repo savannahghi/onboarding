@@ -24,6 +24,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
@@ -87,6 +88,7 @@ func initializeAcceptanceTestFirebaseClient(ctx context.Context) (*firestore.Cli
 }
 
 func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
+	db := database.NewDbService()
 	var repo repository.OnboardingRepository
 
 	if serverutils.MustGetEnvVar(domain.Repo) == domain.FirebaseRepository {
@@ -117,7 +119,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
-		repo,
+		*db,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
