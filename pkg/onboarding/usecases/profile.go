@@ -10,6 +10,7 @@ import (
 	"firebase.google.com/go/auth"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization/permission"
+	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"github.com/savannahghi/profileutils"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
@@ -27,7 +28,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 )
 
 const (
