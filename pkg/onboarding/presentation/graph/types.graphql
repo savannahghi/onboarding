@@ -38,7 +38,6 @@ type UserProfile @key(fields: "id") {
   termsAccepted: Boolean
   suspended: Boolean
   photoUploadID: String
-  covers: [Cover]
   userBioData: BioData
   homeAddress: Address
   workAddress: Address
@@ -48,6 +47,10 @@ type UserProfile @key(fields: "id") {
   Details of the user's roles
   """
   roleDetails: [RoleOutput]
+}
+
+extend type UserProfile @key(fields: "id") {
+  covers: [Cover]
 }
 
 type Beneficiary {
@@ -149,7 +152,7 @@ type NavigationActions {
   secondary: [NavAction]
 }
 
-type Microservice @key(fields: "id") {
+type Microservice {
   id: String!
   name: String!
   url: String!

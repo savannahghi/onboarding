@@ -87,7 +87,6 @@ type ComplexityRoot struct {
 	}
 
 	Entity struct {
-		FindMicroserviceByID      func(childComplexity int, id string) int
 		FindPageInfoByHasNextPage func(childComplexity int, hasNextPage bool) int
 		FindUserProfileByID       func(childComplexity int, id string) int
 	}
@@ -295,7 +294,6 @@ type ComplexityRoot struct {
 }
 
 type EntityResolver interface {
-	FindMicroserviceByID(ctx context.Context, id string) (*domain.Microservice, error)
 	FindPageInfoByHasNextPage(ctx context.Context, hasNextPage bool) (*firebasetools.PageInfo, error)
 	FindUserProfileByID(ctx context.Context, id string) (*profileutils.UserProfile, error)
 }
@@ -499,18 +497,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Cover.PayerSladeCode(childComplexity), true
-
-	case "Entity.findMicroserviceByID":
-		if e.complexity.Entity.FindMicroserviceByID == nil {
-			break
-		}
-
-		args, err := ec.field_Entity_findMicroserviceByID_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Entity.FindMicroserviceByID(childComplexity, args["id"].(string)), true
 
 	case "Entity.findPageInfoByHasNextPage":
 		if e.complexity.Entity.FindPageInfoByHasNextPage == nil {
@@ -2169,7 +2155,6 @@ type UserProfile @key(fields: "id") {
   termsAccepted: Boolean
   suspended: Boolean
   photoUploadID: String
-  covers: [Cover]
   userBioData: BioData
   homeAddress: Address
   workAddress: Address
@@ -2179,6 +2164,10 @@ type UserProfile @key(fields: "id") {
   Details of the user's roles
   """
   roleDetails: [RoleOutput]
+}
+
+extend type UserProfile @key(fields: "id") {
+  covers: [Cover]
 }
 
 type Beneficiary {
@@ -2280,7 +2269,7 @@ type NavigationActions {
   secondary: [NavAction]
 }
 
-type Microservice @key(fields: "id") {
+type Microservice {
   id: String!
   name: String!
   url: String!
@@ -2329,12 +2318,11 @@ directive @extends on OBJECT
 `, BuiltIn: true},
 	{Name: "federation/entity.graphql", Input: `
 # a union of all types that use the @key directive
-union _Entity = Microservice | PageInfo | UserProfile
+union _Entity = PageInfo | UserProfile
 
 # fake type to build resolver interfaces for users to implement
 type Entity {
-		findMicroserviceByID(id: String!,): Microservice!
-	findPageInfoByHasNextPage(hasNextPage: Boolean!,): PageInfo!
+		findPageInfoByHasNextPage(hasNextPage: Boolean!,): PageInfo!
 	findUserProfileByID(id: String!,): UserProfile!
 
 }
@@ -2354,21 +2342,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) field_Entity_findMicroserviceByID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	return args, nil
-}
 
 func (ec *executionContext) field_Entity_findPageInfoByHasNextPage_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -3680,48 +3653,6 @@ func (ec *executionContext) _Cover_memberName(ctx context.Context, field graphql
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Entity_findMicroserviceByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Entity",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Entity_findMicroserviceByID_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Entity().FindMicroserviceByID(rctx, args["id"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*domain.Microservice)
-	fc.Result = res
-	return ec.marshalNMicroservice2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐMicroservice(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Entity_findPageInfoByHasNextPage(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8362,38 +8293,6 @@ func (ec *executionContext) _UserProfile_photoUploadID(ctx context.Context, fiel
 	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _UserProfile_covers(ctx context.Context, field graphql.CollectedField, obj *profileutils.UserProfile) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "UserProfile",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Covers, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]profileutils.Cover)
-	fc.Result = res
-	return ec.marshalOCover2ᚕgithubᚗcomᚋsavannahghiᚋprofileutilsᚐCover(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _UserProfile_userBioData(ctx context.Context, field graphql.CollectedField, obj *profileutils.UserProfile) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -8552,6 +8451,38 @@ func (ec *executionContext) _UserProfile_roleDetails(ctx context.Context, field 
 	res := resTmp.([]*dto.RoleOutput)
 	fc.Result = res
 	return ec.marshalORoleOutput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserProfile_covers(ctx context.Context, field graphql.CollectedField, obj *profileutils.UserProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserProfile",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Covers, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]profileutils.Cover)
+	fc.Result = res
+	return ec.marshalOCover2ᚕgithubᚗcomᚋsavannahghiᚋprofileutilsᚐCover(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _VerifiedIdentifier_uid(ctx context.Context, field graphql.CollectedField, obj *profileutils.VerifiedIdentifier) (ret graphql.Marshaler) {
@@ -10322,11 +10253,6 @@ func (ec *executionContext) __Entity(ctx context.Context, sel ast.SelectionSet, 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case *domain.Microservice:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._Microservice(ctx, sel, obj)
 	case firebasetools.PageInfo:
 		return ec._PageInfo(ctx, sel, &obj)
 	case *firebasetools.PageInfo:
@@ -10518,20 +10444,6 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet) g
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Entity")
-		case "findMicroserviceByID":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Entity_findMicroserviceByID(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "findPageInfoByHasNextPage":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -10766,7 +10678,7 @@ func (ec *executionContext) _Location(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
-var microserviceImplementors = []string{"Microservice", "_Entity"}
+var microserviceImplementors = []string{"Microservice"}
 
 func (ec *executionContext) _Microservice(ctx context.Context, sel ast.SelectionSet, obj *domain.Microservice) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, microserviceImplementors)
@@ -11640,8 +11552,6 @@ func (ec *executionContext) _UserProfile(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._UserProfile_suspended(ctx, field, obj)
 		case "photoUploadID":
 			out.Values[i] = ec._UserProfile_photoUploadID(ctx, field, obj)
-		case "covers":
-			out.Values[i] = ec._UserProfile_covers(ctx, field, obj)
 		case "userBioData":
 			out.Values[i] = ec._UserProfile_userBioData(ctx, field, obj)
 		case "homeAddress":
@@ -11661,6 +11571,8 @@ func (ec *executionContext) _UserProfile(ctx context.Context, sel ast.SelectionS
 				res = ec._UserProfile_roleDetails(ctx, field, obj)
 				return res
 			})
+		case "covers":
+			out.Values[i] = ec._UserProfile_covers(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
