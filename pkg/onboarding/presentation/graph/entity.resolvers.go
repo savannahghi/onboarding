@@ -24,7 +24,7 @@ func (r *entityResolver) FindPageInfoByHasNextPage(ctx context.Context, hasNextP
 func (r *entityResolver) FindUserProfileByID(ctx context.Context, id string) (*profileutils.UserProfile, error) {
 	r.checkPreconditions()
 	r.CheckUserTokenInContext(ctx)
-	return r.interactor.Onboarding.GetProfileByID(ctx, &id)
+	return r.usecases.GetProfileByID(ctx, &id)
 }
 
 // Entity returns generated.EntityResolver implementation.

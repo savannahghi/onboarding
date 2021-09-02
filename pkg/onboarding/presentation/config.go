@@ -12,29 +12,20 @@ import (
 	"gitlab.slade360emr.com/go/apiclient"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 
-	"cloud.google.com/go/pubsub"
+	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 
-	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/graph"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/graph/generated"
-	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/rest"
-	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
 	"github.com/savannahghi/serverutils"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,7 +33,6 @@ import (
 const (
 	mbBytes              = 1048576
 	serverTimeoutSeconds = 120
-	engagementService    = "engagement"
 )
 
 // AllowedOrigins is list of CORS origins allowed to interact with
@@ -61,80 +51,22 @@ var allowedHeaders = []string{
 // Router sets up the ginContext router
 func Router(ctx context.Context) (*mux.Router, error) {
 	fc := &firebasetools.FirebaseClient{}
-	db := database.NewDbService()
 	firebaseApp, err := fc.InitFirebase()
 	if err != nil {
 		return nil, err
 	}
-	fsc, err := firebaseApp.Firestore(ctx)
+	infrastructure, err := infrastructure.NewInfrastructureInteractor()
 	if err != nil {
-		log.Fatalf("unable to initialize Firestore: %s", err)
-	}
-
-	fbc, err := firebaseApp.Auth(ctx)
-	if err != nil {
-		log.Panicf("can't initialize Firebase auth when setting up profile service: %s", err)
-	}
-
-	projectID, err := serverutils.GetEnvVar(serverutils.GoogleCloudProjectIDEnvVarName)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"can't get projectID from env var `%s`: %w",
-			serverutils.GoogleCloudProjectIDEnvVarName,
-			err,
-		)
-	}
-
-	pubSubClient, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize pubsub client: %w", err)
-	}
-
-	var repo repository.OnboardingRepository
-
-	if serverutils.MustGetEnvVar(domain.Repo) == domain.FirebaseRepository {
-		firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-		repo = fb.NewFirebaseRepository(firestoreExtension, fbc)
+		return nil, err
 	}
 
 	// Initialize base (common) extension
-	baseExt := extension.NewBaseExtensionImpl(fc)
-
-	// Initialize ISC clients
-	engagementClient := utils.NewInterServiceClient(engagementService, baseExt)
-
-	// Initialize new instance of our infrastructure services
-	engage := engagement.NewServiceEngagementImpl(engagementClient, baseExt)
+	baseExt := extension.NewBaseExtensionImpl()
 	pinExt := extension.NewPINExtensionImpl()
 
-	pubSub, err := pubsubmessaging.NewServicePubSubMessaging(
-		pubSubClient,
-		baseExt,
-		*db,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
-	}
+	usecases := usecases.NewUsecasesInteractor(infrastructure, baseExt, pinExt)
 
-	// Initialize the usecases
-	profile := usecases.NewProfileUseCase(repo, baseExt, engage, pubSub)
-	login := usecases.NewLoginUseCases(repo, profile, baseExt, pinExt)
-	survey := usecases.NewSurveyUseCases(repo, baseExt)
-	userpin := usecases.NewUserPinUseCase(repo, profile, baseExt, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, baseExt, engage, pubSub)
-	role := usecases.NewRoleUseCases(repo, baseExt)
-	adminSrv := adminSrv.NewService(baseExt)
-
-	i, err := interactor.NewOnboardingInteractor(
-		profile, su, login, survey,
-		userpin, engage, pubSub,
-		adminSrv, role,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("can't instantiate service : %w", err)
-	}
-
-	h := rest.NewHandlersInterfaces(i)
+	h := rest.NewHandlersInterfaces(infrastructure, usecases)
 
 	r := mux.NewRouter() // gorilla mux
 	r.Use(otelmux.Middleware(serverutils.MetricsCollectorService("onboarding")))
@@ -156,10 +88,6 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	).HandlerFunc(
 		h.SwitchFlaggedFeaturesHandler(),
 	)
-
-	r.Path("/pubsub").Methods(
-		http.MethodPost).
-		HandlerFunc(pubSub.ReceivePubSubPushMessages)
 
 	// misc routes
 	r.Path("/ide").HandlerFunc(playground.Handler("GraphQL IDE", "/graphql"))
@@ -349,7 +277,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	authR.Methods(
 		http.MethodPost,
 		http.MethodGet,
-	).HandlerFunc(GQLHandler(ctx, i))
+	).HandlerFunc(GQLHandler(ctx, usecases))
 
 	return r, nil
 }
@@ -393,7 +321,7 @@ func HealthStatusCheck(w http.ResponseWriter, r *http.Request) {
 
 // GQLHandler sets up a GraphQL resolver
 func GQLHandler(ctx context.Context,
-	service *interactor.Interactor,
+	service usecases.Usecases,
 ) http.HandlerFunc {
 	resolver, err := graph.NewResolver(ctx, service)
 	if err != nil {

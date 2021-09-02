@@ -17,21 +17,21 @@ import (
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
 
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	pubsubmessagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub/mock"
-	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/rest"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/repository/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
-	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
 )
 
 var fakeRepo mockRepo.FakeOnboardingRepository
@@ -41,36 +41,46 @@ var fakePinExt extMock.PINExtensionImpl
 var serverUrl = "http://localhost:5000"
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
 
+var ext extension.BaseExtension = &fakeBaseExt
+var pinExt extension.PINExtension = &fakePinExt
+
+func InitializeFakeInfrastructure() infrastructure.Infrastructure {
+	var r repository.OnboardingRepository = &fakeRepo
+	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
+	var ps pubsubmessaging.ServicePubSub = &fakePubSub
+
+	type InfrastructureMock struct {
+		database.Repository
+		engagement.ServiceEngagement
+		pubsubmessaging.ServicePubSub
+	}
+
+	return &InfrastructureMock{r, engagementSvc, ps}
+
+}
+
 // InitializeFakeOnboardingInteractor represents a fakeonboarding interactor
-func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
+func InitializeFakeOnboardingInteractor() (usecases.Usecases, error) {
 	var r repository.OnboardingRepository = &fakeRepo
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
 	var ext extension.BaseExtension = &fakeBaseExt
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
 
-	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps)
-	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(r, ext)
-	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
-	su := usecases.NewSignUpUseCases(r, profile, userpin, ext, engagementSvc, ps)
-	role := usecases.NewRoleUseCases(r, ext)
-
-	adminSrv := adminSrv.NewService(ext)
-
-	i, err := interactor.NewOnboardingInteractor(
-		profile, su, login,
-		survey, userpin,
-		engagementSvc, ps, adminSrv,
-		role,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("can't instantiate service : %w", err)
+	type InfrastructureMock struct {
+		repository.OnboardingRepository
+		engagement.ServiceEngagement
+		pubsubmessaging.ServicePubSub
 	}
+	infra := func() infrastructure.Infrastructure {
+		return &InfrastructureMock{r, engagementSvc, ps}
+	}()
+
+	i := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
 	return i, nil
 
 }
-
 func composeValidPhonePayload(t *testing.T, phone string) *bytes.Buffer {
 	phoneNumber := struct {
 		PhoneNumber string
@@ -212,17 +222,13 @@ func composeSetPrimaryPhoneNumberPayload(t *testing.T, phone, otp string) *bytes
 }
 
 func TestHandlersInterfacesImpl_VerifySignUpPhoneNumber(t *testing.T) {
+	infra := InitializeFakeInfrastructure()
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
 
-	h := rest.NewHandlersInterfaces(i)
+	h := rest.NewHandlersInterfaces(infra, usecases)
 	// valid:_successfully_verifies_a_phone_number
 	payload := composeValidPhonePayload(t, interserviceclient.TestUserPhoneNumber)
-
 	// payload 2
 	payload2 := composeValidPhonePayload(t, interserviceclient.TestUserPhoneNumberWithPin)
 
@@ -329,7 +335,7 @@ func TestHandlersInterfacesImpl_VerifySignUpPhoneNumber(t *testing.T) {
 				}
 			}
 			// we mock `CheckPhoneExists` to return true
-			// we dont need to mock `GenerateAndSendOTP` because we won't get there
+			// we don't need to mock `GenerateAndSendOTP` because we won't get there
 			if tt.name == "invalid:_user_phone_already_exists" {
 				fakeRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
 					return true, nil
@@ -391,14 +397,11 @@ func TestHandlersInterfacesImpl_VerifySignUpPhoneNumber(t *testing.T) {
 }
 
 func TestHandlersInterfacesImpl_CreateUserWithPhoneNumber(t *testing.T) {
+	infra := InitializeFakeInfrastructure()
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
 
-	h := rest.NewHandlersInterfaces(i)
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	// payload
 	pin := "2030"
@@ -533,7 +536,7 @@ func TestHandlersInterfacesImpl_CreateUserWithPhoneNumber(t *testing.T) {
 					}, nil
 				}
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
-					return "salt", "passw"
+					return "salt", "pass"
 				}
 				// should return a profile with an ID
 				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
@@ -662,14 +665,11 @@ func TestHandlersInterfacesImpl_CreateUserWithPhoneNumber(t *testing.T) {
 }
 
 func TestHandlersInterfacesImpl_UserRecoveryPhoneNumbers(t *testing.T) {
+	infra := InitializeFakeInfrastructure()
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
 
-	h := rest.NewHandlersInterfaces(i)
+	h := rest.NewHandlersInterfaces(infra, usecases)
 	// payload 1
 	payload := composeValidPhonePayload(t, interserviceclient.TestUserPhoneNumber)
 
@@ -788,18 +788,16 @@ func TestHandlersInterfacesImpl_UserRecoveryPhoneNumbers(t *testing.T) {
 
 func TestHandlersInterfacesImpl_RequestPINReset(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 	// payload successfully_request_pin_reset
 	payload := composeValidPhonePayload(t, interserviceclient.TestUserPhoneNumber)
 	// _phone_number_invalid
 	payload1 := composeValidPhonePayload(t, "")
-	//invalid:_inable_to_get_primary_phone
+	//invalid:_unable_to_get_primary_phone
 	payload2 := composeValidPhonePayload(t, "0725123456")
 	//invalid:check_has_pin_failed
 	payload3 := composeValidPhonePayload(t, "0700100400")
@@ -837,7 +835,7 @@ func TestHandlersInterfacesImpl_RequestPINReset(t *testing.T) {
 			wantErr:    true,
 		},
 		{
-			name: "invalid:_inable_to_get_primary_phone",
+			name: "invalid:_unable_to_get_primary_phone",
 			args: args{
 				url:        fmt.Sprintf("%s/request_pin_reset", serverUrl),
 				httpMethod: http.MethodPost,
@@ -919,7 +917,7 @@ func TestHandlersInterfacesImpl_RequestPINReset(t *testing.T) {
 				}
 			}
 
-			if tt.name == "invalid:_inable_to_get_primary_phone" {
+			if tt.name == "invalid:_unable_to_get_primary_phone" {
 				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("unable to fetch profile")
 				}
@@ -978,13 +976,11 @@ func TestHandlersInterfacesImpl_RequestPINReset(t *testing.T) {
 
 func TestHandlersInterfacesImpl_ResetPin(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 	// payload
 	phone := "0712456784"
 	pin := "1897"
@@ -1115,13 +1111,11 @@ func TestHandlersInterfacesImpl_ResetPin(t *testing.T) {
 
 func TestHandlersInterfacesImpl_RefreshToken(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	token := "10c17f3b-a9a9-431c-ad0a-94c684eccd85"
 	payload := composeRefreshTokenPayload(t, &token)
@@ -1224,13 +1218,11 @@ func TestHandlersInterfacesImpl_RefreshToken(t *testing.T) {
 
 func TestHandlersInterfacesImpl_GetUserProfileByUID(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	uid := "db963177-21b2-489f-83e6-3521bf5db516"
 	payload := composeUIDPayload(t, &uid)
@@ -1345,13 +1337,11 @@ func composePhoneOrEmailPayload(t *testing.T, payload *dto.RetrieveUserProfileIn
 
 func TestHandlersInterfacesImpl_GetUserProfileByPhoneOrEmail(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	email := "test@kathurima.com"
 
@@ -1453,13 +1443,11 @@ func TestHandlersInterfacesImpl_GetUserProfileByPhoneOrEmail(t *testing.T) {
 
 func TestHandlersInterfacesImpl_SendOTP(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	payload := composeValidPhonePayload(t, interserviceclient.TestUserPhoneNumber)
 
@@ -1543,13 +1531,11 @@ func TestHandlersInterfacesImpl_SendOTP(t *testing.T) {
 
 func TestHandlersInterfacesImpl_LoginByPhone(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 	// payload
 	phone := "0712456784"
 	pin := "1897"
@@ -1562,7 +1548,7 @@ func TestHandlersInterfacesImpl_LoginByPhone(t *testing.T) {
 	flavour1 := feedlib.FlavourConsumer
 	payload1 := composeLoginPayload(t, phone1, pin1, flavour1)
 
-	// payload2 : invalid:_get_pinbyprofileid_fails
+	// // payload2 : invalid:_get_pin by profile id_fails
 	phone2 := "0708590000"
 	pin2 := "1000"
 	flavour2 := feedlib.FlavourConsumer
@@ -1617,7 +1603,7 @@ func TestHandlersInterfacesImpl_LoginByPhone(t *testing.T) {
 			wantErr:    true,
 		},
 		{
-			name: "invalid:_get_pinbyprofileid_fails",
+			name: "invalid:_get_pin_by_profile_id_fails",
 			args: args{
 				url:        fmt.Sprintf("%s/login_by_phone", serverUrl),
 				httpMethod: http.MethodPost,
@@ -1709,6 +1695,14 @@ func TestHandlersInterfacesImpl_LoginByPhone(t *testing.T) {
 						AllowPush:     true,
 					}, nil
 				}
+				fakeRepo.GetRolesByIDsFn = func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error) {
+					roles := []profileutils.Role{
+						{
+							ID: uuid.NewString(),
+						},
+					}
+					return &roles, nil
+				}
 			}
 
 			if tt.name == "invalid:_get_userprofile_by_primary_phone_fails" {
@@ -1721,7 +1715,7 @@ func TestHandlersInterfacesImpl_LoginByPhone(t *testing.T) {
 				}
 			}
 
-			if tt.name == "invalid:_get_pinbyprofileid_fails" {
+			if tt.name == "invalid:_get_pin_by_profile_id_fails" {
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					phone := "+254721123123"
 					return &phone, nil
@@ -1836,13 +1830,11 @@ func TestHandlersInterfacesImpl_LoginByPhone(t *testing.T) {
 
 func TestHandlersInterfacesImpl_SendRetryOTP(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	// valid payload
 	validPayload := composeSendRetryOTPPayload(t, interserviceclient.TestUserPhoneNumber, 1)
@@ -1944,13 +1936,11 @@ func TestHandlersInterfacesImpl_SendRetryOTP(t *testing.T) {
 
 func TestHandlersInterfacesImpl_LoginAnonymous(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	validPayload := composeLoginPayload(t, "", "", feedlib.FlavourConsumer)
 	invalidPayload := composeLoginPayload(t, "", "", " ")
@@ -2053,13 +2043,11 @@ func TestHandlersInterfacesImpl_LoginAnonymous(t *testing.T) {
 
 func TestHandlersInterfacesImpl_UpdateCovers(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	invalidUID := " "
 	uid := "5cf354a2-1d3e-400d-8716-7e2aead29f2c"
@@ -2226,13 +2214,11 @@ func TestHandlersInterfacesImpl_UpdateCovers(t *testing.T) {
 
 func TestHandlersInterfacesImpl_RemoveUserByPhoneNumber(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	primaryPhone := "+254711445566"
 	validPayload := composeValidPhonePayload(t, primaryPhone)
@@ -2378,13 +2364,11 @@ func TestHandlersInterfacesImpl_RemoveUserByPhoneNumber(t *testing.T) {
 
 func TestHandlersInterfacesImpl_SetPrimaryPhoneNumber(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	primaryPhone := "+254701567839"
 	otp := "890087"
@@ -2658,13 +2642,11 @@ func TestHandlersInterfacesImpl_SetPrimaryPhoneNumber(t *testing.T) {
 
 func TestHandlersInterfacesImpl_AddAdminPermsToUser(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	primaryPhone := "+254711445566"
 	validPayload := composeValidPhonePayload(t, primaryPhone)
@@ -2820,13 +2802,11 @@ func TestHandlersInterfacesImpl_AddAdminPermsToUser(t *testing.T) {
 
 func TestHandlersInterfacesImpl_RemoveAdminPermsToUser(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	primaryPhone := "+254711445566"
 	validPayload := composeValidPhonePayload(t, primaryPhone)
@@ -2991,13 +2971,11 @@ func TestHandlersInterfacesImpl_RemoveAdminPermsToUser(t *testing.T) {
 
 func TestHandlersInterfacesImpl_AddRoleToUser(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	validPhone := "+254711445566"
 	invalidPhone := "+254777882200"
@@ -3122,13 +3100,11 @@ func TestHandlersInterfacesImpl_AddRoleToUser(t *testing.T) {
 
 func TestHandlersInterfacesImpl_RemoveRoleToUser(t *testing.T) {
 
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
+	infra := InitializeFakeInfrastructure()
 
-	h := rest.NewHandlersInterfaces(i)
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	validPhone := "+254711445566"
 	payload := composeValidPhonePayload(t, validPhone)
@@ -3222,12 +3198,11 @@ func TestHandlersInterfacesImpl_RemoveRoleToUser(t *testing.T) {
 }
 
 func TestHandlers_PollServices(t *testing.T) {
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
-	h := rest.NewHandlersInterfaces(i)
+	infra := InitializeFakeInfrastructure()
+
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	type args struct {
 		url        string
@@ -3279,12 +3254,11 @@ func TestHandlers_PollServices(t *testing.T) {
 }
 
 func TestHandlers_CheckPermission(t *testing.T) {
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
-	h := rest.NewHandlersInterfaces(i)
+	infra := InitializeFakeInfrastructure()
+
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	uid := uuid.NewString()
 	permission := profileutils.Permission{
@@ -3416,12 +3390,11 @@ func TestHandlers_CheckPermission(t *testing.T) {
 }
 
 func TestHandlers_CreateRole(t *testing.T) {
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
-	h := rest.NewHandlersInterfaces(i)
+	infra := InitializeFakeInfrastructure()
+
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	invalidPayload, err := json.Marshal(dto.RoleInput{Description: "Test Role"})
 	if err != nil {
@@ -3528,12 +3501,11 @@ func TestHandlers_CreateRole(t *testing.T) {
 }
 
 func TestHandlers_AssignRole(t *testing.T) {
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
-	h := rest.NewHandlersInterfaces(i)
+	infra := InitializeFakeInfrastructure()
+
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	emptyRoleIDPayload, err := json.Marshal(dto.AssignRolePayload{UserID: "123456", RoleID: ""})
 	if err != nil {
@@ -3680,12 +3652,11 @@ func TestHandlers_AssignRole(t *testing.T) {
 }
 
 func TestHandlers_RemoveRoleByName(t *testing.T) {
-	i, err := InitializeFakeOnboardingInteractor()
-	if err != nil {
-		t.Errorf("failed to initialize onboarding interactor: %v", err)
-		return
-	}
-	h := rest.NewHandlersInterfaces(i)
+	infra := InitializeFakeInfrastructure()
+
+	usecases := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
+	h := rest.NewHandlersInterfaces(infra, usecases)
 
 	invalidPayload, err := json.Marshal(dto.DeleteRolePayload{Name: ""})
 	if err != nil {

@@ -92,9 +92,11 @@ type BaseExtensionImpl struct {
 }
 
 // NewBaseExtensionImpl ...
-func NewBaseExtensionImpl(fc firebasetools.IFirebaseClient) BaseExtension {
+func NewBaseExtensionImpl() BaseExtension {
+	client := &firebasetools.FirebaseClient{}
+
 	return &BaseExtensionImpl{
-		fc: fc,
+		fc: client,
 	}
 }
 

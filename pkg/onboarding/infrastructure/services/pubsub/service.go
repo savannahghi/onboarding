@@ -51,14 +51,14 @@ type ServicePubSub interface {
 type ServicePubSubMessaging struct {
 	client   *pubsub.Client
 	baseExt  extension.BaseExtension
-	database database.DbService
+	database database.Repository
 }
 
 // NewServicePubSubMessaging ...
 func NewServicePubSubMessaging(
 	client *pubsub.Client,
 	ext extension.BaseExtension,
-	db database.DbService,
+	db database.Repository,
 ) (*ServicePubSubMessaging, error) {
 	s := &ServicePubSubMessaging{
 		client:   client,

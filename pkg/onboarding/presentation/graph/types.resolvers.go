@@ -13,7 +13,7 @@ import (
 )
 
 func (r *userProfileResolver) RoleDetails(ctx context.Context, obj *profileutils.UserProfile) ([]*dto.RoleOutput, error) {
-	return r.interactor.Role.GetRolesByIDs(ctx, obj.Roles)
+	return r.usecases.GetRolesByIDs(ctx, obj.Roles)
 }
 
 func (r *verifiedIdentifierResolver) Timestamp(ctx context.Context, obj *profileutils.VerifiedIdentifier) (*scalarutils.Date, error) {

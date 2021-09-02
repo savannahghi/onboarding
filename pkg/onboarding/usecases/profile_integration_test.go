@@ -15,6 +15,7 @@ import (
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
 	"github.com/stretchr/testify/assert"
@@ -155,6 +156,11 @@ func TestSetPhoneAsPrimary(t *testing.T) {
 
 	ctx := context.Background()
 
+	infrastructure, err := infrastructure.NewInfrastructureInteractor()
+	if err != nil {
+		t.Error("failed to setup signup usecase")
+	}
+
 	s, err := InitializeTestService(context.Background())
 	if err != nil {
 		t.Error("failed to setup signup usecase")
@@ -268,7 +274,7 @@ func TestSetPhoneAsPrimary(t *testing.T) {
 
 	// send otp to the secondary phone number we intend to make primary
 	testAppID := uuid.New().String()
-	otpResp, err := s.Engagement.GenerateAndSendOTP(context.Background(), secondaryPhone, &testAppID)
+	otpResp, err := infrastructure.GenerateAndSendOTP(context.Background(), secondaryPhone, &testAppID)
 	if err != nil {
 		t.Errorf("unable to send generate and send otp :%v", err)
 		return

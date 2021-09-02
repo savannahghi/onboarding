@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +13,7 @@ import (
 
 func TestLoginClientMissingEnvs(t *testing.T) {
 
-	baseExt := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
+	baseExt := extension.NewBaseExtensionImpl()
 
 	username := "username"
 	password := "password"
