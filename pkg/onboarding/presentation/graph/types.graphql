@@ -25,7 +25,7 @@ type BioData {
   gender: Gender
 }
 
-type UserProfile @key(fields: "id") {
+type UserProfile {
   id: String!
   userName: String!
   verifiedIdentifiers: [VerifiedIdentifier]

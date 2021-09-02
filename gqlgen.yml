@@ -7,9 +7,9 @@ exec:
   filename: pkg/onboarding/presentation/graph/generated/generated.go
   package: generated
 
-federation:
-  filename: pkg/onboarding/presentation/graph/generated/federation.go
-  package: generated
+# federation:
+#   filename: pkg/onboarding/presentation/graph/generated/federation.go
+#   package: generated
 
 # Where should any generated models go?
 model:

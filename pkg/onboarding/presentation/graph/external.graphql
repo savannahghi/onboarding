@@ -50,11 +50,7 @@ enum PractitionerSpecialty {
   UROLOGY
 }
 
-type PageInfo
-  @key(fields: "hasNextPage")
-  @key(fields: "hasPreviousPage")
-  @key(fields: "startCursor")
-  @key(fields: "endCursor") {
+type PageInfo {
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
   startCursor: String
