@@ -64,14 +64,6 @@ type ComplexityRoot struct {
 		PlaceID          func(childComplexity int) int
 	}
 
-	Beneficiary struct {
-		DateOfBirth  func(childComplexity int) int
-		Emails       func(childComplexity int) int
-		Msisdns      func(childComplexity int) int
-		Name         func(childComplexity int) int
-		Relationship func(childComplexity int) int
-	}
-
 	BioData struct {
 		DateOfBirth func(childComplexity int) int
 		FirstName   func(childComplexity int) int
@@ -121,12 +113,6 @@ type ComplexityRoot struct {
 		Thumbnail   func(childComplexity int) int
 		Title       func(childComplexity int) int
 		URL         func(childComplexity int) int
-	}
-
-	Location struct {
-		BranchSladeCode func(childComplexity int) int
-		ID              func(childComplexity int) int
-		Name            func(childComplexity int) int
 	}
 
 	Microservice struct {
@@ -407,41 +393,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Address.PlaceID(childComplexity), true
 
-	case "Beneficiary.dateOfBirth":
-		if e.complexity.Beneficiary.DateOfBirth == nil {
-			break
-		}
-
-		return e.complexity.Beneficiary.DateOfBirth(childComplexity), true
-
-	case "Beneficiary.emails":
-		if e.complexity.Beneficiary.Emails == nil {
-			break
-		}
-
-		return e.complexity.Beneficiary.Emails(childComplexity), true
-
-	case "Beneficiary.msisdns":
-		if e.complexity.Beneficiary.Msisdns == nil {
-			break
-		}
-
-		return e.complexity.Beneficiary.Msisdns(childComplexity), true
-
-	case "Beneficiary.name":
-		if e.complexity.Beneficiary.Name == nil {
-			break
-		}
-
-		return e.complexity.Beneficiary.Name(childComplexity), true
-
-	case "Beneficiary.relationship":
-		if e.complexity.Beneficiary.Relationship == nil {
-			break
-		}
-
-		return e.complexity.Beneficiary.Relationship(childComplexity), true
-
 	case "BioData.dateOfBirth":
 		if e.complexity.BioData.DateOfBirth == nil {
 			break
@@ -661,27 +612,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Link.URL(childComplexity), true
-
-	case "Location.branchSladeCode":
-		if e.complexity.Location.BranchSladeCode == nil {
-			break
-		}
-
-		return e.complexity.Location.BranchSladeCode(childComplexity), true
-
-	case "Location.id":
-		if e.complexity.Location.ID == nil {
-			break
-		}
-
-		return e.complexity.Location.ID(childComplexity), true
-
-	case "Location.name":
-		if e.complexity.Location.Name == nil {
-			break
-		}
-
-		return e.complexity.Location.Name(childComplexity), true
 
 	case "Microservice.description":
 		if e.complexity.Microservice.Description == nil {
@@ -1734,11 +1664,6 @@ enum PractitionerService {
   OTHER
 }
 
-enum BeneficiaryRelationship {
-  SPOUSE
-  CHILD
-}
-
 enum AccountType {
   INDIVIDUAL
   ORGANISATION
@@ -1975,20 +1900,6 @@ input PostVisitSurveyInput {
   suggestions: String!
 }
 
-input BeneficiaryInput {
-  name: String!
-  msisdns: [String!]
-  emails: [String!]
-  relationship: BeneficiaryRelationship!
-  dateOfBirth: Date!
-}
-
-input LocationInput {
-  id: ID!
-  name: String!
-  branchSladeCode: String
-}
-
 input UserAddressInput {
   latitude: Float!
   longitude: Float!
@@ -2167,19 +2078,6 @@ type UserProfile @key(fields: "id") {
   roleDetails: [RoleOutput]
 }
 
-type Beneficiary {
-  name: String!
-  msisdns: [String!]
-  emails: [String!]
-  relationship: BeneficiaryRelationship!
-  dateOfBirth: Date!
-}
-
-type Location {
-  id: ID!
-  name: String!
-  branchSladeCode: String
-}
 
 type Identification {
   identificationDocType: IdentificationDocType!
@@ -3215,175 +3113,6 @@ func (ec *executionContext) _Address_formattedAddress(ctx context.Context, field
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Beneficiary_name(ctx context.Context, field graphql.CollectedField, obj *model.Beneficiary) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Beneficiary",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Beneficiary_msisdns(ctx context.Context, field graphql.CollectedField, obj *model.Beneficiary) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Beneficiary",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Msisdns, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Beneficiary_emails(ctx context.Context, field graphql.CollectedField, obj *model.Beneficiary) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Beneficiary",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Emails, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Beneficiary_relationship(ctx context.Context, field graphql.CollectedField, obj *model.Beneficiary) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Beneficiary",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Relationship, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(domain.BeneficiaryRelationship)
-	fc.Result = res
-	return ec.marshalNBeneficiaryRelationship2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐBeneficiaryRelationship(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Beneficiary_dateOfBirth(ctx context.Context, field graphql.CollectedField, obj *model.Beneficiary) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Beneficiary",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DateOfBirth, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(scalarutils.Date)
-	fc.Result = res
-	return ec.marshalNDate2githubᚗcomᚋsavannahghiᚋscalarutilsᚐDate(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _BioData_firstName(ctx context.Context, field graphql.CollectedField, obj *profileutils.BioData) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4407,108 +4136,6 @@ func (ec *executionContext) _Link_Thumbnail(ctx context.Context, field graphql.C
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalOString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Location_id(ctx context.Context, field graphql.CollectedField, obj *profileutils.Location) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Location",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Location_name(ctx context.Context, field graphql.CollectedField, obj *profileutils.Location) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Location",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Location_branchSladeCode(ctx context.Context, field graphql.CollectedField, obj *profileutils.Location) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Location",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.BranchSladeCode, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Microservice_id(ctx context.Context, field graphql.CollectedField, obj *domain.Microservice) (ret graphql.Marshaler) {
@@ -9706,58 +9333,6 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputBeneficiaryInput(ctx context.Context, obj interface{}) (model.BeneficiaryInput, error) {
-	var it model.BeneficiaryInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "msisdns":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("msisdns"))
-			it.Msisdns, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "emails":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("emails"))
-			it.Emails, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "relationship":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relationship"))
-			it.Relationship, err = ec.unmarshalNBeneficiaryRelationship2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐBeneficiaryRelationship(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "dateOfBirth":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dateOfBirth"))
-			it.DateOfBirth, err = ec.unmarshalNDate2githubᚗcomᚋsavannahghiᚋscalarutilsᚐDate(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputFilterInput(ctx context.Context, obj interface{}) (firebasetools.FilterInput, error) {
 	var it firebasetools.FilterInput
 	var asMap = obj.(map[string]interface{})
@@ -9821,42 +9396,6 @@ func (ec *executionContext) unmarshalInputFilterParam(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fieldValue"))
 			it.FieldValue, err = ec.unmarshalNAny2interface(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputLocationInput(ctx context.Context, obj interface{}) (model.LocationInput, error) {
-	var it model.LocationInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			it.ID, err = ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "branchSladeCode":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("branchSladeCode"))
-			it.BranchSladeCode, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -10313,47 +9852,6 @@ func (ec *executionContext) _Address(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
-var beneficiaryImplementors = []string{"Beneficiary"}
-
-func (ec *executionContext) _Beneficiary(ctx context.Context, sel ast.SelectionSet, obj *model.Beneficiary) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, beneficiaryImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Beneficiary")
-		case "name":
-			out.Values[i] = ec._Beneficiary_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "msisdns":
-			out.Values[i] = ec._Beneficiary_msisdns(ctx, field, obj)
-		case "emails":
-			out.Values[i] = ec._Beneficiary_emails(ctx, field, obj)
-		case "relationship":
-			out.Values[i] = ec._Beneficiary_relationship(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "dateOfBirth":
-			out.Values[i] = ec._Beneficiary_dateOfBirth(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
 var bioDataImplementors = []string{"BioData"}
 
 func (ec *executionContext) _BioData(ctx context.Context, sel ast.SelectionSet, obj *profileutils.BioData) graphql.Marshaler {
@@ -10630,40 +10128,6 @@ func (ec *executionContext) _Link(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Link_Description(ctx, field, obj)
 		case "Thumbnail":
 			out.Values[i] = ec._Link_Thumbnail(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var locationImplementors = []string{"Location"}
-
-func (ec *executionContext) _Location(ctx context.Context, sel ast.SelectionSet, obj *profileutils.Location) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, locationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Location")
-		case "id":
-			out.Values[i] = ec._Location_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "name":
-			out.Values[i] = ec._Location_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "branchSladeCode":
-			out.Values[i] = ec._Location_branchSladeCode(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11939,16 +11403,6 @@ func (ec *executionContext) marshalNAny2interface(ctx context.Context, sel ast.S
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNBeneficiaryRelationship2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐBeneficiaryRelationship(ctx context.Context, v interface{}) (domain.BeneficiaryRelationship, error) {
-	var res domain.BeneficiaryRelationship
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNBeneficiaryRelationship2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐBeneficiaryRelationship(ctx context.Context, sel ast.SelectionSet, v domain.BeneficiaryRelationship) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

@@ -175,7 +175,6 @@ type UserProfileRepository interface {
 	UpdateVerifiedUIDS(ctx context.Context, id string, uids []string) error
 	UpdateSuspended(ctx context.Context, id string, status bool) error
 	UpdatePhotoUploadID(ctx context.Context, id string, uploadID string) error
-	UpdateCovers(ctx context.Context, id string, covers []profileutils.Cover) error
 	UpdatePushTokens(ctx context.Context, id string, pushToken []string) error
 	UpdatePermissions(ctx context.Context, id string, perms []profileutils.PermissionType) error
 	UpdateRole(ctx context.Context, id string, role profileutils.RoleType) error
@@ -328,11 +327,6 @@ func (d DbService) UpdateSuspended(ctx context.Context, id string, status bool) 
 // UpdatePhotoUploadID updates the photoUploadID attribute of the profile that matches the id
 func (d DbService) UpdatePhotoUploadID(ctx context.Context, id string, uploadID string) error {
 	return d.firestore.UpdatePhotoUploadID(ctx, id, uploadID)
-}
-
-// UpdateCovers updates the covers attribute of the profile that matches the id
-func (d DbService) UpdateCovers(ctx context.Context, id string, covers []profileutils.Cover) error {
-	return d.firestore.UpdateCovers(ctx, id, covers)
 }
 
 // UpdatePushTokens updates the pushTokens attribute of the profile that matches the id. This function does a hard reset instead of prior

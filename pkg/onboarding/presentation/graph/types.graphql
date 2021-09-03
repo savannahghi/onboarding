@@ -50,19 +50,6 @@ type UserProfile @key(fields: "id") {
   roleDetails: [RoleOutput]
 }
 
-type Beneficiary {
-  name: String!
-  msisdns: [String!]
-  emails: [String!]
-  relationship: BeneficiaryRelationship!
-  dateOfBirth: Date!
-}
-
-type Location {
-  id: ID!
-  name: String!
-  branchSladeCode: String
-}
 
 type Identification {
   identificationDocType: IdentificationDocType!
