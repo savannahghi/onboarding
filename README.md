@@ -94,21 +94,6 @@ export GOOGLE_APPLICATION_CREDENTIALS="<a path to a Google service account JSON 
 export GOOGLE_CLOUD_PROJECT="<the name of the project that the service account above belongs to>"
 export FIREBASE_WEB_API_KEY="<an API key from the Firebase console for the project mentioned above>"
 
-# Go private modules
-export GOPRIVATE="gitlab.slade360emr.com/go/*,gitlab.slade360emr.com/optimalhealth/*"
-
-export REPOSITORY="firebase" # when we switch to PG the value will be `postgres`
-
-# Charge Master API settings
-export CHARGE_MASTER_API_HOST="<a charge master API host>"
-export CHARGE_MASTER_API_SCHEME=https
-export CHARGE_MASTER_TOKEN_URL="<an auth server token URL>"
-export CHARGE_MASTER_CLIENT_ID="<an auth server client ID>"
-export CHARGE_MASTER_CLIENT_SECRET="<an auth server client secret>"
-export CHARGE_MASTER_USERNAME="<an auth server username>"
-export CHARGE_MASTER_PASSWORD="<an auth server password>"
-export CHARGE_MASTER_GRANT_TYPE="<an auth server grant type>"
-
 ```
 
 Deployment

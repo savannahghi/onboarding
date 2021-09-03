@@ -11,7 +11,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/profileutils"
-	"gitlab.slade360emr.com/go/apiclient"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -77,36 +76,6 @@ func IsFavNavAction(u *profileutils.UserProfile, title string) bool {
 		}
 	}
 	return false
-}
-
-// AddHashToCovers add a hash identifier to provided unhashed covers
-func AddHashToCovers(unHashedCovers []profileutils.Cover) []profileutils.Cover {
-	hashed := []profileutils.Cover{}
-	for _, cvr := range unHashedCovers {
-		if cvr.IdentifierHash == nil {
-			hashed = append(hashed, profileutils.Cover{
-				IdentifierHash: apiclient.CreateCoverHash(profileutils.Cover{
-					PayerName:             cvr.PayerName,
-					PayerSladeCode:        cvr.PayerSladeCode,
-					MemberNumber:          cvr.MemberNumber,
-					MemberName:            cvr.MemberName,
-					BeneficiaryID:         cvr.BeneficiaryID,
-					EffectivePolicyNumber: cvr.EffectivePolicyNumber,
-					ValidFrom:             cvr.ValidFrom,
-					ValidTo:               cvr.ValidTo,
-				}),
-				PayerName:             cvr.PayerName,
-				PayerSladeCode:        cvr.PayerSladeCode,
-				MemberNumber:          cvr.MemberNumber,
-				MemberName:            cvr.MemberName,
-				BeneficiaryID:         cvr.BeneficiaryID,
-				EffectivePolicyNumber: cvr.EffectivePolicyNumber,
-				ValidFrom:             cvr.ValidFrom,
-				ValidTo:               cvr.ValidTo,
-			})
-		}
-	}
-	return hashed
 }
 
 // MatchAndReturn checks is the new is not equal to old and returns it. Otherwise the old
