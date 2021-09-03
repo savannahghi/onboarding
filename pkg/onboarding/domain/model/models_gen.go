@@ -9,24 +9,7 @@ import (
 
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/scalarutils"
 )
-
-type Beneficiary struct {
-	Name         string                         `json:"name"`
-	Msisdns      []string                       `json:"msisdns"`
-	Emails       []string                       `json:"emails"`
-	Relationship domain.BeneficiaryRelationship `json:"relationship"`
-	DateOfBirth  scalarutils.Date               `json:"dateOfBirth"`
-}
-
-type BeneficiaryInput struct {
-	Name         string                         `json:"name"`
-	Msisdns      []string                       `json:"msisdns"`
-	Emails       []string                       `json:"emails"`
-	Relationship domain.BeneficiaryRelationship `json:"relationship"`
-	DateOfBirth  scalarutils.Date               `json:"dateOfBirth"`
-}
 
 type Identification struct {
 	IdentificationDocType           enumutils.IdentificationDocType `json:"identificationDocType"`
@@ -44,12 +27,6 @@ type IndividualPractitioner struct {
 	PracticeLicenseUploadID string                       `json:"practiceLicenseUploadID"`
 	PracticeServices        []domain.PractitionerService `json:"practiceServices"`
 	Cadre                   domain.PractitionerCadre     `json:"cadre"`
-}
-
-type LocationInput struct {
-	ID              string  `json:"id"`
-	Name            string  `json:"name"`
-	BranchSladeCode *string `json:"branchSladeCode"`
 }
 
 type SupportingDocument struct {

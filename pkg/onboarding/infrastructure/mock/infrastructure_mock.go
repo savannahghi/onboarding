@@ -98,9 +98,6 @@ type FakeInfrastructure struct {
 	// UpdatePhotoUploadID updates the photoUploadID attribute of the profile that matches the id
 	UpdatePhotoUploadIDFn func(ctx context.Context, id string, uploadID string) error
 
-	// UpdateCovers updates the covers attribute of the profile that matches the id
-	UpdateCoversFn func(ctx context.Context, id string, covers []profileutils.Cover) error
-
 	// UpdatePushTokens updates the pushTokens attribute of the profile that matches the id. This function does a hard reset instead of prior
 	// matching
 	UpdatePushTokensFn func(ctx context.Context, id string, pushToken []string) error
@@ -433,11 +430,6 @@ func (f FakeInfrastructure) UpdateSuspended(ctx context.Context, id string, stat
 // UpdatePhotoUploadID updates the photoUploadID attribute of the profile that matches the id
 func (f FakeInfrastructure) UpdatePhotoUploadID(ctx context.Context, id string, uploadID string) error {
 	return f.UpdatePhotoUploadIDFn(ctx, id, uploadID)
-}
-
-// UpdateCovers updates the covers attribute of the profile that matches the id
-func (f FakeInfrastructure) UpdateCovers(ctx context.Context, id string, covers []profileutils.Cover) error {
-	return f.UpdateCoversFn(ctx, id, covers)
 }
 
 // UpdatePushTokens updates the pushTokens attribute of the profile that matches the id. This function does a hard reset instead of prior

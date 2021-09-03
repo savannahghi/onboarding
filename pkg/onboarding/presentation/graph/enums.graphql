@@ -36,11 +36,6 @@ enum PractitionerService {
   OTHER
 }
 
-enum BeneficiaryRelationship {
-  SPOUSE
-  CHILD
-}
-
 enum AccountType {
   INDIVIDUAL
   ORGANISATION
