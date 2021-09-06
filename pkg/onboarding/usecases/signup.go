@@ -584,6 +584,22 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 		return nil, err
 	}
 
+	//create a crm contact
+	contact := domain.CRMContact{
+		Properties: domain.ContactProperties{
+			Phone:                 *createdProfile.PrimaryPhone,
+			FirstChannelOfContact: domain.ChannelOfContactApp,
+			BeWellEnrolled:        domain.GeneralOptionTypeYes,
+			BeWellAware:           domain.GeneralOptionTypeYes,
+		},
+	}
+
+	if err = s.pubsub.NotifyCreateContact(ctx, contact); err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, fmt.Errorf("failed to publish to crm.contact.create topic: %v", err)
+	}
+
+	//send otp to user
 	message := input.WelcomeMessage
 	if message == nil {
 		message = &profileDomain.WelcomeMessage
@@ -591,7 +607,8 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 
 	formartedMessage := fmt.Sprintf(*message, *input.FirstName, otp)
 
-	if err := s.engagement.SendSMS(ctx, []string{*phoneNumber}, formartedMessage); err != nil {
+	err = s.engagement.SendSMS(ctx, []string{*createdProfile.PrimaryPhone}, formartedMessage)
+	if err != nil {
 		return nil, fmt.Errorf("unable to send consumer registration message: %w", err)
 	}
 

@@ -1947,6 +1947,15 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "sad: unable to create crm contact",
+			args: args{
+				ctx:   ctx,
+				input: input,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
 			name: "sad: unable to send otp sms",
 			args: args{
 				ctx:   ctx,
@@ -2118,6 +2127,45 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				}
 			}
 
+			if tt.name == "sad: unable to create crm contact" {
+				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
+					return uuid.NewString(), nil
+				}
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
+				}
+				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
+					return &phoneNumber, nil
+				}
+				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{
+						ID:           uuid.NewString(),
+						PrimaryPhone: &phoneNumber,
+					}, nil
+				}
+				fakeRepo.CreateEmptySupplierProfileFn = func(ctx context.Context, profileID string) (*profileutils.Supplier, error) {
+					return &profileutils.Supplier{}, nil
+				}
+				fakeRepo.CreateEmptyCustomerProfileFn = func(ctx context.Context, profileID string) (*profileutils.Customer, error) {
+					return &profileutils.Customer{}, nil
+				}
+				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
+					return &profileutils.UserCommunicationsSetting{}, nil
+				}
+				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
+					return "123", nil
+				}
+				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
+					return "pin", "sha"
+				}
+				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+					return true, nil
+				}
+				fakePubSub.NotifyCreateContactFn = func(ctx context.Context, contact crmDomain.CRMContact) error {
+					return fmt.Errorf("unable to create crm contact")
+				}
+			}
+
 			if tt.name == "sad: unable to send otp sms" {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.NewString(), nil
@@ -2151,6 +2199,9 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				}
 				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return true, nil
+				}
+				fakePubSub.NotifyCreateContactFn = func(ctx context.Context, contact crmDomain.CRMContact) error {
+					return nil
 				}
 				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
 					return fmt.Errorf("unable to send otp sms")
@@ -2196,6 +2247,9 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				}
 				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return true, nil
+				}
+				fakePubSub.NotifyCreateContactFn = func(ctx context.Context, contact crmDomain.CRMContact) error {
+					return nil
 				}
 				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
 					return nil
