@@ -4040,6 +4040,7 @@ enum Operation {
   gender: Gender
   firstName: String
   lastName: String
+  userLink: String
 }
 
 input PostVisitSurveyInput {
@@ -22694,6 +22695,14 @@ func (ec *executionContext) unmarshalInputUserProfileInput(ctx context.Context, 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
 			it.LastName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "userLink":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userLink"))
+			it.UserLink, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

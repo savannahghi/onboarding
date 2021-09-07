@@ -21,6 +21,7 @@ type UserProfileInput struct {
 	Gender        *enumutils.Gender `json:"gender,omitempty"`
 	FirstName     *string           `json:"lastName"`
 	LastName      *string           `json:"firstName"`
+	UserLink      *string           `json:"userlink,omitempty"`
 }
 
 // PostVisitSurveyInput is used to send the results of post-visit surveys to the
@@ -299,6 +300,7 @@ type UserProfilePayload struct {
 	Gender        *enumutils.Gender `json:"gender,omitempty"`
 	FirstName     *string           `json:"lastName"`
 	LastName      *string           `json:"firstName"`
+	UserLink      *string           `json:"userlink,omitempty"`
 }
 
 // PermissionInput input required to create a permission

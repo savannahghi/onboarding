@@ -6,6 +6,7 @@ input UserProfileInput {
   gender: Gender
   firstName: String
   lastName: String
+  userLink: String
 }
 
 input PostVisitSurveyInput {
