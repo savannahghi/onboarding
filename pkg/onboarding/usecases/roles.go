@@ -73,7 +73,7 @@ type RoleUseCase interface {
 	// and creating the test role used for running integration and acceptance tests
 	CreateUnauthorizedRole(ctx context.Context, input dto.RoleInput) (*dto.RoleOutput, error)
 
-	// UnauthorizedDeleteRole creates a role without performing user authorization
+	// UnauthorizedDeleteRole removes a role without performing user authorization
 	// This usecase is useful for cleaning up and removing the test role(s) used for running integration and acceptance tests
 	UnauthorizedDeleteRole(ctx context.Context, roleID string) (bool, error)
 
@@ -177,10 +177,31 @@ func (r *RoleUseCaseImpl) CreateUnauthorizedRole(
 		return nil, err
 	}
 
-	role, err := r.infrastructure.CreateRole(ctx, userProfile.ID, input)
+	var role *profileutils.Role
+
+	role, err = r.infrastructure.CreateRole(ctx, userProfile.ID, input)
 	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, err
+		// check if error is from existing role
+		if strings.Contains(err.Error(), "role with similar name exists") {
+			existing, err := r.infrastructure.GetRoleByName(ctx, input.Name)
+			if err != nil {
+				return nil, err
+			}
+
+			// change the scopes
+			existing.Scopes = input.Scopes
+
+			role, err = r.infrastructure.UpdateRoleDetails(ctx, userProfile.ID, *existing)
+			if err != nil {
+				utils.RecordSpanError(span, err)
+				return nil, err
+			}
+
+		} else {
+
+			utils.RecordSpanError(span, err)
+			return nil, err
+		}
 	}
 
 	perms, err := role.Permissions(ctx)
