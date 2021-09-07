@@ -9,12 +9,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization/permission"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization"
 
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/firebasetools"
@@ -71,19 +68,6 @@ func (s *Service) RegisterMicroservice(
 	ctx, span := tracer.Start(ctx, "RegisterMicroservice")
 	defer span.End()
 
-	user, err := s.baseExt.GetLoggedInUser(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, fmt.Errorf("unable to get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.MicroserviceCreate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, err
-	}
-	if !isAuthorized {
-		return nil, fmt.Errorf("user not authorized to access this resource")
-	}
 	//validate endpoint
 
 	parseURL, err := url.Parse(input.URL)
@@ -212,19 +196,6 @@ func (s *Service) DeregisterMicroservice(ctx context.Context, id string) (bool, 
 	ctx, span := tracer.Start(ctx, "DeregisterMicroservice")
 	defer span.End()
 
-	user, err := s.baseExt.GetLoggedInUser(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, fmt.Errorf("unable to get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.MicroserviceDelete)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
-	if !isAuthorized {
-		return false, fmt.Errorf("user not authorized to access this resource")
-	}
 	return firebasetools.DeleteNode(ctx, id, &domain.Microservice{})
 }
 
@@ -234,19 +205,6 @@ func (s *Service) DeregisterAllMicroservices(ctx context.Context) (bool, error) 
 	ctx, span := tracer.Start(ctx, "DeregisterAllMicroservices")
 	defer span.End()
 
-	user, err := s.baseExt.GetLoggedInUser(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, fmt.Errorf("unable to get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.MicroserviceDelete)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
-	if !isAuthorized {
-		return false, fmt.Errorf("user not authorized to access this resource")
-	}
 	services, err := s.ListMicroservices(ctx)
 	if err != nil {
 		utils.RecordSpanError(span, err)

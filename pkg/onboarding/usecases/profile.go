@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"firebase.google.com/go/auth"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization/permission"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
 	"github.com/sirupsen/logrus"
@@ -200,14 +198,6 @@ func (p *ProfileUseCaseImpl) UserProfile(ctx context.Context) (*profileutils.Use
 		utils.RecordSpanError(span, err)
 		return nil, fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.UserProfileView)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, err
-	}
-	if !isAuthorized {
-		return nil, fmt.Errorf("user not authorized to access this resource")
-	}
 
 	profile, err := p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
@@ -274,16 +264,6 @@ func (p *ProfileUseCaseImpl) UpdatePrimaryPhoneNumber(
 			return fmt.Errorf("can't get user: %w", err)
 		}
 
-		isAuthorized, err := authorization.IsAuthorized(user, permission.PrimaryPhoneUpdate)
-		if err != nil {
-			utils.RecordSpanError(span, err)
-			return err
-		}
-
-		if !isAuthorized {
-			return fmt.Errorf("user not authorized to access this resource")
-		}
-
 		profile, err = p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
 		if err != nil {
 			utils.RecordSpanError(span, err)
@@ -339,14 +319,6 @@ func (p *ProfileUseCaseImpl) UpdatePrimaryEmailAddress(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.PrimaryEmailUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
 	profile, err := p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
@@ -398,14 +370,6 @@ func (p *ProfileUseCaseImpl) UpdateSecondaryPhoneNumbers(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.SecondaryPhoneNumberUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
 	// assert that the phone numbers are unique
 	uniquePhones := []string{}
@@ -450,14 +414,6 @@ func (p *ProfileUseCaseImpl) UpdateSecondaryEmailAddresses(
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.SecondaryEmailAddressUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
 	}
 
 	uniqueEmails := []string{}
@@ -512,14 +468,7 @@ func (p *ProfileUseCaseImpl) UpdateVerifiedUIDS(ctx context.Context, uids []stri
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.VerifiedUIDUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
+
 	profile, err := p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
@@ -541,14 +490,6 @@ func (p *ProfileUseCaseImpl) UpdateVerifiedIdentifiers(
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.VerifiedIdentifiersUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
 	}
 
 	profile, err := p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
@@ -584,14 +525,7 @@ func (p *ProfileUseCaseImpl) UpdateSuspended(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.VerifiedIdentifiersUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
+
 	// fetch the user profile
 	if useContext {
 		profile, err = p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
@@ -622,14 +556,6 @@ func (p *ProfileUseCaseImpl) UpdatePhotoUploadID(ctx context.Context, uploadID s
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.PhotoUploadIDUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
 	profile, err := p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
@@ -655,14 +581,6 @@ func (p *ProfileUseCaseImpl) UpdatePushTokens(
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.PushTokensUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
 	}
 
 	profile, err := p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
@@ -701,14 +619,6 @@ func (p *ProfileUseCaseImpl) UpdatePermissions(
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.PermissionsUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
 	}
 
 	profile, err := p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
@@ -836,14 +746,6 @@ func (p *ProfileUseCaseImpl) UpdateBioData(ctx context.Context, data profileutil
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.BioDataUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
 	}
 
 	profile, err := p.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
