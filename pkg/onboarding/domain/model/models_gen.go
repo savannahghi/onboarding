@@ -6,34 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-
-	"github.com/savannahghi/enumutils"
-	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 )
-
-type Identification struct {
-	IdentificationDocType           enumutils.IdentificationDocType `json:"identificationDocType"`
-	IdentificationDocNumber         string                          `json:"identificationDocNumber"`
-	IdentificationDocNumberUploadID string                          `json:"identificationDocNumberUploadID"`
-}
-
-type IndividualPractitioner struct {
-	IdentificationDoc       *Identification              `json:"identificationDoc"`
-	Krapin                  string                       `json:"KRAPIN"`
-	KRAPINUploadID          string                       `json:"KRAPINUploadID"`
-	SupportingDocuments     []*SupportingDocument        `json:"supportingDocuments"`
-	RegistrationNumber      string                       `json:"registrationNumber"`
-	PracticeLicenseID       string                       `json:"practiceLicenseID"`
-	PracticeLicenseUploadID string                       `json:"practiceLicenseUploadID"`
-	PracticeServices        []domain.PractitionerService `json:"practiceServices"`
-	Cadre                   domain.PractitionerCadre     `json:"cadre"`
-}
-
-type SupportingDocument struct {
-	SupportingDocumentTitle       string `json:"supportingDocumentTitle"`
-	SupportingDocumentDescription string `json:"supportingDocumentDescription"`
-	SupportingDocumentUpload      string `json:"supportingDocumentUpload"`
-}
 
 type ChannelOfContact string
 
@@ -173,55 +146,6 @@ func (e *GeneralOptionType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e GeneralOptionType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type Payor string
-
-const (
-	PayorApa        Payor = "APA"
-	PayorJubilee    Payor = "JUBILEE"
-	PayorResolution Payor = "RESOLUTION"
-	PayorBritam     Payor = "BRITAM"
-	PayorMinet      Payor = "MINET"
-	PayorMadison    Payor = "MADISON"
-)
-
-var AllPayor = []Payor{
-	PayorApa,
-	PayorJubilee,
-	PayorResolution,
-	PayorBritam,
-	PayorMinet,
-	PayorMadison,
-}
-
-func (e Payor) IsValid() bool {
-	switch e {
-	case PayorApa, PayorJubilee, PayorResolution, PayorBritam, PayorMinet, PayorMadison:
-		return true
-	}
-	return false
-}
-
-func (e Payor) String() string {
-	return string(e)
-}
-
-func (e *Payor) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Payor(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Payor", str)
-	}
-	return nil
-}
-
-func (e Payor) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
