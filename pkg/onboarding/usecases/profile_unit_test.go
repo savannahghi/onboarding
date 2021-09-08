@@ -4075,9 +4075,7 @@ func TestProfileUseCaseImpl_GetNavigationActions(t *testing.T) {
 					return &profileutils.UserProfile{}, nil
 				}
 				fakeRepo.GetRolesByIDsFn = func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error) {
-					return &[]profileutils.Role{
-						{Scopes: []string{"agent.view", "agent.register"}, Active: true},
-					}, nil
+					return &[]profileutils.Role{}, nil
 				}
 			}
 			got, err := i.Onboarding.GetNavigationActions(tt.args.ctx)

@@ -25,15 +25,10 @@ const (
 	PatientRegistrationRoute   = "/addPatient"
 	PatientIdentificationRoute = "/patients"
 	GetHelpRouteRoute          = "/helpCenter"
-
-	// Has KYC and Covers
-	RequestsRoute = "/admin"
-
-	RoleViewRoute     = "/viewCreatedRolesPage"
-	RoleCreationRoute = "/createRoleStepOne"
-
-	EmployeeRegistrationRoute   = "/employeeRegistration"
-	EmployeeIdentificationRoute = "/employeeIdentification"
+	RequestsRoute              = "/admin"
+	RoleViewRoute              = "/viewCreatedRolesPage"
+	RoleCreationRoute          = "/createRoleStepOne"
+	RoleAssignmentRoute        = "/bewellUserIdentification"
 )
 
 // Navigation actions
@@ -47,6 +42,7 @@ const (
 	RoleNavActionTitle      = "Role Management"
 	RoleViewActionTitle     = "View Roles"
 	RoleCreationActionTitle = "Create Role"
+	RoleAssignActionTitle   = "Assign Role"
 
 	PatientNavActionTitle            = "Patients"
 	PatientNavActionDescription      = "Patient Navigation action"
@@ -55,11 +51,6 @@ const (
 
 	RequestsNavActionTitle       = "Requests"
 	RequestsNavActionDescription = "Requests Navigation action"
-
-	EmployeeNavActionTitle            = "Employees"
-	EmployeeNavActionDescription      = "Employee Navigation action"
-	EmployeeRegistrationActionTitle   = "Register Employee"
-	EmployeeIdentificationActionTitle = "View Employees"
 
 	ConsumerNavActionTitle       = "Consumers"
 	ConsumerNavActionDescription = "Consumer Navigation action"
@@ -78,17 +69,8 @@ const (
 	//HelpGroup groups all actions under the help resource
 	HelpGroup NavigationGroup = "help"
 
-	//AgentGroup groups all actions under the agent resource
-	AgentGroup NavigationGroup = "agents"
-
 	//KYCGroup groups all actions under the kyc resource
 	KYCGroup NavigationGroup = "kyc"
-
-	//EmployeeGroup groups all actions under the employees resource
-	EmployeeGroup NavigationGroup = "employees"
-
-	//CoversGroup groups all actions under the covers resource
-	CoversGroup NavigationGroup = "covers"
 
 	//PatientGroup groups all actions under the patient resource
 	PatientGroup NavigationGroup = "patient"
@@ -111,6 +93,7 @@ const (
 	RoleNavActionSequence
 	RoleCreationNavActionSequence
 	RoleViewingNavActionSequence
+	RoleAssignNavActionSequence
 
 	RequestsNavActionSequence
 
@@ -217,37 +200,15 @@ var (
 		HasParent:          true,
 		SequenceNumber:     RoleViewingNavActionSequence,
 	}
-)
 
-var (
-	//EmployeeNavActions this is the parent navigation action for agent resource
-	// it has nested navigation actions below
-	EmployeeNavActions = NavigationAction{
-		Group:              EmployeeGroup,
-		Title:              EmployeeNavActionTitle,
-		Icon:               EmployeeNavActionIcon,
-		RequiredPermission: &profileutils.CanViewEmployee,
-		SequenceNumber:     EmployeeNavActionSequence,
-	}
-
-	//EmployeeRegistrationNavAction a child of the EmployeeNavActions
-	EmployeeRegistrationNavAction = NavigationAction{
-		Group:              EmployeeGroup,
-		Title:              EmployeeRegistrationActionTitle,
-		OnTapRoute:         EmployeeRegistrationRoute,
-		RequiredPermission: &profileutils.CanCreateEmployee,
+	//RoleAssignNavAction a child of the RoleNavActions
+	RoleAssignNavAction = NavigationAction{
+		Group:              RoleGroup,
+		Title:              RoleAssignActionTitle,
+		OnTapRoute:         RoleAssignmentRoute,
+		RequiredPermission: &profileutils.CanAssignRole,
 		HasParent:          true,
-		SequenceNumber:     EmployeeRegistrationActionSequence,
-	}
-
-	//EmployeeidentificationNavAction a child of the EmployeeNavActions
-	EmployeeidentificationNavAction = NavigationAction{
-		Group:              EmployeeGroup,
-		Title:              EmployeeIdentificationActionTitle,
-		OnTapRoute:         EmployeeIdentificationRoute,
-		RequiredPermission: &profileutils.CanViewEmployee,
-		HasParent:          true,
-		SequenceNumber:     EmployeeSearchNavActionSequence,
+		SequenceNumber:     RoleAssignNavActionSequence,
 	}
 )
 
@@ -288,8 +249,6 @@ var AllNavigationActions = []NavigationAction{
 	HomeNavAction, HelpNavAction,
 
 	KYCNavActions, PartnerNavActions, ConsumerNavActions,
-
-	EmployeeNavActions, EmployeeRegistrationNavAction, EmployeeidentificationNavAction,
 
 	PatientNavActions, PatientRegistrationNavAction, PatientIdentificationNavAction,
 
