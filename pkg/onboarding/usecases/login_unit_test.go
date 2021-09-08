@@ -336,7 +336,7 @@ func TestProfileUseCaseImpl_LoginByPhone(t *testing.T) {
 						CustomToken:  &customToken,
 						IDToken:      &idToken,
 						RefreshToken: refreshToken,
-						Scopes:       []string{"patient.create", "agent.create"},
+						Scopes:       []string{"patient.create"},
 					}, nil
 				}
 
@@ -359,7 +359,7 @@ func TestProfileUseCaseImpl_LoginByPhone(t *testing.T) {
 						},
 						{
 							ID:     uuid.NewString(),
-							Scopes: []string{"patient.create", "agent.create"},
+							Scopes: []string{"patient.create"},
 							Active: true,
 						},
 					}

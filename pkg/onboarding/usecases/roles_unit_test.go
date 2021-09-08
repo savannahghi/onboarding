@@ -1008,7 +1008,7 @@ func TestRoleUseCaseImpl_RevokeRolePermissions(t *testing.T) {
 		ctx: ctx,
 		inputData: dto.RolePermissionInput{
 			RoleID: "123",
-			Scopes: []string{"agent.create"},
+			Scopes: []string{"role.create"},
 		},
 	}
 
