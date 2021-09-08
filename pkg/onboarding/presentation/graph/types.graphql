@@ -51,36 +51,6 @@ type UserProfile @key(fields: "id") {
 }
 
 
-type Identification {
-  identificationDocType: IdentificationDocType!
-  identificationDocNumber: String!
-  identificationDocNumberUploadID: String!
-}
-
-# used to add more documents when
-type SupportingDocument {
-  supportingDocumentTitle: String!
-  supportingDocumentDescription: String!
-  supportingDocumentUpload: String!
-}
-
-type IndividualPractitioner {
-  # common for individual account types
-  identificationDoc: Identification!
-
-  # common for all
-  KRAPIN: String!
-  KRAPINUploadID: String!
-  supportingDocuments: [SupportingDocument]
-
-  # unique to practitioner
-  registrationNumber: String!
-  practiceLicenseID: String!
-  practiceLicenseUploadID: String!
-  practiceServices: [PractitionerService!]!
-  cadre: PractitionerCadre!
-}
-
 type Address {
   latitude: String!
   longitude: String!

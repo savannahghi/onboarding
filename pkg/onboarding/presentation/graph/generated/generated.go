@@ -19,7 +19,6 @@ import (
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/domain/model"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
 	gqlparser "github.com/vektah/gqlparser/v2"
@@ -86,24 +85,6 @@ type ComplexityRoot struct {
 	GroupedNavigationActions struct {
 		Primary   func(childComplexity int) int
 		Secondary func(childComplexity int) int
-	}
-
-	Identification struct {
-		IdentificationDocNumber         func(childComplexity int) int
-		IdentificationDocNumberUploadID func(childComplexity int) int
-		IdentificationDocType           func(childComplexity int) int
-	}
-
-	IndividualPractitioner struct {
-		Cadre                   func(childComplexity int) int
-		IdentificationDoc       func(childComplexity int) int
-		KRAPINUploadID          func(childComplexity int) int
-		Krapin                  func(childComplexity int) int
-		PracticeLicenseID       func(childComplexity int) int
-		PracticeLicenseUploadID func(childComplexity int) int
-		PracticeServices        func(childComplexity int) int
-		RegistrationNumber      func(childComplexity int) int
-		SupportingDocuments     func(childComplexity int) int
 	}
 
 	Link struct {
@@ -220,12 +201,6 @@ type ComplexityRoot struct {
 		Permissions func(childComplexity int) int
 		Scopes      func(childComplexity int) int
 		Users       func(childComplexity int) int
-	}
-
-	SupportingDocument struct {
-		SupportingDocumentDescription func(childComplexity int) int
-		SupportingDocumentTitle       func(childComplexity int) int
-		SupportingDocumentUpload      func(childComplexity int) int
 	}
 
 	ThinAddress struct {
@@ -486,90 +461,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.GroupedNavigationActions.Secondary(childComplexity), true
-
-	case "Identification.identificationDocNumber":
-		if e.complexity.Identification.IdentificationDocNumber == nil {
-			break
-		}
-
-		return e.complexity.Identification.IdentificationDocNumber(childComplexity), true
-
-	case "Identification.identificationDocNumberUploadID":
-		if e.complexity.Identification.IdentificationDocNumberUploadID == nil {
-			break
-		}
-
-		return e.complexity.Identification.IdentificationDocNumberUploadID(childComplexity), true
-
-	case "Identification.identificationDocType":
-		if e.complexity.Identification.IdentificationDocType == nil {
-			break
-		}
-
-		return e.complexity.Identification.IdentificationDocType(childComplexity), true
-
-	case "IndividualPractitioner.cadre":
-		if e.complexity.IndividualPractitioner.Cadre == nil {
-			break
-		}
-
-		return e.complexity.IndividualPractitioner.Cadre(childComplexity), true
-
-	case "IndividualPractitioner.identificationDoc":
-		if e.complexity.IndividualPractitioner.IdentificationDoc == nil {
-			break
-		}
-
-		return e.complexity.IndividualPractitioner.IdentificationDoc(childComplexity), true
-
-	case "IndividualPractitioner.KRAPINUploadID":
-		if e.complexity.IndividualPractitioner.KRAPINUploadID == nil {
-			break
-		}
-
-		return e.complexity.IndividualPractitioner.KRAPINUploadID(childComplexity), true
-
-	case "IndividualPractitioner.KRAPIN":
-		if e.complexity.IndividualPractitioner.Krapin == nil {
-			break
-		}
-
-		return e.complexity.IndividualPractitioner.Krapin(childComplexity), true
-
-	case "IndividualPractitioner.practiceLicenseID":
-		if e.complexity.IndividualPractitioner.PracticeLicenseID == nil {
-			break
-		}
-
-		return e.complexity.IndividualPractitioner.PracticeLicenseID(childComplexity), true
-
-	case "IndividualPractitioner.practiceLicenseUploadID":
-		if e.complexity.IndividualPractitioner.PracticeLicenseUploadID == nil {
-			break
-		}
-
-		return e.complexity.IndividualPractitioner.PracticeLicenseUploadID(childComplexity), true
-
-	case "IndividualPractitioner.practiceServices":
-		if e.complexity.IndividualPractitioner.PracticeServices == nil {
-			break
-		}
-
-		return e.complexity.IndividualPractitioner.PracticeServices(childComplexity), true
-
-	case "IndividualPractitioner.registrationNumber":
-		if e.complexity.IndividualPractitioner.RegistrationNumber == nil {
-			break
-		}
-
-		return e.complexity.IndividualPractitioner.RegistrationNumber(childComplexity), true
-
-	case "IndividualPractitioner.supportingDocuments":
-		if e.complexity.IndividualPractitioner.SupportingDocuments == nil {
-			break
-		}
-
-		return e.complexity.IndividualPractitioner.SupportingDocuments(childComplexity), true
 
 	case "Link.Description":
 		if e.complexity.Link.Description == nil {
@@ -1317,27 +1208,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.RoleOutput.Users(childComplexity), true
 
-	case "SupportingDocument.supportingDocumentDescription":
-		if e.complexity.SupportingDocument.SupportingDocumentDescription == nil {
-			break
-		}
-
-		return e.complexity.SupportingDocument.SupportingDocumentDescription(childComplexity), true
-
-	case "SupportingDocument.supportingDocumentTitle":
-		if e.complexity.SupportingDocument.SupportingDocumentTitle == nil {
-			break
-		}
-
-		return e.complexity.SupportingDocument.SupportingDocumentTitle(childComplexity), true
-
-	case "SupportingDocument.supportingDocumentUpload":
-		if e.complexity.SupportingDocument.SupportingDocumentUpload == nil {
-			break
-		}
-
-		return e.complexity.SupportingDocument.SupportingDocumentUpload(childComplexity), true
-
 	case "ThinAddress.latitude":
 		if e.complexity.ThinAddress.Latitude == nil {
 			break
@@ -1626,13 +1496,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "pkg/onboarding/presentation/graph/enums.graphql", Input: `enum PractitionerCadre {
-  DOCTOR
-  CLINICAL_OFFICER
-  NURSE
-}
-
-enum FivePointRating {
+	{Name: "pkg/onboarding/presentation/graph/enums.graphql", Input: `enum FivePointRating {
   POOR
   UNSATISFACTORY
   AVERAGE
@@ -1653,26 +1517,6 @@ enum SignUpMethod {
   facebook
   google
   phone
-}
-
-enum PractitionerService {
-  OUTPATIENT_SERVICES
-  INPATIENT_SERVICES
-  PHARMACY
-  MATERNITY
-  LAB_SERVICES
-  OTHER
-}
-
-enum AccountType {
-  INDIVIDUAL
-  ORGANISATION
-}
-
-enum IdentificationDocType {
-  NATIONALID
-  PASSPORT
-  MILITARY
 }
 
 enum Flavour {
@@ -1713,15 +1557,6 @@ enum Persona {
   JUMA
   BOB
   ANDREW
-}
-
-enum Payor {
-  APA
-  JUBILEE
-  RESOLUTION
-  BRITAM
-  MINET
-  MADISON
 }
 
 enum ChannelOfContact {
@@ -1782,45 +1617,6 @@ enum Language {
   sw
 }
 
-"""
-PractitionerSpecialties is a list of recognised health worker specialties.
-
-See: https://medicalboard.co.ke/resources_page/gazetted-specialties/
-"""
-enum PractitionerSpecialty {
-  UNSPECIFIED
-  ANAESTHESIA
-  CARDIOTHORACIC_SURGERY
-  CLINICAL_MEDICAL_GENETICS
-  CLINCICAL_PATHOLOGY
-  GENERAL_PATHOLOGY
-  ANATOMIC_PATHOLOGY
-  CLINICAL_ONCOLOGY
-  DERMATOLOGY
-  EAR_NOSE_AND_THROAT
-  EMERGENCY_MEDICINE
-  FAMILY_MEDICINE
-  GENERAL_SURGERY
-  GERIATRICS
-  IMMUNOLOGY
-  INFECTIOUS_DISEASE
-  INTERNAL_MEDICINE
-  MICROBIOLOGY
-  NEUROSURGERY
-  OBSTETRICS_AND_GYNAECOLOGY
-  OCCUPATIONAL_MEDICINE
-  OPHTHALMOLOGY
-  ORTHOPAEDIC_SURGERY
-  ONCOLOGY
-  ONCOLOGY_RADIOTHERAPY
-  PAEDIATRICS_AND_CHILD_HEALTH
-  PALLIATIVE_MEDICINE
-  PLASTIC_AND_RECONSTRUCTIVE_SURGERY
-  PSYCHIATRY
-  PUBLIC_HEALTH
-  RADIOLOGY
-  UROLOGY
-}
 
 type PageInfo
   @key(fields: "hasNextPage")
@@ -2078,36 +1874,6 @@ type UserProfile @key(fields: "id") {
   roleDetails: [RoleOutput]
 }
 
-
-type Identification {
-  identificationDocType: IdentificationDocType!
-  identificationDocNumber: String!
-  identificationDocNumberUploadID: String!
-}
-
-# used to add more documents when
-type SupportingDocument {
-  supportingDocumentTitle: String!
-  supportingDocumentDescription: String!
-  supportingDocumentUpload: String!
-}
-
-type IndividualPractitioner {
-  # common for individual account types
-  identificationDoc: Identification!
-
-  # common for all
-  KRAPIN: String!
-  KRAPINUploadID: String!
-  supportingDocuments: [SupportingDocument]
-
-  # unique to practitioner
-  registrationNumber: String!
-  practiceLicenseID: String!
-  practiceLicenseUploadID: String!
-  practiceServices: [PractitionerService!]!
-  cadre: PractitionerCadre!
-}
 
 type Address {
   latitude: String!
@@ -3527,423 +3293,6 @@ func (ec *executionContext) _GroupedNavigationActions_secondary(ctx context.Cont
 	res := resTmp.([]domain.NavigationAction)
 	fc.Result = res
 	return ec.marshalONavigationAction2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐNavigationAction(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Identification_identificationDocType(ctx context.Context, field graphql.CollectedField, obj *model.Identification) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Identification",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IdentificationDocType, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(enumutils.IdentificationDocType)
-	fc.Result = res
-	return ec.marshalNIdentificationDocType2githubᚗcomᚋsavannahghiᚋenumutilsᚐIdentificationDocType(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Identification_identificationDocNumber(ctx context.Context, field graphql.CollectedField, obj *model.Identification) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Identification",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IdentificationDocNumber, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Identification_identificationDocNumberUploadID(ctx context.Context, field graphql.CollectedField, obj *model.Identification) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Identification",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IdentificationDocNumberUploadID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _IndividualPractitioner_identificationDoc(ctx context.Context, field graphql.CollectedField, obj *model.IndividualPractitioner) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "IndividualPractitioner",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IdentificationDoc, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Identification)
-	fc.Result = res
-	return ec.marshalNIdentification2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚋmodelᚐIdentification(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _IndividualPractitioner_KRAPIN(ctx context.Context, field graphql.CollectedField, obj *model.IndividualPractitioner) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "IndividualPractitioner",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Krapin, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _IndividualPractitioner_KRAPINUploadID(ctx context.Context, field graphql.CollectedField, obj *model.IndividualPractitioner) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "IndividualPractitioner",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.KRAPINUploadID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _IndividualPractitioner_supportingDocuments(ctx context.Context, field graphql.CollectedField, obj *model.IndividualPractitioner) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "IndividualPractitioner",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SupportingDocuments, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.SupportingDocument)
-	fc.Result = res
-	return ec.marshalOSupportingDocument2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚋmodelᚐSupportingDocument(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _IndividualPractitioner_registrationNumber(ctx context.Context, field graphql.CollectedField, obj *model.IndividualPractitioner) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "IndividualPractitioner",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.RegistrationNumber, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _IndividualPractitioner_practiceLicenseID(ctx context.Context, field graphql.CollectedField, obj *model.IndividualPractitioner) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "IndividualPractitioner",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PracticeLicenseID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _IndividualPractitioner_practiceLicenseUploadID(ctx context.Context, field graphql.CollectedField, obj *model.IndividualPractitioner) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "IndividualPractitioner",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PracticeLicenseUploadID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _IndividualPractitioner_practiceServices(ctx context.Context, field graphql.CollectedField, obj *model.IndividualPractitioner) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "IndividualPractitioner",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PracticeServices, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]domain.PractitionerService)
-	fc.Result = res
-	return ec.marshalNPractitionerService2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerServiceᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _IndividualPractitioner_cadre(ctx context.Context, field graphql.CollectedField, obj *model.IndividualPractitioner) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "IndividualPractitioner",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Cadre, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(domain.PractitionerCadre)
-	fc.Result = res
-	return ec.marshalNPractitionerCadre2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerCadre(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Link_ID(ctx context.Context, field graphql.CollectedField, obj *feedlib.Link) (ret graphql.Marshaler) {
@@ -7069,111 +6418,6 @@ func (ec *executionContext) _RoleOutput_users(ctx context.Context, field graphql
 	return ec.marshalOUserProfile2ᚕᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐUserProfile(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _SupportingDocument_supportingDocumentTitle(ctx context.Context, field graphql.CollectedField, obj *model.SupportingDocument) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "SupportingDocument",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SupportingDocumentTitle, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _SupportingDocument_supportingDocumentDescription(ctx context.Context, field graphql.CollectedField, obj *model.SupportingDocument) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "SupportingDocument",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SupportingDocumentDescription, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _SupportingDocument_supportingDocumentUpload(ctx context.Context, field graphql.CollectedField, obj *model.SupportingDocument) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "SupportingDocument",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SupportingDocumentUpload, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _ThinAddress_latitude(ctx context.Context, field graphql.CollectedField, obj *domain.ThinAddress) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -10004,107 +9248,6 @@ func (ec *executionContext) _GroupedNavigationActions(ctx context.Context, sel a
 	return out
 }
 
-var identificationImplementors = []string{"Identification"}
-
-func (ec *executionContext) _Identification(ctx context.Context, sel ast.SelectionSet, obj *model.Identification) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, identificationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Identification")
-		case "identificationDocType":
-			out.Values[i] = ec._Identification_identificationDocType(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "identificationDocNumber":
-			out.Values[i] = ec._Identification_identificationDocNumber(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "identificationDocNumberUploadID":
-			out.Values[i] = ec._Identification_identificationDocNumberUploadID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var individualPractitionerImplementors = []string{"IndividualPractitioner"}
-
-func (ec *executionContext) _IndividualPractitioner(ctx context.Context, sel ast.SelectionSet, obj *model.IndividualPractitioner) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, individualPractitionerImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("IndividualPractitioner")
-		case "identificationDoc":
-			out.Values[i] = ec._IndividualPractitioner_identificationDoc(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "KRAPIN":
-			out.Values[i] = ec._IndividualPractitioner_KRAPIN(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "KRAPINUploadID":
-			out.Values[i] = ec._IndividualPractitioner_KRAPINUploadID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "supportingDocuments":
-			out.Values[i] = ec._IndividualPractitioner_supportingDocuments(ctx, field, obj)
-		case "registrationNumber":
-			out.Values[i] = ec._IndividualPractitioner_registrationNumber(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "practiceLicenseID":
-			out.Values[i] = ec._IndividualPractitioner_practiceLicenseID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "practiceLicenseUploadID":
-			out.Values[i] = ec._IndividualPractitioner_practiceLicenseUploadID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "practiceServices":
-			out.Values[i] = ec._IndividualPractitioner_practiceServices(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "cadre":
-			out.Values[i] = ec._IndividualPractitioner_cadre(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
 var linkImplementors = []string{"Link"}
 
 func (ec *executionContext) _Link(ctx context.Context, sel ast.SelectionSet, obj *feedlib.Link) graphql.Marshaler {
@@ -10816,43 +9959,6 @@ func (ec *executionContext) _RoleOutput(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
-var supportingDocumentImplementors = []string{"SupportingDocument"}
-
-func (ec *executionContext) _SupportingDocument(ctx context.Context, sel ast.SelectionSet, obj *model.SupportingDocument) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, supportingDocumentImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("SupportingDocument")
-		case "supportingDocumentTitle":
-			out.Values[i] = ec._SupportingDocument_supportingDocumentTitle(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "supportingDocumentDescription":
-			out.Values[i] = ec._SupportingDocument_supportingDocumentDescription(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "supportingDocumentUpload":
-			out.Values[i] = ec._SupportingDocument_supportingDocumentUpload(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
 var thinAddressImplementors = []string{"ThinAddress"}
 
 func (ec *executionContext) _ThinAddress(ctx context.Context, sel ast.SelectionSet, obj *domain.ThinAddress) graphql.Marshaler {
@@ -11526,26 +10632,6 @@ func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast
 	return ret
 }
 
-func (ec *executionContext) marshalNIdentification2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚋmodelᚐIdentification(ctx context.Context, sel ast.SelectionSet, v *model.Identification) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Identification(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNIdentificationDocType2githubᚗcomᚋsavannahghiᚋenumutilsᚐIdentificationDocType(ctx context.Context, v interface{}) (enumutils.IdentificationDocType, error) {
-	var res enumutils.IdentificationDocType
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNIdentificationDocType2githubᚗcomᚋsavannahghiᚋenumutilsᚐIdentificationDocType(ctx context.Context, sel ast.SelectionSet, v enumutils.IdentificationDocType) graphql.Marshaler {
-	return v
-}
-
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -11733,84 +10819,6 @@ func (ec *executionContext) marshalNPermissionType2githubᚗcomᚋsavannahghiᚋ
 func (ec *executionContext) unmarshalNPostVisitSurveyInput2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐPostVisitSurveyInput(ctx context.Context, v interface{}) (dto.PostVisitSurveyInput, error) {
 	res, err := ec.unmarshalInputPostVisitSurveyInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNPractitionerCadre2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerCadre(ctx context.Context, v interface{}) (domain.PractitionerCadre, error) {
-	var res domain.PractitionerCadre
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNPractitionerCadre2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerCadre(ctx context.Context, sel ast.SelectionSet, v domain.PractitionerCadre) graphql.Marshaler {
-	return v
-}
-
-func (ec *executionContext) unmarshalNPractitionerService2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerService(ctx context.Context, v interface{}) (domain.PractitionerService, error) {
-	var res domain.PractitionerService
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNPractitionerService2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerService(ctx context.Context, sel ast.SelectionSet, v domain.PractitionerService) graphql.Marshaler {
-	return v
-}
-
-func (ec *executionContext) unmarshalNPractitionerService2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerServiceᚄ(ctx context.Context, v interface{}) ([]domain.PractitionerService, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]domain.PractitionerService, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNPractitionerService2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerService(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNPractitionerService2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerServiceᚄ(ctx context.Context, sel ast.SelectionSet, v []domain.PractitionerService) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNPractitionerService2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐPractitionerService(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
 }
 
 func (ec *executionContext) unmarshalNRoleInput2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleInput(ctx context.Context, v interface{}) (dto.RoleInput, error) {
@@ -13004,53 +12012,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
-}
-
-func (ec *executionContext) marshalOSupportingDocument2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚋmodelᚐSupportingDocument(ctx context.Context, sel ast.SelectionSet, v []*model.SupportingDocument) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOSupportingDocument2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚋmodelᚐSupportingDocument(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalOSupportingDocument2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚋmodelᚐSupportingDocument(ctx context.Context, sel ast.SelectionSet, v *model.SupportingDocument) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._SupportingDocument(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUserProfile2ᚕᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v []*profileutils.UserProfile) graphql.Marshaler {
