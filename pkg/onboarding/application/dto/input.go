@@ -201,3 +201,17 @@ type RoleRevocationInput struct {
 	RoleID    string
 	Reason    string
 }
+
+// RegisterUserInput is the data required to creat a new user.
+// this data can be used by cross service requests
+type RegisterUserInput struct {
+	UID            *string           `json:"createdByID,omitempty"`
+	FirstName      *string           `json:"firstName,omitempty"`
+	LastName       *string           `json:"lastName,omitempty"`
+	Gender         *enumutils.Gender `json:"gender,omitempty"`
+	PhoneNumber    *string           `json:"phoneNumber,omitempty"`
+	Email          *string           `json:"email,omitempty"`
+	DateOfBirth    *scalarutils.Date `json:"dateOfBirth,omitempty"`
+	RoleIDs        []string          `json:"roleIDs,omitempty"`
+	WelcomeMessage *string           `json:"welcomeMessage,omitempty"`
+}

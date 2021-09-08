@@ -14,6 +14,7 @@ import (
 	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
+	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
@@ -50,6 +51,8 @@ type HandlersInterfaces interface {
 	CreateRole() http.HandlerFunc
 	AssignRole() http.HandlerFunc
 	RemoveRoleByName() http.HandlerFunc
+
+	RegisterUser() http.HandlerFunc
 }
 
 // HandlersInterfacesImpl represents the usecase implementation object
@@ -1138,5 +1141,30 @@ func (h *HandlersInterfacesImpl) RemoveRoleByName() http.HandlerFunc {
 		}
 
 		serverutils.WriteJSONResponse(rw, nil, http.StatusOK)
+	}
+}
+
+// RegisterUser creates a new user profile using provided input
+func (h *HandlersInterfacesImpl) RegisterUser() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		input := &dto.RegisterUserInput{}
+		serverutils.DecodeJSONToTargetStruct(rw, r, input)
+
+		valid, err := utils.ValidateRegisterUserInput(*input)
+		if !valid {
+			errorcodeutil.ReportErr(rw, err, http.StatusBadRequest)
+			return
+		}
+		context := addUIDToContext(ctx, *input.UID)
+
+		profile, err := h.interactor.Signup.RegisterUser(context, *input)
+		if err != nil {
+			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
+			return
+		}
+
+		serverutils.WriteJSONResponse(rw, profile, http.StatusOK)
 	}
 }
