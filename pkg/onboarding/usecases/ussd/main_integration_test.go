@@ -181,13 +181,13 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	sms := usecases.NewSMSUsecase(r, ext)
 	role := usecases.NewRoleUseCases(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
-	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin)
+	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin, role)
 
 	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
 	adminSrv := adminSrv.NewService(ext)
 
 	i, err := interactor.NewOnboardingInteractor(
-		r, profile, su, supplier, login,
+		profile, su, supplier, login,
 		survey, userpin, erpSvc, chargemasterSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
 		role,
@@ -318,12 +318,12 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	sms := usecases.NewSMSUsecase(r, ext)
 	role := usecases.NewRoleUseCases(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
-	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin)
+	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin, role)
 	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmSvc)
 	adminSrv := adminSrv.NewService(ext)
 
 	i, err := interactor.NewOnboardingInteractor(
-		r, profile, su, supplier, login,
+		profile, su, supplier, login,
 		survey, userpin, erpSvc, chargemasterSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
 		role,

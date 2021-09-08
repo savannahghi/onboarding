@@ -1,13 +1,12 @@
 package usecases
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"html/template"
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
@@ -20,8 +19,7 @@ import (
 )
 
 const (
-	agentWelcomeMessage      = "We look forward to working with you."
-	agentWelcomeEmailSubject = "Successfully registered as an agent"
+	agentWelcomeMessage = " We look forward to working with you."
 )
 
 // AgentUseCase represent the business logic required for management of agents
@@ -42,6 +40,7 @@ type AgentUseCaseImpl struct {
 	engagement engagement.ServiceEngagement
 	baseExt    extension.BaseExtension
 	pin        UserPINUseCases
+	role       RoleUseCase
 }
 
 // NewAgentUseCases returns a new a onboarding usecase
@@ -50,6 +49,7 @@ func NewAgentUseCases(
 	eng engagement.ServiceEngagement,
 	ext extension.BaseExtension,
 	pin UserPINUseCases,
+	role RoleUseCase,
 ) AgentUseCase {
 
 	return &AgentUseCaseImpl{
@@ -57,6 +57,7 @@ func NewAgentUseCases(
 		engagement: eng,
 		baseExt:    ext,
 		pin:        pin,
+		role:       role,
 	}
 }
 
@@ -76,6 +77,10 @@ func (a *AgentUseCaseImpl) checkPreconditions() {
 	if a.pin == nil {
 		log.Panicf("nil pin usecase in agent usecase implementation")
 	}
+
+	if a.role == nil {
+		log.Panicf("nil roles usecase in agent usecase implementation")
+	}
 }
 
 // RegisterAgent creates a new Agent in bewell
@@ -87,15 +92,21 @@ func (a *AgentUseCaseImpl) RegisterAgent(
 	ctx, span := tracer.Start(ctx, "RegisterAgent")
 	defer span.End()
 
-	msisdn, err := a.baseExt.NormalizeMSISDN(input.PhoneNumber)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, exceptions.NormalizeMSISDNError(err)
-	}
-
-	// Check logged in user has permissions/role of employee
+	// Check logged in user has permissions to register agent
 	p, err := a.baseExt.GetLoggedInUser(ctx)
 	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	allowed, err := a.repo.CheckIfUserHasPermission(ctx, p.UID, profileutils.CanRegisterAgent)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	if !allowed {
+		err = fmt.Errorf("error, user do not have required permissions")
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
@@ -107,9 +118,15 @@ func (a *AgentUseCaseImpl) RegisterAgent(
 		return nil, err
 	}
 
+	phoneNumber, err := a.baseExt.NormalizeMSISDN(input.PhoneNumber)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.NormalizeMSISDNError(err)
+	}
+
 	timestamp := time.Now().In(pubsubtools.TimeLocation)
 
-	agentProfile := profileutils.UserProfile{
+	userProfile := profileutils.UserProfile{
 		PrimaryEmailAddress: &input.Email,
 		UserBioData: profileutils.BioData{
 			FirstName:   &input.FirstName,
@@ -125,7 +142,7 @@ func (a *AgentUseCaseImpl) RegisterAgent(
 	}
 
 	// create a user profile in bewell
-	profile, err := a.repo.CreateDetailedUserProfile(ctx, *msisdn, agentProfile)
+	profile, err := a.repo.CreateDetailedUserProfile(ctx, *phoneNumber, userProfile)
 	if err != nil {
 		// wrapped error
 		utils.RecordSpanError(span, err)
@@ -138,7 +155,7 @@ func (a *AgentUseCaseImpl) RegisterAgent(
 		return nil, exceptions.InternalServerError(err)
 	}
 
-	sup := profileutils.Supplier{
+	supplierProfile := profileutils.Supplier{
 		IsOrganizationVerified: true,
 		SladeCode:              SavannahSladeCode,
 		KYCSubmitted:           true,
@@ -146,7 +163,19 @@ func (a *AgentUseCaseImpl) RegisterAgent(
 		OrganizationName:       SavannahOrgName,
 	}
 
-	_, err = a.repo.CreateDetailedSupplierProfile(ctx, profile.ID, sup)
+	if _, err := a.repo.CreateDetailedSupplierProfile(ctx, profile.ID, supplierProfile); err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(err)
+	}
+
+	agentProfile := domain.AgentProfile{
+		ID:        uuid.New().String(),
+		ProfileID: profile.ID,
+		AgentType: domain.CompanyAgent,
+	}
+
+	err = a.repo.CreateAgentProfile(ctx, agentProfile)
+
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, exceptions.InternalServerError(err)
@@ -175,49 +204,15 @@ func (a *AgentUseCaseImpl) RegisterAgent(
 		return nil, err
 	}
 
-	if err := a.notifyNewAgent(ctx, input.Email, input.PhoneNumber, *profile.UserBioData.FirstName, otp); err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, fmt.Errorf("unable to send agent registration notifications: %w", err)
+	//send this pin to user
+	message := fmt.Sprintf(domain.WelcomeMessage, input.FirstName, otp)
+	message += agentWelcomeMessage
+
+	if err := a.engagement.SendSMS(ctx, []string{*phoneNumber}, message); err != nil {
+		return nil, fmt.Errorf("unable to send agent registration message: %w", err)
 	}
 
 	return profile, nil
-}
-
-func (a *AgentUseCaseImpl) notifyNewAgent(
-	ctx context.Context,
-	email, phoneNumber, firstName, tempPIN string,
-) error {
-	type pin struct {
-		Name string
-		Pin  string
-	}
-
-	message := fmt.Sprintf(domain.WelcomeMessage, firstName, tempPIN)
-	message += " " + agentWelcomeMessage
-
-	if err := a.engagement.SendSMS(ctx, []string{phoneNumber}, message); err != nil {
-		return fmt.Errorf("unable to send agent registration message: %w", err)
-	}
-
-	if email != "" {
-		t := template.Must(template.New("agentApprovalEmail").Parse(utils.AgentApprovalEmail))
-
-		buf := new(bytes.Buffer)
-
-		err := t.Execute(buf, pin{firstName, tempPIN})
-		if err != nil {
-			log.Fatalf("error while generating agent approval email template: %s", err)
-		}
-
-		text := buf.String()
-
-		if err := a.engagement.SendMail(ctx, email, text, agentWelcomeEmailSubject); err != nil {
-			return fmt.Errorf("unable to send agent registration email: %w", err)
-		}
-
-	}
-
-	return nil
 }
 
 // ActivateAgent activates/unsuspend the agent profile
@@ -259,15 +254,30 @@ func (a *AgentUseCaseImpl) DeactivateAgent(
 		return false, exceptions.InternalServerError(err)
 	}
 
-	if agent.Role != profileutils.RoleTypeAgent {
-		return false, exceptions.InternalServerError(fmt.Errorf("this user is not an agent"))
+	// role ID input introduces a breaking change to the api
+	// deactivation involes removing the assigned role
+	if len(input.RoleIDs) != 0 {
+		for _, roleID := range input.RoleIDs {
+			status, err := a.role.RevokeRole(ctx, agent.ID, roleID, input.Reason)
+			if err != nil {
+				utils.RecordSpanError(span, err)
+				return false, exceptions.InternalServerError(err)
+			}
+
+			if !status {
+				err := fmt.Errorf("role not removed")
+				return false, exceptions.InternalServerError(err)
+
+			}
+		}
+	} else { // initial implementation involved account suspension which affected the user both on consumer and pro
+		err = a.repo.UpdateSuspended(ctx, agent.ID, true)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			return false, err
+		}
 	}
 
-	err = a.repo.UpdateSuspended(ctx, agent.ID, true)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
 	return true, nil
 }
 
@@ -294,6 +304,33 @@ func (a *AgentUseCaseImpl) FetchAgents(ctx context.Context) ([]*dto.Agent, error
 			return nil, err
 		}
 
+		roles, err := a.repo.GetRolesByIDs(ctx, profile.Roles)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			// the error is wrapped already. No need to wrap it again
+			return nil, err
+		}
+
+		// role output
+		ro := []dto.RoleOutput{}
+		for _, role := range *roles {
+			perms, err := role.Permissions(ctx)
+			if err != nil {
+				utils.RecordSpanError(span, err)
+				return nil, err
+			}
+			o := dto.RoleOutput{
+				ID:          role.ID,
+				Name:        role.Name,
+				Description: role.Description,
+				Active:      role.Active,
+				Scopes:      role.Scopes,
+				Permissions: perms,
+			}
+
+			ro = append(ro, o)
+		}
+
 		agent := &dto.Agent{
 			ID:                      profile.ID,
 			PhotoUploadID:           profile.PhotoUploadID,
@@ -305,6 +342,7 @@ func (a *AgentUseCaseImpl) FetchAgents(ctx context.Context) ([]*dto.Agent, error
 			TermsAccepted:           profile.TermsAccepted,
 			Suspended:               profile.Suspended,
 			ResendPIN:               pin.IsOTP,
+			Roles:                   ro,
 		}
 
 		agents = append(agents, agent)

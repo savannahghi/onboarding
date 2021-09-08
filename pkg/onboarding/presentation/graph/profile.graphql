@@ -37,6 +37,8 @@ extend type Query {
 
   findAgentbyPhone(phoneNumber: String): Agent
 
+  findAdminByNameOrPhone(nameOrPhone: String): [Admin]
+
   fetchUserNavigationActions: NavigationActions
 
   listMicroservices: [Microservice!]!
@@ -181,7 +183,9 @@ extend type Mutation {
 
   assignRole(userID: ID!, roleID: ID!): Boolean!
 
-  revokeRole(userID: ID!, roleID: ID!): Boolean!
+  assignMultipleRoles(userID: ID!, roleIDs: [ID!]!): Boolean!
+
+  revokeRole(userID: ID!, roleID: ID!, reason: String!): Boolean!
 
   activateRole(roleID: ID!): RoleOutput!
 

@@ -1,9 +1,12 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
+	"firebase.google.com/go/auth"
+	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/serverutils"
 	"go.opentelemetry.io/otel/attribute"
@@ -50,4 +53,12 @@ func decodeOTPPayload(
 	}
 
 	return payload, nil
+}
+
+func addUIDToContext(ctx context.Context, uid string) context.Context {
+	return context.WithValue(
+		context.Background(),
+		firebasetools.AuthTokenContextKey,
+		&auth.Token{UID: uid},
+	)
 }

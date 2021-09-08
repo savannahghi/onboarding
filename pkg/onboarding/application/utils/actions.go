@@ -112,16 +112,18 @@ func GroupNested(
 				parent.Nested = append(parent.Nested, action)
 			}
 		}
-		grouped = append(grouped, parent)
+		//remove all actions that do not have onTapRoute and has no nested children
+		//this removes unnecessary parents
+		if len(parent.OnTapRoute) > 0 || len(parent.Nested) > 0 {
+			grouped = append(grouped, parent)
+		}
 	}
 
 	return grouped
 }
 
 // GroupPriority groups navigation actions into primary and secondary actions
-func GroupPriority(
-	actions []domain.NavigationAction,
-) (primary, secondary []domain.NavigationAction) {
+func GroupPriority(actions []domain.NavigationAction) (primary, secondary []domain.NavigationAction) {
 
 	// sort actions based on priority using the sequence number
 	// uses the inbuilt go sorting functionality

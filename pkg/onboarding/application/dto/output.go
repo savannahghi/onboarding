@@ -54,6 +54,8 @@ type Agent struct {
 	// Resend PIN helps inform the whether a send new temporary PIN
 	// True when the user hasn't performed the initial sign up to change PIN
 	ResendPIN bool `json:"resendPIN"`
+
+	Roles []RoleOutput `json:"roles"`
 }
 
 // Admin represents agent with details inferred from their user profile
@@ -79,6 +81,8 @@ type Admin struct {
 	// Resend PIN helps inform the whether a send new temporary PIN
 	// True when the user hasn't performed the initial sign up to change PIN
 	ResendPIN bool `json:"resendPIN"`
+
+	Roles []RoleOutput `json:"roles"`
 }
 
 // AccountRecoveryPhonesResponse  payload sent back to the frontend when recovery an account
@@ -143,16 +147,24 @@ type Segment struct {
 
 // RoleOutput is the formatted output with scopes and permissions
 type RoleOutput struct {
-	ID          string                    `json:"id"`
-	Name        string                    `json:"name"`
-	Description string                    `json:"description"`
-	Active      bool                      `json:"active"`
-	Scopes      []string                  `json:"scopes"`
-	Permissions []profileutils.Permission `json:"permissions"`
+	ID          string                      `json:"id"`
+	Name        string                      `json:"name"`
+	Description string                      `json:"description"`
+	Active      bool                        `json:"active"`
+	Scopes      []string                    `json:"scopes"`
+	Permissions []profileutils.Permission   `json:"permissions"`
+	Users       []*profileutils.UserProfile `json:"users"`
 }
 
 // GroupedNavigationActions is the list of Navigation Actions sorted into primary and secondary actions
 type GroupedNavigationActions struct {
 	Primary   []domain.NavigationAction `json:"primary,omitempty"`
 	Secondary []domain.NavigationAction `json:"secondary,omitempty"`
+}
+
+// RegisteredUserResponse is used to return by creating a new user in ISC
+type RegisteredUserResponse struct {
+	ID          string `json:"id,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	PhoneNumber string `json:"phoneNumber,omitempty"`
 }

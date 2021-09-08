@@ -272,6 +272,8 @@ func (p *ProfileUseCaseImpl) UpdatePrimaryPhoneNumber(
 	ctx, span := tracer.Start(ctx, "UpdatePrimaryPhoneNumber")
 	defer span.End()
 
+	logrus.Println(phone)
+
 	var profile *profileutils.UserProfile
 
 	phoneNumber, err := p.baseExt.NormalizeMSISDN(phone)
@@ -995,6 +997,8 @@ func (p *ProfileUseCaseImpl) GetUserProfileByUID(
 func (p *ProfileUseCaseImpl) GetUserProfileByPhoneOrEmail(ctx context.Context, payload *dto.RetrieveUserProfileInput) (*profileutils.UserProfile, error) {
 	ctx, span := tracer.Start(ctx, "GetUserProfileByPhoneOrEmail")
 	defer span.End()
+
+	logrus.Println("getting user profile")
 
 	return p.onboardingRepository.GetUserProfileByPhoneOrEmail(ctx, payload)
 }

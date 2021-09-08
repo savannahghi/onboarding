@@ -53,6 +53,12 @@ type HandlersInterfaces interface {
 	// USSDEndNotificationHandler() http.HandlerFunc
 	PollServices() http.HandlerFunc
 	CheckHasPermission() http.HandlerFunc
+
+	CreateRole() http.HandlerFunc
+	AssignRole() http.HandlerFunc
+	RemoveRoleByName() http.HandlerFunc
+
+	RegisterUser() http.HandlerFunc
 }
 
 // HandlersInterfacesImpl represents the usecase implementation object
@@ -684,7 +690,9 @@ func (h *HandlersInterfacesImpl) GetUserProfileByPhoneOrEmail() http.HandlerFunc
 		}
 
 		if payload.Email != nil && payload.PhoneNumber != nil {
-			err := fmt.Errorf("only one parameter can be used to retrieve user profile. use either email or phone")
+			err := fmt.Errorf(
+				"only one parameter can be used to retrieve user profile. use either email or phone",
+			)
 			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
 			return
 		}
@@ -1212,5 +1220,105 @@ func (h *HandlersInterfacesImpl) CheckHasPermission() http.HandlerFunc {
 		}
 
 		serverutils.WriteJSONResponse(rw, nil, http.StatusOK)
+	}
+}
+
+// CreateRole creates a new role given the required role creation input
+func (h *HandlersInterfacesImpl) CreateRole() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		input := &dto.RoleInput{}
+		serverutils.DecodeJSONToTargetStruct(rw, r, input)
+
+		if input.Name == "" {
+			serverutils.WriteJSONResponse(rw, nil, http.StatusBadRequest)
+			return
+		}
+
+		role, err := h.interactor.Role.CreateUnauthorizedRole(ctx, *input)
+		if err != nil {
+			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
+			return
+		}
+
+		serverutils.WriteJSONResponse(rw, role, http.StatusCreated)
+	}
+}
+
+// AssignRole assigns a role to the provided user
+func (h *HandlersInterfacesImpl) AssignRole() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		input := &dto.AssignRolePayload{}
+		serverutils.DecodeJSONToTargetStruct(rw, r, input)
+
+		if input.UserID == "" || input.RoleID == "" {
+			serverutils.WriteJSONResponse(rw, nil, http.StatusBadRequest)
+			return
+		}
+
+		_, err := h.interactor.Role.AssignRole(ctx, input.UserID, input.RoleID)
+		if err != nil {
+			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
+			return
+		}
+
+		serverutils.WriteJSONResponse(rw, nil, http.StatusOK)
+	}
+}
+
+// RemoveRoleByName removes a role given a valid name
+func (h *HandlersInterfacesImpl) RemoveRoleByName() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		input := &dto.DeleteRolePayload{}
+		serverutils.DecodeJSONToTargetStruct(rw, r, input)
+
+		if input.Name == "" {
+			serverutils.WriteJSONResponse(rw, nil, http.StatusBadRequest)
+			return
+		}
+
+		role, err := h.interactor.Role.GetRoleByName(ctx, input.Name)
+		if err != nil {
+			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
+			return
+		}
+
+		_, err = h.interactor.Role.UnauthorizedDeleteRole(ctx, role.ID)
+		if err != nil {
+			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
+			return
+		}
+
+		serverutils.WriteJSONResponse(rw, nil, http.StatusOK)
+	}
+}
+
+// RegisterUser creates a new user profile using provided input
+func (h *HandlersInterfacesImpl) RegisterUser() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		input := &dto.RegisterUserInput{}
+		serverutils.DecodeJSONToTargetStruct(rw, r, input)
+
+		valid, err := utils.ValidateRegisterUserInput(*input)
+		if !valid {
+			errorcodeutil.ReportErr(rw, err, http.StatusBadRequest)
+			return
+		}
+		context := addUIDToContext(ctx, *input.UID)
+
+		profile, err := h.interactor.Signup.RegisterUser(context, *input)
+		if err != nil {
+			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
+			return
+		}
+
+		serverutils.WriteJSONResponse(rw, profile, http.StatusOK)
 	}
 }

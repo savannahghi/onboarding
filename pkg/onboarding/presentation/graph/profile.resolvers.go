@@ -654,10 +654,19 @@ func (r *mutationResolver) AssignRole(ctx context.Context, userID string, roleID
 	return status, err
 }
 
-func (r *mutationResolver) RevokeRole(ctx context.Context, userID string, roleID string) (bool, error) {
+func (r *mutationResolver) AssignMultipleRoles(ctx context.Context, userID string, roleIDs []string) (bool, error) {
 	startTime := time.Now()
 
-	status, err := r.interactor.Role.RevokeRole(ctx, userID, roleID)
+	status, err := r.interactor.Role.AssignMultipleRoles(ctx, userID, roleIDs)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "assignMultipleRoles", err)
+
+	return status, err
+}
+
+func (r *mutationResolver) RevokeRole(ctx context.Context, userID string, roleID string, reason string) (bool, error) {
+	startTime := time.Now()
+
+	status, err := r.interactor.Role.RevokeRole(ctx, userID, roleID, reason)
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "revokeRole", err)
 
 	return status, err
@@ -844,6 +853,16 @@ func (r *queryResolver) FindAgentbyPhone(ctx context.Context, phoneNumber *strin
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "findAgentbyPhone", err)
 
 	return agent, err
+}
+
+func (r *queryResolver) FindAdminByNameOrPhone(ctx context.Context, nameOrPhone *string) ([]*dto.Admin, error) {
+	startTime := time.Now()
+
+	admins, err := r.interactor.Admin.FindAdminByNameOrPhone(ctx, nameOrPhone)
+
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "findAdminByNameOrPhone", err)
+
+	return admins, err
 }
 
 func (r *queryResolver) FetchUserNavigationActions(ctx context.Context) (*profileutils.NavigationActions, error) {

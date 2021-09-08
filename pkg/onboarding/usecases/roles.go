@@ -25,6 +25,8 @@ type RoleUseCase interface {
 
 	GetAllPermissions(ctx context.Context) ([]*profileutils.Permission, error)
 
+	GetRoleByName(ctx context.Context, name string) (*dto.RoleOutput, error)
+
 	// AddPermissionsToRole adds new scopes to a role
 	AddPermissionsToRole(
 		ctx context.Context,
@@ -38,13 +40,19 @@ type RoleUseCase interface {
 	) (*dto.RoleOutput, error)
 
 	// UpdateRolePermissions replaces the scopes in a role with new updated scopes
-	UpdateRolePermissions(ctx context.Context, input dto.RolePermissionInput) (*dto.RoleOutput, error)
+	UpdateRolePermissions(
+		ctx context.Context,
+		input dto.RolePermissionInput,
+	) (*dto.RoleOutput, error)
 
 	// AssignRole assigns a role to a user
 	AssignRole(ctx context.Context, userID string, roleID string) (bool, error)
 
+	// AssignMultipleRoles assigns multiple roles to a user
+	AssignMultipleRoles(ctx context.Context, userID string, roleIDs []string) (bool, error)
+
 	// RevokeRole removes a role from a user
-	RevokeRole(ctx context.Context, userID string, roleID string) (bool, error)
+	RevokeRole(ctx context.Context, userID, roleID, reason string) (bool, error)
 
 	// ActivateRole marks a role as active
 	ActivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error)
@@ -54,7 +62,22 @@ type RoleUseCase interface {
 
 	// Check permission checks whether a logged in user with the given UID
 	// is authorized to perform the action specified in the permission
-	CheckPermission(ctx context.Context, uid string, permission profileutils.Permission) (bool, error)
+	CheckPermission(
+		ctx context.Context,
+		uid string,
+		permission profileutils.Permission,
+	) (bool, error)
+
+	// CreateUnauthorizedRole creates a role without performing user authorization
+	// This usecase is useful for creating the initial role in a new environment
+	// and creating the test role used for running integration and acceptance tests
+	CreateUnauthorizedRole(ctx context.Context, input dto.RoleInput) (*dto.RoleOutput, error)
+
+	// UnauthorizedDeleteRole creates a role without performing user authorization
+	// This usecase is useful for cleaning up and removing the test role(s) used for running integration and acceptance tests
+	UnauthorizedDeleteRole(ctx context.Context, roleID string) (bool, error)
+
+	GetRolesByIDs(ctx context.Context, roleIDs []string) ([]*dto.RoleOutput, error)
 }
 
 // RoleUseCaseImpl  represents usecase implementation object
@@ -130,6 +153,54 @@ func (r *RoleUseCaseImpl) CreateRole(
 	return output, nil
 }
 
+// CreateUnauthorizedRole creates a role without performing user authorization
+//
+// This usecase is useful for creating the initial role in a new environment
+// and creating the test role used for running integration and acceptance tests
+// It doesn't check for the users permission
+func (r *RoleUseCaseImpl) CreateUnauthorizedRole(
+	ctx context.Context,
+	input dto.RoleInput,
+) (*dto.RoleOutput, error) {
+	ctx, span := tracer.Start(ctx, "CreateUnauthorizedRole")
+	defer span.End()
+
+	user, err := r.baseExt.GetLoggedInUser(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	userProfile, err := r.repo.GetUserProfileByUID(ctx, user.UID, false)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	role, err := r.repo.CreateRole(ctx, userProfile.ID, input)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	perms, err := role.Permissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	output := &dto.RoleOutput{
+		ID:          role.ID,
+		Name:        role.Name,
+		Description: role.Description,
+		Active:      role.Active,
+		Scopes:      role.Scopes,
+		Permissions: perms,
+	}
+
+	return output, nil
+}
+
 //GetAllRoles returns a list of all created roles
 func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, error) {
 	ctx, span := tracer.Start(ctx, "GetAllRoles")
@@ -166,6 +237,13 @@ func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, e
 			utils.RecordSpanError(span, err)
 			return nil, err
 		}
+
+		users, err := r.repo.GetUserProfilesByRoleID(ctx, role.ID)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			return nil, err
+		}
+
 		output := &dto.RoleOutput{
 			ID:          role.ID,
 			Name:        role.Name,
@@ -173,6 +251,7 @@ func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, e
 			Active:      role.Active,
 			Scopes:      role.Scopes,
 			Permissions: perms,
+			Users:       users,
 		}
 		roleOutput = append(roleOutput, output)
 	}
@@ -256,6 +335,31 @@ func (r *RoleUseCaseImpl) DeleteRole(ctx context.Context, roleID string) (bool, 
 		return false, exceptions.RoleNotValid(
 			fmt.Errorf("error: logged in user does not have permissions to delete roles"),
 		)
+	}
+
+	success, err := r.repo.DeleteRole(ctx, roleID)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return false, err
+	}
+	return success, nil
+}
+
+// UnauthorizedDeleteRole creates a role without performing user authorization
+//
+// This usecase is useful for cleaning up and removing the test role(s) used for running integration and acceptance tests
+func (r *RoleUseCaseImpl) UnauthorizedDeleteRole(ctx context.Context, roleID string) (bool, error) {
+	ctx, span := tracer.Start(ctx, "UnauthorizedDeleteRole")
+	defer span.End()
+
+	role, err := r.repo.GetRoleByID(ctx, roleID)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return false, err
+	}
+
+	if !strings.Contains(strings.ToLower(role.Name), "test") {
+		return false, fmt.Errorf("only test roles can be removed")
 	}
 
 	success, err := r.repo.DeleteRole(ctx, roleID)
@@ -488,6 +592,7 @@ func (r *RoleUseCaseImpl) RevokeRole(
 	ctx context.Context,
 	userID string,
 	roleID string,
+	reason string,
 ) (bool, error) {
 	ctx, span := tracer.Start(ctx, "RevokeRole")
 	defer span.End()
@@ -550,11 +655,30 @@ func (r *RoleUseCaseImpl) RevokeRole(
 		return false, err
 	}
 
+	// revocation input
+	log := dto.RoleRevocationInput{
+		ProfileID: profile.ID,
+		RoleID:    role.ID,
+		Reason:    reason,
+	}
+	// logged in user profile
+	p, err := r.repo.GetUserProfileByUID(ctx, user.UID, false)
+	if err != nil {
+		return false, err
+	}
+	err = r.repo.SaveRoleRevocation(ctx, p.ID, log)
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
 // ActivateRole marks a deactivated role as active and usable
-func (r *RoleUseCaseImpl) ActivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error) {
+func (r *RoleUseCaseImpl) ActivateRole(
+	ctx context.Context,
+	roleID string,
+) (*dto.RoleOutput, error) {
 	ctx, span := tracer.Start(ctx, "ActivateRole")
 	defer span.End()
 
@@ -617,7 +741,10 @@ func (r *RoleUseCaseImpl) ActivateRole(ctx context.Context, roleID string) (*dto
 }
 
 // DeactivateRole marks a role as inactive and cannot be used
-func (r *RoleUseCaseImpl) DeactivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error) {
+func (r *RoleUseCaseImpl) DeactivateRole(
+	ctx context.Context,
+	roleID string,
+) (*dto.RoleOutput, error) {
 	ctx, span := tracer.Start(ctx, "DeactivateRole")
 	defer span.End()
 
@@ -680,7 +807,10 @@ func (r *RoleUseCaseImpl) DeactivateRole(ctx context.Context, roleID string) (*d
 }
 
 // UpdateRolePermissions replaces the scopes in a role with new updated scopes
-func (r *RoleUseCaseImpl) UpdateRolePermissions(ctx context.Context, input dto.RolePermissionInput) (*dto.RoleOutput, error) {
+func (r *RoleUseCaseImpl) UpdateRolePermissions(
+	ctx context.Context,
+	input dto.RolePermissionInput,
+) (*dto.RoleOutput, error) {
 	ctx, span := tracer.Start(ctx, "UpdateRolePermissions")
 	defer span.End()
 
@@ -745,9 +875,126 @@ func (r *RoleUseCaseImpl) UpdateRolePermissions(ctx context.Context, input dto.R
 
 // CheckPermission checks whether a logged in user with the given UID
 // is authorized to perform the action specified in the permission
-func (r *RoleUseCaseImpl) CheckPermission(ctx context.Context, uid string, permission profileutils.Permission) (bool, error) {
+func (r *RoleUseCaseImpl) CheckPermission(
+	ctx context.Context,
+	uid string,
+	permission profileutils.Permission,
+) (bool, error) {
 	ctx, span := tracer.Start(ctx, "CheckPermission")
 	defer span.End()
 
 	return r.repo.CheckIfUserHasPermission(ctx, uid, permission)
+}
+
+// GetRoleByName retrieves a role with the matching name
+// Each role has a unique name i.e no duplicate names
+func (r *RoleUseCaseImpl) GetRoleByName(ctx context.Context, name string) (*dto.RoleOutput, error) {
+	ctx, span := tracer.Start(ctx, "GetRoleByName")
+	defer span.End()
+
+	user, err := r.baseExt.GetLoggedInUser(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	// Check logged in user has the right permissions
+	allowed, err := r.repo.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanViewRole)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+	if !allowed {
+		return nil, exceptions.RoleNotValid(
+			fmt.Errorf("error: logged in user does not have permission to view role"),
+		)
+	}
+
+	role, err := r.repo.GetRoleByName(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	// get permissions
+	perms, err := role.Permissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	output := &dto.RoleOutput{
+		ID:          role.ID,
+		Name:        role.Name,
+		Description: role.Description,
+		Active:      role.Active,
+		Scopes:      role.Scopes,
+		Permissions: perms,
+	}
+
+	return output, nil
+}
+
+// GetRolesByIDs returns the details of roles given the IDs
+func (r RoleUseCaseImpl) GetRolesByIDs(ctx context.Context, roleIDs []string) ([]*dto.RoleOutput, error) {
+	ctx, span := tracer.Start(ctx, "GetRolesByIDs")
+	defer span.End()
+
+	roles, err := r.repo.GetRolesByIDs(ctx, roleIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	roleOutput := []*dto.RoleOutput{}
+	for _, role := range *roles {
+		perms, err := role.Permissions(ctx)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			return nil, err
+		}
+
+		output := &dto.RoleOutput{
+			ID:          role.ID,
+			Name:        role.Name,
+			Description: role.Description,
+			Active:      role.Active,
+			Scopes:      role.Scopes,
+			Permissions: perms,
+		}
+		roleOutput = append(roleOutput, output)
+	}
+
+	return roleOutput, nil
+}
+
+// AssignMultipleRoles assigns multiple roles to a user
+func (r RoleUseCaseImpl) AssignMultipleRoles(ctx context.Context, userID string, roleIDs []string) (bool, error) {
+	ctx, span := tracer.Start(ctx, "AssignMultipleRoles")
+	defer span.End()
+
+	user, err := r.baseExt.GetLoggedInUser(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return false, err
+	}
+
+	// Check logged in user has the right permissions
+	allowed, err := r.CheckPermission(ctx, user.UID, profileutils.CanAssignRole)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return false, err
+	}
+	if !allowed {
+		return false, exceptions.RoleNotValid(
+			fmt.Errorf("error: logged in user does not have permission to view role"),
+		)
+	}
+
+	for _, roleID := range roleIDs {
+		_, err := r.AssignRole(ctx, userID, roleID)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
 }

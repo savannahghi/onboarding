@@ -105,6 +105,7 @@ func TestMain(m *testing.M) {
 				r.GetProfileNudgesCollectionName(),
 				r.GetSMSCollectionName(),
 				r.GetUSSDDataCollectionName(),
+				r.GetRolesCollectionName(),
 			}
 			for _, collection := range collections {
 				ref := fsc.Collection(collection)
@@ -491,10 +492,10 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	sms := usecases.NewSMSUsecase(r, ext)
 	role := usecases.NewRoleUseCases(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
-	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin)
+	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin, role)
 
 	i, err := interactor.NewOnboardingInteractor(
-		r, profile, su, supplier, login,
+		profile, su, supplier, login,
 		survey, userpin, erpSvc, chargemasterSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms,
 		aitUssd, agent, admin, ediSvc, adminSrv, crmExt,

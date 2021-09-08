@@ -402,6 +402,18 @@ type CoverLinkingEvent struct {
 	PhoneNumber           string     `firestore:"phoneNumber"`
 }
 
+// AssignRolePayload is the payload used to assign a role to a user
+type AssignRolePayload struct {
+	UserID string `json:"userID"`
+	RoleID string `json:"roleID"`
+}
+
+// DeleteRolePayload is the payload used to delete a role
+type DeleteRolePayload struct {
+	Name   string `json:"name"`
+	RoleID string `json:"roleID"`
+}
+
 // RoleInput represents the information required when creating a role
 type RoleInput struct {
 	Name        string   `json:"name"`
@@ -429,8 +441,9 @@ type RetrieveUserProfileInput struct {
 
 //ProfileSuspensionInput is the input required to suspend/unsuspend a PRO account
 type ProfileSuspensionInput struct {
-	ID     string `json:"id,omitempty"`
-	Reason string `json:"reason,omitempty"`
+	ID      string   `json:"id"`
+	RoleIDs []string `json:"roleIDs"`
+	Reason  string   `json:"reason"`
 }
 
 // EDICoverLinkingPubSubMessage holds the data required to add a cover to the profile
@@ -446,4 +459,25 @@ type EDICoverLinkingPubSubMessage struct {
 type CheckPermissionPayload struct {
 	UID        *string                  `json:"uid"`
 	Permission *profileutils.Permission `json:"permission"`
+}
+
+// RoleRevocationInput is the input when revoking a user's role
+type RoleRevocationInput struct {
+	ProfileID string
+	RoleID    string
+	Reason    string
+}
+
+// RegisterUserInput is the data required to creat a new user.
+// this data can be used by cross service requests
+type RegisterUserInput struct {
+	UID            *string           `json:"uid,omitempty"`
+	FirstName      *string           `json:"firstName,omitempty"`
+	LastName       *string           `json:"lastName,omitempty"`
+	Gender         *enumutils.Gender `json:"gender,omitempty"`
+	PhoneNumber    *string           `json:"phoneNumber,omitempty"`
+	Email          *string           `json:"email,omitempty"`
+	DateOfBirth    *scalarutils.Date `json:"dateOfBirth,omitempty"`
+	RoleIDs        []string          `json:"roleIDs,omitempty"`
+	WelcomeMessage *string           `json:"welcomeMessage,omitempty"`
 }

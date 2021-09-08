@@ -273,3 +273,40 @@ func ValidateYearOfBirth(date string) string {
 	return ""
 
 }
+
+//ValidateRegisterUserInput validates the user registration input
+func ValidateRegisterUserInput(input dto.RegisterUserInput) (bool, error) {
+	var res error
+
+	if input.UID == nil {
+		res := fmt.Errorf("expected `UID` to be defined")
+		return false, res
+	}
+
+	if input.FirstName == nil {
+		res = fmt.Errorf("expected `firstName` to be defined")
+		return false, res
+	}
+
+	if input.LastName == nil {
+		res = fmt.Errorf("expected `lastName` to be defined")
+		return false, res
+	}
+
+	if input.PhoneNumber == nil {
+		res = fmt.Errorf("expected `phoneNumber` to be defined")
+		return false, res
+	}
+
+	if input.Gender == nil {
+		res = fmt.Errorf("expected `gender` to be defined")
+		return false, res
+	}
+
+	_, err := converterandformatter.NormalizeMSISDN(*input.PhoneNumber)
+	if err != nil {
+		return false, exceptions.NormalizeMSISDNError(err)
+	}
+
+	return true, nil
+}

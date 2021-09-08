@@ -43,6 +43,11 @@ type UserProfile @key(fields: "id") {
   homeAddress: Address
   workAddress: Address
   roles: [String]
+
+  """
+  Details of the user's roles
+  """
+  roleDetails: [RoleOutput]
 }
 
 type Customer {
@@ -436,6 +441,7 @@ type Admin {
   photoUploadID: String
   userBioData: BioData
   resendPIN: Boolean
+  roles: [RoleOutput]
 }
 
 type Agent {
@@ -449,6 +455,7 @@ type Agent {
   photoUploadID: String
   userBioData: BioData
   resendPIN: Boolean
+  roles: [RoleOutput]
 }
 
 extend type Link {
@@ -492,6 +499,7 @@ type RoleOutput {
   active: Boolean!
   scopes: [String]
   permissions: [Permission]
+  users: [UserProfile]
 }
 
 type Permission {

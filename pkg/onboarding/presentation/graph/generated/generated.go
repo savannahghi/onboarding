@@ -48,6 +48,7 @@ type ResolverRoot interface {
 	Entity() EntityResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	UserProfile() UserProfileResolver
 	VerifiedIdentifier() VerifiedIdentifierResolver
 }
 
@@ -70,6 +71,7 @@ type ComplexityRoot struct {
 		PrimaryEmailAddress     func(childComplexity int) int
 		PrimaryPhone            func(childComplexity int) int
 		ResendPIN               func(childComplexity int) int
+		Roles                   func(childComplexity int) int
 		SecondaryEmailAddresses func(childComplexity int) int
 		SecondaryPhoneNumbers   func(childComplexity int) int
 		Suspended               func(childComplexity int) int
@@ -83,6 +85,7 @@ type ComplexityRoot struct {
 		PrimaryEmailAddress     func(childComplexity int) int
 		PrimaryPhone            func(childComplexity int) int
 		ResendPIN               func(childComplexity int) int
+		Roles                   func(childComplexity int) int
 		SecondaryEmailAddresses func(childComplexity int) int
 		SecondaryPhoneNumbers   func(childComplexity int) int
 		Suspended               func(childComplexity int) int
@@ -278,6 +281,7 @@ type ComplexityRoot struct {
 		AddPermissionsToRole             func(childComplexity int, input dto.RolePermissionInput) int
 		AddSecondaryEmailAddress         func(childComplexity int, email []string) int
 		AddSecondaryPhoneNumber          func(childComplexity int, phone []string) int
+		AssignMultipleRoles              func(childComplexity int, userID string, roleIDs []string) int
 		AssignRole                       func(childComplexity int, userID string, roleID string) int
 		CompleteSignup                   func(childComplexity int, flavour feedlib.Flavour) int
 		CreateRole                       func(childComplexity int, input dto.RoleInput) int
@@ -297,7 +301,7 @@ type ComplexityRoot struct {
 		RetireKYCProcessingRequest       func(childComplexity int) int
 		RetireSecondaryEmailAddresses    func(childComplexity int, emails []string) int
 		RetireSecondaryPhoneNumbers      func(childComplexity int, phones []string) int
-		RevokeRole                       func(childComplexity int, userID string, roleID string) int
+		RevokeRole                       func(childComplexity int, userID string, roleID string, reason string) int
 		RevokeRolePermission             func(childComplexity int, input dto.RolePermissionInput) int
 		SaveFavoriteNavAction            func(childComplexity int, title string) int
 		SetPrimaryEmailAddress           func(childComplexity int, email string, otp string) int
@@ -465,6 +469,7 @@ type ComplexityRoot struct {
 		FetchKYCProcessingRequests    func(childComplexity int) int
 		FetchSupplierAllowedLocations func(childComplexity int) int
 		FetchUserNavigationActions    func(childComplexity int) int
+		FindAdminByNameOrPhone        func(childComplexity int, nameOrPhone *string) int
 		FindAgentbyPhone              func(childComplexity int, phoneNumber *string) int
 		FindBranch                    func(childComplexity int, pagination *firebasetools.PaginationInput, filter []*dto.BranchFilterInput, sort []*dto.BranchSortInput) int
 		FindProvider                  func(childComplexity int, pagination *firebasetools.PaginationInput, filter []*dto.BusinessPartnerFilterInput, sort []*dto.BusinessPartnerSortInput) int
@@ -500,6 +505,7 @@ type ComplexityRoot struct {
 		Name        func(childComplexity int) int
 		Permissions func(childComplexity int) int
 		Scopes      func(childComplexity int) int
+		Users       func(childComplexity int) int
 	}
 
 	ServicesOffered struct {
@@ -566,6 +572,7 @@ type ComplexityRoot struct {
 		PrimaryEmailAddress     func(childComplexity int) int
 		PrimaryPhone            func(childComplexity int) int
 		PushTokens              func(childComplexity int) int
+		RoleDetails             func(childComplexity int) int
 		Roles                   func(childComplexity int) int
 		SecondaryEmailAddresses func(childComplexity int) int
 		SecondaryPhoneNumbers   func(childComplexity int) int
@@ -645,7 +652,8 @@ type MutationResolver interface {
 	RevokeRolePermission(ctx context.Context, input dto.RolePermissionInput) (*dto.RoleOutput, error)
 	UpdateRolePermissions(ctx context.Context, input dto.RolePermissionInput) (*dto.RoleOutput, error)
 	AssignRole(ctx context.Context, userID string, roleID string) (bool, error)
-	RevokeRole(ctx context.Context, userID string, roleID string) (bool, error)
+	AssignMultipleRoles(ctx context.Context, userID string, roleIDs []string) (bool, error)
+	RevokeRole(ctx context.Context, userID string, roleID string, reason string) (bool, error)
 	ActivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error)
 	DeactivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error)
 }
@@ -665,6 +673,7 @@ type QueryResolver interface {
 	FetchAdmins(ctx context.Context) ([]*dto.Admin, error)
 	FetchAgents(ctx context.Context) ([]*dto.Agent, error)
 	FindAgentbyPhone(ctx context.Context, phoneNumber *string) (*dto.Agent, error)
+	FindAdminByNameOrPhone(ctx context.Context, nameOrPhone *string) ([]*dto.Admin, error)
 	FetchUserNavigationActions(ctx context.Context) (*profileutils.NavigationActions, error)
 	ListMicroservices(ctx context.Context) ([]*domain.Microservice, error)
 	GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, error)
@@ -672,6 +681,9 @@ type QueryResolver interface {
 	GetAllPermissions(ctx context.Context) ([]*profileutils.Permission, error)
 	FindUserByPhone(ctx context.Context, phoneNumber string) (*profileutils.UserProfile, error)
 	GetNavigationActions(ctx context.Context) (*dto.GroupedNavigationActions, error)
+}
+type UserProfileResolver interface {
+	RoleDetails(ctx context.Context, obj *profileutils.UserProfile) ([]*dto.RoleOutput, error)
 }
 type VerifiedIdentifierResolver interface {
 	Timestamp(ctx context.Context, obj *profileutils.VerifiedIdentifier) (*scalarutils.Date, error)
@@ -769,6 +781,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Admin.ResendPIN(childComplexity), true
 
+	case "Admin.roles":
+		if e.complexity.Admin.Roles == nil {
+			break
+		}
+
+		return e.complexity.Admin.Roles(childComplexity), true
+
 	case "Admin.secondaryEmailAddresses":
 		if e.complexity.Admin.SecondaryEmailAddresses == nil {
 			break
@@ -838,6 +857,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Agent.ResendPIN(childComplexity), true
+
+	case "Agent.roles":
+		if e.complexity.Agent.Roles == nil {
+			break
+		}
+
+		return e.complexity.Agent.Roles(childComplexity), true
 
 	case "Agent.secondaryEmailAddresses":
 		if e.complexity.Agent.SecondaryEmailAddresses == nil {
@@ -1836,6 +1862,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddSecondaryPhoneNumber(childComplexity, args["phone"].([]string)), true
 
+	case "Mutation.assignMultipleRoles":
+		if e.complexity.Mutation.AssignMultipleRoles == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_assignMultipleRoles_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AssignMultipleRoles(childComplexity, args["userID"].(string), args["roleIDs"].([]string)), true
+
 	case "Mutation.assignRole":
 		if e.complexity.Mutation.AssignRole == nil {
 			break
@@ -2064,7 +2102,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RevokeRole(childComplexity, args["userID"].(string), args["roleID"].(string)), true
+		return e.complexity.Mutation.RevokeRole(childComplexity, args["userID"].(string), args["roleID"].(string), args["reason"].(string)), true
 
 	case "Mutation.revokeRolePermission":
 		if e.complexity.Mutation.RevokeRolePermission == nil {
@@ -2990,6 +3028,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.FetchUserNavigationActions(childComplexity), true
 
+	case "Query.findAdminByNameOrPhone":
+		if e.complexity.Query.FindAdminByNameOrPhone == nil {
+			break
+		}
+
+		args, err := ec.field_Query_findAdminByNameOrPhone_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FindAdminByNameOrPhone(childComplexity, args["nameOrPhone"].(*string)), true
+
 	case "Query.findAgentbyPhone":
 		if e.complexity.Query.FindAgentbyPhone == nil {
 			break
@@ -3227,6 +3277,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.RoleOutput.Scopes(childComplexity), true
+
+	case "RoleOutput.users":
+		if e.complexity.RoleOutput.Users == nil {
+			break
+		}
+
+		return e.complexity.RoleOutput.Users(childComplexity), true
 
 	case "ServicesOffered.otherServices":
 		if e.complexity.ServicesOffered.OtherServices == nil {
@@ -3521,6 +3578,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.UserProfile.PushTokens(childComplexity), true
+
+	case "UserProfile.roleDetails":
+		if e.complexity.UserProfile.RoleDetails == nil {
+			break
+		}
+
+		return e.complexity.UserProfile.RoleDetails(childComplexity), true
 
 	case "UserProfile.roles":
 		if e.complexity.UserProfile.Roles == nil {
@@ -4310,6 +4374,7 @@ input RolePermissionInput {
 
 input ProfileSuspensionInput {
   id: ID!
+  roleIDs: [ID]
   reason: String!
 }
 `, BuiltIn: false},
@@ -4351,6 +4416,8 @@ input ProfileSuspensionInput {
   fetchAgents: [Agent]
 
   findAgentbyPhone(phoneNumber: String): Agent
+
+  findAdminByNameOrPhone(nameOrPhone: String): [Admin]
 
   fetchUserNavigationActions: NavigationActions
 
@@ -4496,7 +4563,9 @@ extend type Mutation {
 
   assignRole(userID: ID!, roleID: ID!): Boolean!
 
-  revokeRole(userID: ID!, roleID: ID!): Boolean!
+  assignMultipleRoles(userID: ID!, roleIDs: [ID!]!): Boolean!
+
+  revokeRole(userID: ID!, roleID: ID!, reason: String!): Boolean!
 
   activateRole(roleID: ID!): RoleOutput!
 
@@ -4548,6 +4617,11 @@ type UserProfile @key(fields: "id") {
   homeAddress: Address
   workAddress: Address
   roles: [String]
+
+  """
+  Details of the user's roles
+  """
+  roleDetails: [RoleOutput]
 }
 
 type Customer {
@@ -4941,6 +5015,7 @@ type Admin {
   photoUploadID: String
   userBioData: BioData
   resendPIN: Boolean
+  roles: [RoleOutput]
 }
 
 type Agent {
@@ -4954,6 +5029,7 @@ type Agent {
   photoUploadID: String
   userBioData: BioData
   resendPIN: Boolean
+  roles: [RoleOutput]
 }
 
 extend type Link {
@@ -4997,6 +5073,7 @@ type RoleOutput {
   active: Boolean!
   scopes: [String]
   permissions: [Permission]
+  users: [UserProfile]
 }
 
 type Permission {
@@ -5420,6 +5497,30 @@ func (ec *executionContext) field_Mutation_addSecondaryPhoneNumber_args(ctx cont
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_assignMultipleRoles_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userID"] = arg0
+	var arg1 []string
+	if tmp, ok := rawArgs["roleIDs"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roleIDs"))
+		arg1, err = ec.unmarshalNID2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["roleIDs"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_assignRole_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -5738,6 +5839,15 @@ func (ec *executionContext) field_Mutation_revokeRole_args(ctx context.Context, 
 		}
 	}
 	args["roleID"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["reason"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reason"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["reason"] = arg2
 	return args, nil
 }
 
@@ -6035,6 +6145,21 @@ func (ec *executionContext) field_Query__entities_args(ctx context.Context, rawA
 		}
 	}
 	args["representations"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_findAdminByNameOrPhone_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["nameOrPhone"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("nameOrPhone"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["nameOrPhone"] = arg0
 	return args, nil
 }
 
@@ -6726,6 +6851,38 @@ func (ec *executionContext) _Admin_resendPIN(ctx context.Context, field graphql.
 	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Admin_roles(ctx context.Context, field graphql.CollectedField, obj *dto.Admin) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Admin",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Roles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]dto.RoleOutput)
+	fc.Result = res
+	return ec.marshalORoleOutput2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Agent_id(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -7050,6 +7207,38 @@ func (ec *executionContext) _Agent_resendPIN(ctx context.Context, field graphql.
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Agent_roles(ctx context.Context, field graphql.CollectedField, obj *dto.Agent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Agent",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Roles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]dto.RoleOutput)
+	fc.Result = res
+	return ec.marshalORoleOutput2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Beneficiary_name(ctx context.Context, field graphql.CollectedField, obj *model.Beneficiary) (ret graphql.Marshaler) {
@@ -12619,6 +12808,48 @@ func (ec *executionContext) _Mutation_assignRole(ctx context.Context, field grap
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_assignMultipleRoles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_assignMultipleRoles_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AssignMultipleRoles(rctx, args["userID"].(string), args["roleIDs"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_revokeRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -12644,7 +12875,7 @@ func (ec *executionContext) _Mutation_revokeRole(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().RevokeRole(rctx, args["userID"].(string), args["roleID"].(string))
+		return ec.resolvers.Mutation().RevokeRole(rctx, args["userID"].(string), args["roleID"].(string), args["reason"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -16683,6 +16914,45 @@ func (ec *executionContext) _Query_findAgentbyPhone(ctx context.Context, field g
 	return ec.marshalOAgent2ᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐAgent(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_findAdminByNameOrPhone(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_findAdminByNameOrPhone_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FindAdminByNameOrPhone(rctx, args["nameOrPhone"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*dto.Admin)
+	fc.Result = res
+	return ec.marshalOAdmin2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐAdmin(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_fetchUserNavigationActions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -17490,6 +17760,38 @@ func (ec *executionContext) _RoleOutput_permissions(ctx context.Context, field g
 	res := resTmp.([]profileutils.Permission)
 	fc.Result = res
 	return ec.marshalOPermission2ᚕgithubᚗcomᚋsavannahghiᚋprofileutilsᚐPermission(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoleOutput_users(ctx context.Context, field graphql.CollectedField, obj *dto.RoleOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RoleOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Users, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*profileutils.UserProfile)
+	fc.Result = res
+	return ec.marshalOUserProfile2ᚕᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐUserProfile(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ServicesOffered_services(ctx context.Context, field graphql.CollectedField, obj *model.ServicesOffered) (ret graphql.Marshaler) {
@@ -19215,6 +19517,38 @@ func (ec *executionContext) _UserProfile_roles(ctx context.Context, field graphq
 	res := resTmp.([]string)
 	fc.Result = res
 	return ec.marshalOString2ᚕstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserProfile_roleDetails(ctx context.Context, field graphql.CollectedField, obj *profileutils.UserProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserProfile",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserProfile().RoleDetails(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*dto.RoleOutput)
+	fc.Result = res
+	return ec.marshalORoleOutput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _VerifiedIdentifier_uid(ctx context.Context, field graphql.CollectedField, obj *profileutils.VerifiedIdentifier) (ret graphql.Marshaler) {
@@ -21951,6 +22285,14 @@ func (ec *executionContext) unmarshalInputProfileSuspensionInput(ctx context.Con
 			if err != nil {
 				return it, err
 			}
+		case "roleIDs":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roleIDs"))
+			it.RoleIDs, err = ec.unmarshalOID2ᚕstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "reason":
 			var err error
 
@@ -22474,6 +22816,8 @@ func (ec *executionContext) _Admin(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Admin_userBioData(ctx, field, obj)
 		case "resendPIN":
 			out.Values[i] = ec._Admin_resendPIN(ctx, field, obj)
+		case "roles":
+			out.Values[i] = ec._Admin_roles(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -22522,6 +22866,8 @@ func (ec *executionContext) _Agent(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Agent_userBioData(ctx, field, obj)
 		case "resendPIN":
 			out.Values[i] = ec._Agent_resendPIN(ctx, field, obj)
+		case "roles":
+			out.Values[i] = ec._Agent_roles(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -23706,6 +24052,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "assignMultipleRoles":
+			out.Values[i] = ec._Mutation_assignMultipleRoles(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "revokeRole":
 			out.Values[i] = ec._Mutation_revokeRole(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -24620,6 +24971,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_findAgentbyPhone(ctx, field)
 				return res
 			})
+		case "findAdminByNameOrPhone":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_findAdminByNameOrPhone(ctx, field)
+				return res
+			})
 		case "fetchUserNavigationActions":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -24836,6 +25198,8 @@ func (ec *executionContext) _RoleOutput(ctx context.Context, sel ast.SelectionSe
 			out.Values[i] = ec._RoleOutput_scopes(ctx, field, obj)
 		case "permissions":
 			out.Values[i] = ec._RoleOutput_permissions(ctx, field, obj)
+		case "users":
+			out.Values[i] = ec._RoleOutput_users(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -25167,19 +25531,19 @@ func (ec *executionContext) _UserProfile(ctx context.Context, sel ast.SelectionS
 		case "id":
 			out.Values[i] = ec._UserProfile_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "userName":
 			out.Values[i] = ec._UserProfile_userName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "verifiedIdentifiers":
 			out.Values[i] = ec._UserProfile_verifiedIdentifiers(ctx, field, obj)
 		case "primaryPhone":
 			out.Values[i] = ec._UserProfile_primaryPhone(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "primaryEmailAddress":
 			out.Values[i] = ec._UserProfile_primaryEmailAddress(ctx, field, obj)
@@ -25207,6 +25571,17 @@ func (ec *executionContext) _UserProfile(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._UserProfile_workAddress(ctx, field, obj)
 		case "roles":
 			out.Values[i] = ec._UserProfile_roles(ctx, field, obj)
+		case "roleDetails":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserProfile_roleDetails(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -25735,6 +26110,36 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNIdentification2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋdomainᚐIdentification(ctx context.Context, sel ast.SelectionSet, v domain.Identification) graphql.Marshaler {
@@ -27888,6 +28293,50 @@ func (ec *executionContext) marshalOReceivablesAccount2githubᚗcomᚋsavannahgh
 	return ec._ReceivablesAccount(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalORoleOutput2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx context.Context, sel ast.SelectionSet, v dto.RoleOutput) graphql.Marshaler {
+	return ec._RoleOutput(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalORoleOutput2ᚕgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx context.Context, sel ast.SelectionSet, v []dto.RoleOutput) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalORoleOutput2githubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalORoleOutput2ᚕᚖgithubᚗcomᚋsavannahghiᚋonboardingᚋpkgᚋonboardingᚋapplicationᚋdtoᚐRoleOutput(ctx context.Context, sel ast.SelectionSet, v []*dto.RoleOutput) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -28166,6 +28615,53 @@ func (ec *executionContext) unmarshalOTime2timeᚐTime(ctx context.Context, v in
 
 func (ec *executionContext) marshalOTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
 	return graphql.MarshalTime(v)
+}
+
+func (ec *executionContext) marshalOUserProfile2ᚕᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v []*profileutils.UserProfile) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOUserProfile2ᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐUserProfile(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalOUserProfile2ᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v *profileutils.UserProfile) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._UserProfile(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOVerifiedIdentifier2githubᚗcomᚋsavannahghiᚋprofileutilsᚐVerifiedIdentifier(ctx context.Context, sel ast.SelectionSet, v profileutils.VerifiedIdentifier) graphql.Marshaler {
