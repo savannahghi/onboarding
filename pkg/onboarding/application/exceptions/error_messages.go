@@ -180,4 +180,7 @@ const (
 	// AgentNotFoundErrMsg is an error message displayed when a supplier
 	// profile is not found
 	AgentNotFoundErrMsg = "user with agent role not found"
+
+	//AssistantNotFoundMessage is an error message displayed when a user assistant is not found
+	AssistantNotFoundMessage = "user assistant not found"
 )

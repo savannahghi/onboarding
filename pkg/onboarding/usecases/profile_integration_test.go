@@ -2337,3 +2337,68 @@ func TestRemoveRoleToUser(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateOrUpdateUserAssistant(t *testing.T) {
+	ctx, _, err := GetTestAuthenticatedContext(t)
+	if err != nil {
+		t.Errorf("failed to get test authenticated context: %v", err)
+		return
+	}
+
+	p, err := InitializeTestService(ctx)
+	if err != nil {
+		t.Errorf("unable to initialize test service")
+		return
+	}
+
+	type args struct {
+		ctx        context.Context
+		preference profileutils.Assistant
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "valid: create user Assistant",
+			args: args{
+				ctx:        ctx,
+				preference: profileutils.FemaleAssistant,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid: create user assistant",
+			args: args{
+				ctx: ctx,
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid: update user Assistant",
+			args: args{
+				ctx:        ctx,
+				preference: profileutils.FemaleAssistant,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid: update user assistant",
+			args: args{
+				ctx: ctx,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := p.Onboarding.CreateOrUpdateUserAssistant(tt.args.ctx, tt.args.preference)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProfileUseCaseImpl.CreateOrUpdateUserAssistant() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}

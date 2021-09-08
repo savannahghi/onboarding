@@ -383,6 +383,11 @@ func TestProfileUseCaseImpl_LoginByPhone(t *testing.T) {
 					}
 					return &roles, nil
 				}
+				fakeRepo.GetUserAssistantFn = func(ctx context.Context, userID string) (*dto.Preference, error) {
+					return &dto.Preference{
+						Assistant: profileutils.FemaleAssistant,
+					}, nil
+				}
 
 			}
 
@@ -501,6 +506,7 @@ func TestProfileUseCaseImpl_LoginByPhone(t *testing.T) {
 				fakePinExt.ComparePINFn = func(rawPwd string, salt string, encodedPwd string, options *extension.Options) bool {
 					return false
 				}
+
 			}
 
 			got, err := i.Login.LoginByPhone(

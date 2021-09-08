@@ -283,6 +283,10 @@ type OnboardingRepository interface {
 		ctx context.Context,
 		input *dto.CoverLinkingEvent,
 	) (*dto.CoverLinkingEvent, error)
+
+	CreateUserAssistant(ctx context.Context, userID string, assistant profileutils.Assistant) (*dto.Preference, error)
+	GetUserAssistant(ctx context.Context, userID string) (*dto.Preference, error)
+	UpdateUserAssistant(ctx context.Context, userID string, preference profileutils.Assistant) (*dto.Preference, error)
 }
 
 // UserProfileRepository interface that provide access to all persistent storage operations for user profile

@@ -27,6 +27,7 @@ import (
 	"github.com/savannahghi/pubsubtools"
 	"github.com/savannahghi/scalarutils"
 	"github.com/savannahghi/serverutils"
+	"github.com/sirupsen/logrus"
 )
 
 // Package that generates trace information
@@ -55,6 +56,7 @@ const (
 	rolesCollectionName                  = "user_roles"
 	adminProfileCollectionName           = "admin_profiles"
 	agentProfileCollectionName           = "agent_profiles"
+	assistantCollectionName              = "assistant_profiles"
 )
 
 // Repository accesses and updates an item that is stored on Firebase
@@ -185,6 +187,12 @@ func (fr Repository) GetAdminProfileCollectionName() string {
 // GetAgentProfileCollectionName ...
 func (fr Repository) GetAgentProfileCollectionName() string {
 	suffixed := firebasetools.SuffixCollection(agentProfileCollectionName)
+	return suffixed
+}
+
+// GetUserAssistantCollectionName ...
+func (fr Repository) GetUserAssistantCollectionName() string {
+	suffixed := firebasetools.SuffixCollection(assistantCollectionName)
 	return suffixed
 }
 
@@ -4493,4 +4501,96 @@ func (fr *Repository) CheckIfAgentProfileExists(ctx context.Context, profileID s
 	}
 
 	return len(docs) == 1, nil
+}
+
+// CreateUserAssistant creates a user assistant
+func (fr *Repository) CreateUserAssistant(ctx context.Context, userID string, assistant profileutils.Assistant) (*dto.Preference, error) {
+	ctx, span := tracer.Start(ctx, "CreateOrUpdateUserAssistant")
+	defer span.End()
+	preference := dto.Preference{
+		UserID:    userID,
+		Assistant: assistant,
+	}
+
+	command := &CreateCommand{
+		CollectionName: fr.GetUserAssistantCollectionName(),
+		Data:           preference,
+	}
+	_, err := fr.FirestoreClient.Create(ctx, command)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(
+			fmt.Errorf("unable to create a user assistant: %w", err),
+		)
+	}
+
+	return &preference, nil
+}
+
+//GetUserAssistant fetch user assistant details
+func (fr *Repository) GetUserAssistant(ctx context.Context, userID string) (*dto.Preference, error) {
+	ctx, span := tracer.Start(ctx, "GetUserAssistant")
+	defer span.End()
+
+	query := &GetAllQuery{
+		CollectionName: fr.GetUserAssistantCollectionName(),
+		FieldName:      "userid",
+		Value:          userID,
+		Operator:       "==",
+	}
+	docs, err := fr.FirestoreClient.GetAll(ctx, query)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(err)
+	}
+
+	if len(docs) == 0 {
+		return nil, exceptions.AssistantFoundError(fmt.Errorf("user assistant not found"))
+	}
+	dsnap := docs[0]
+	preference := &dto.Preference{}
+	err = dsnap.DataTo(preference)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(
+			fmt.Errorf("unable to read assistant value: %w", err),
+		)
+	}
+	return preference, nil
+}
+
+//UpdateUserAssistant updates user assistant details
+func (fr *Repository) UpdateUserAssistant(ctx context.Context, userID string, preference profileutils.Assistant) (*dto.Preference, error) {
+	ctx, span := tracer.Start(ctx, "UpdateUserAssistant")
+	defer span.End()
+	query := &GetAllQuery{
+		CollectionName: fr.GetUserAssistantCollectionName(),
+		FieldName:      "userid",
+		Value:          userID,
+		Operator:       "==",
+	}
+	docs, err := fr.FirestoreClient.GetAll(ctx, query)
+	logrus.Print("my error is", err)
+	logrus.Print("my doc is", docs)
+
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+	updatedUserAssistant := dto.Preference{
+		Assistant: preference,
+	}
+
+	updateCommand := &UpdateCommand{
+		CollectionName: fr.GetUserAssistantCollectionName(),
+		ID:             docs[0].Ref.ID,
+		Data:           updatedUserAssistant,
+	}
+	err = fr.FirestoreClient.Update(ctx, updateCommand)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(err)
+	}
+
+	return &updatedUserAssistant, nil
 }

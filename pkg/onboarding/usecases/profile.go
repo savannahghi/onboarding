@@ -176,6 +176,8 @@ type ProfileUseCase interface {
 	SwitchUserFlaggedFeatures(ctx context.Context, phoneNumber string) (*dto.OKResp, error)
 
 	FindUserByPhone(ctx context.Context, phoneNumber string) (*profileutils.UserProfile, error)
+
+	CreateOrUpdateUserAssistant(ctx context.Context, preference profileutils.Assistant) (*dto.Preference, error)
 }
 
 // ProfileUseCaseImpl represents usecase implementation object
@@ -1811,4 +1813,32 @@ func (p *ProfileUseCaseImpl) GetNavigationActions(
 	}
 
 	return navActions, nil
+}
+
+//CreateOrUpdateUserAssistant creates or updates user assistant(BOWI/BEV)
+func (p *ProfileUseCaseImpl) CreateOrUpdateUserAssistant(ctx context.Context, preference profileutils.Assistant) (*dto.Preference, error) {
+	user, err := p.baseExt.GetLoggedInUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	userProfile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.onboardingRepository.GetUserAssistant(ctx, userProfile.ID)
+	if err != nil {
+		userAssistant, err := p.onboardingRepository.CreateUserAssistant(ctx, userProfile.ID, preference)
+		if err != nil {
+			return nil, err
+		}
+		return userAssistant, nil
+	}
+	userAssistant, err := p.onboardingRepository.UpdateUserAssistant(ctx, userProfile.ID, preference)
+	if err != nil {
+		return nil, err
+	}
+
+	return userAssistant, nil
 }

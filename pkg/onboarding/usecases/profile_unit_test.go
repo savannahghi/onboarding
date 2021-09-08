@@ -4142,3 +4142,119 @@ func TestProfileUseCaseImpl_GetNavigationActions(t *testing.T) {
 		})
 	}
 }
+
+func TestProfileUseCaseImp_CreateOrUpdateUserAssistant(t *testing.T) {
+	ctx := context.Background()
+
+	i, err := InitializeFakeOnboardingInteractor()
+	if err != nil {
+		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
+		return
+	}
+
+	type args struct {
+		ctx        context.Context
+		preference profileutils.Assistant
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "happy create user assistant",
+			args:    args{ctx: ctx},
+			wantErr: false,
+		},
+		{
+			name:    "happy update user assistant",
+			args:    args{ctx: ctx},
+			wantErr: false,
+		},
+
+		{
+			name:    "sad unable to create user assistant",
+			args:    args{ctx: ctx},
+			wantErr: true,
+		},
+		{
+			name:    "sad unable to update user assistant",
+			args:    args{ctx: ctx},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "happy create user assistant" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return &dto.UserInfo{}, nil
+				}
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{}, nil
+				}
+				fakeRepo.GetUserAssistantFn = func(ctx context.Context, userID string) (*dto.Preference, error) {
+					return nil, fmt.Errorf("unable to get user assistant")
+				}
+				fakeRepo.CreateUserAssistantFn = func(ctx context.Context, userID string, assistant profileutils.Assistant) (*dto.Preference, error) {
+					return nil, nil
+				}
+			}
+
+			if tt.name == "happy update user assistant" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return &dto.UserInfo{}, nil
+				}
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{}, nil
+				}
+				fakeRepo.GetUserAssistantFn = func(ctx context.Context, userID string) (*dto.Preference, error) {
+					return nil, nil
+				}
+				fakeRepo.UpdateUserAssistantFn = func(ctx context.Context, userID string, preference profileutils.Assistant) (*dto.Preference, error) {
+					return nil, nil
+				}
+			}
+
+			if tt.name == "sad unable to create user assistant" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return &dto.UserInfo{}, nil
+				}
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{}, nil
+				}
+				fakeRepo.GetUserAssistantFn = func(ctx context.Context, userID string) (*dto.Preference, error) {
+					return nil, fmt.Errorf("unable to get user assistant")
+				}
+				fakeRepo.CreateUserAssistantFn = func(ctx context.Context, userID string, assistant profileutils.Assistant) (*dto.Preference, error) {
+					return nil, fmt.Errorf("unable to create user assistant")
+				}
+			}
+
+			if tt.name == "sad unable to update user assistant" {
+				fakeBaseExt.GetLoggedInUserFn = func(ctx context.Context) (*dto.UserInfo, error) {
+					return &dto.UserInfo{}, nil
+				}
+				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+					return &profileutils.UserProfile{}, nil
+				}
+				fakeRepo.GetUserAssistantFn = func(ctx context.Context, userID string) (*dto.Preference, error) {
+					return nil, nil
+				}
+				fakeRepo.UpdateUserAssistantFn = func(ctx context.Context, userID string, preference profileutils.Assistant) (*dto.Preference, error) {
+					return nil, fmt.Errorf("unable to update user assistant")
+				}
+			}
+			_, err = i.Onboarding.CreateOrUpdateUserAssistant(tt.args.ctx, tt.args.preference)
+			if (err != nil) != tt.wantErr {
+				t.Errorf(
+					"ProfileUseCaseImpl.CreateOrUpdateUserAssistant() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
+				return
+			}
+
+		})
+	}
+}

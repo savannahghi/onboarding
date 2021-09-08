@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
@@ -139,7 +140,24 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 
 	// add scopes to auth credentials
 	auth.Scopes = utils.GetUserPermissions(*roles)
+	assistant, err := l.onboardingRepository.GetUserAssistant(ctx, customer.ID)
+	if err != nil {
+		var assistant profileutils.Assistant
+		gender := profile.UserBioData.Gender
+		assistant = profileutils.FemaleAssistant
+		if gender == enumutils.GenderFemale {
+			assistant = profileutils.MaleAssistant
+		}
+		userAssistant, err := l.onboardingRepository.CreateUserAssistant(ctx, customer.ID, assistant)
+		if err != nil {
+			return nil, err
+		}
+		profile.Assistant = userAssistant.Assistant
 
+	}
+	if assistant != nil {
+		profile.Assistant = assistant.Assistant
+	}
 	return &profileutils.UserResponse{
 		Profile:               profile,
 		CustomerProfile:       customer,

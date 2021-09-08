@@ -481,3 +481,11 @@ type RegisterUserInput struct {
 	RoleIDs        []string          `json:"roleIDs,omitempty"`
 	WelcomeMessage *string           `json:"welcomeMessage,omitempty"`
 }
+
+//Preference holds a user's global choices
+type Preference struct {
+	// User assistant i.e Bowie or Bev.
+	Assistant profileutils.Assistant `json:"assistant" firestore:"assistant"`
+	//user ID.
+	UserID string `json:"userid" firestore:"userid"`
+}

@@ -4871,3 +4871,197 @@ func TestRepository_GetRoleByID_Integration(t *testing.T) {
 // 		})
 // 	}
 // }
+
+func TestCreateUserAssistant(t *testing.T) {
+	ctx := context.Background()
+	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	if fsc == nil {
+		t.Errorf("failed to initialize test FireStore client")
+		return
+	}
+	if fbc == nil {
+		t.Errorf("failed to initialize test FireBase client")
+		return
+	}
+	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
+	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
+	type args struct {
+		ctx       context.Context
+		userID    string
+		prefernce profileutils.Assistant
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    profileutils.Assistant
+		wantErr bool
+	}{
+		{
+			name: "valid case",
+			args: args{
+				ctx:       ctx,
+				userID:    uuid.NewString(),
+				prefernce: profileutils.FemaleAssistant,
+			},
+			wantErr: false,
+			want:    profileutils.FemaleAssistant,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := firestoreDB.CreateUserAssistant(tt.args.ctx, tt.args.userID, tt.args.prefernce)
+			if (err != nil) != tt.wantErr {
+				t.Errorf(
+					"Repository.CreateUserAssistant() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
+				return
+			}
+			if !tt.wantErr && got == nil {
+				t.Errorf("returned a nil user")
+				return
+			}
+		})
+	}
+
+}
+
+func TestGetUserAssistant(t *testing.T) {
+	ctx := context.Background()
+	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	if fsc == nil {
+		t.Errorf("failed to initialize test FireStore client")
+		return
+	}
+	if fbc == nil {
+		t.Errorf("failed to initialize test FireBase client")
+		return
+	}
+	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
+	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
+	type args struct {
+		ctx    context.Context
+		userID string
+	}
+	profileID := uuid.New().String()
+
+	customer, err := firestoreDB.CreateEmptyCustomerProfile(ctx, profileID)
+	if err != nil {
+		t.Errorf("failed to create an empty customer: %v", err)
+	}
+
+	_, err = firestoreDB.CreateUserAssistant(ctx, customer.ID, profileutils.FemaleAssistant)
+	if err != nil {
+		t.Errorf("failed to create an empty customer: %v", err)
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "valid case",
+			args: args{
+				ctx:    ctx,
+				userID: customer.ID,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid case",
+			args: args{
+				ctx:    ctx,
+				userID: customer.ID,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := firestoreDB.GetUserAssistant(tt.args.ctx, tt.args.userID)
+			if tt.wantErr && err != nil {
+				t.Errorf("error expected but returned no error")
+				return
+			}
+
+			if !tt.wantErr && err != nil {
+				t.Errorf("error was not expected but got error: %v", err)
+				return
+			}
+		})
+	}
+
+}
+
+func TestUpdateUserAssistant(t *testing.T) {
+	ctx := context.Background()
+	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	if fsc == nil {
+		t.Errorf("failed to initialize test FireStore client")
+		return
+	}
+	if fbc == nil {
+		t.Errorf("failed to initialize test FireBase client")
+		return
+	}
+	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
+	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
+	type args struct {
+		ctx        context.Context
+		userID     string
+		preference profileutils.Assistant
+	}
+	profileID := uuid.New().String()
+
+	customer, err := firestoreDB.CreateEmptyCustomerProfile(ctx, profileID)
+	if err != nil {
+		t.Errorf("failed to create an empty customer: %v", err)
+	}
+
+	_, err = firestoreDB.CreateUserAssistant(ctx, customer.ID, profileutils.FemaleAssistant)
+	if err != nil {
+		t.Errorf("failed to create an empty customer: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "valid case",
+			args: args{
+				ctx:        ctx,
+				userID:     customer.ID,
+				preference: profileutils.FemaleAssistant,
+			},
+			wantErr: false,
+		},
+		// {
+		// 	name: "invalid case",
+		// 	args: args{
+		// 		ctx: ctx,
+		// 	},
+		// 	wantErr: true,
+		// },
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := firestoreDB.UpdateUserAssistant(tt.args.ctx, tt.args.userID, tt.args.preference)
+			if tt.wantErr && err != nil {
+				t.Errorf("error expected but returned no error")
+				return
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("error was not expected but got error: %v", err)
+				return
+			}
+
+		})
+	}
+
+}

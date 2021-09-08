@@ -25,7 +25,7 @@ require (
 	github.com/savannahghi/feedlib v0.0.4
 	github.com/savannahghi/firebasetools v0.0.15
 	github.com/savannahghi/interserviceclient v0.0.13
-	github.com/savannahghi/profileutils v0.0.17
+	github.com/savannahghi/profileutils v0.0.19
 	github.com/savannahghi/pubsubtools v0.0.2
 	github.com/savannahghi/scalarutils v0.0.4
 	github.com/savannahghi/serverutils v0.0.4

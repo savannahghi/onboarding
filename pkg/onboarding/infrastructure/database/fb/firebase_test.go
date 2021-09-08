@@ -14,6 +14,7 @@ import (
 	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
+
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
@@ -2569,6 +2570,143 @@ func TestRepository_SaveRoleRevocation(t *testing.T) {
 
 			if err := repo.SaveRoleRevocation(tt.args.ctx, tt.args.userID, tt.args.revocation); (err != nil) != tt.wantErr {
 				t.Errorf("Repository.SaveRoleRevocation() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRepository_CreateUserAssistant(t *testing.T) {
+	ctx := context.Background()
+	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt
+	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
+
+	type args struct {
+		ctx       context.Context
+		userID    string
+		assistant profileutils.Assistant
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "fail: failed to create user assistant",
+			args: args{
+				ctx:       ctx,
+				userID:    uuid.NewString(),
+				assistant: profileutils.FemaleAssistant,
+			},
+			wantErr: true,
+		},
+		{
+			name: "success: user assistant created success",
+			args: args{
+				ctx:    ctx,
+				userID: uuid.NewString(),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "fail: failed to create user assistant" {
+				fakeFireStoreClientExt.CreateFn = func(ctx context.Context, command *fb.CreateCommand) (*firestore.DocumentRef, error) {
+					return nil, fmt.Errorf("cannot create firestore document")
+				}
+
+			}
+			if tt.name == "success: user assistant created success" {
+				fakeFireStoreClientExt.CreateFn = func(ctx context.Context, command *fb.CreateCommand) (*firestore.DocumentRef, error) {
+					doc := firestore.DocumentRef{
+						ID: uuid.New().String(),
+					}
+					return &doc, nil
+				}
+
+			}
+			_, err := repo.CreateUserAssistant(tt.args.ctx, tt.args.userID, tt.args.assistant)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
+
+func TestRepository_UpdateUserAssistant(t *testing.T) {
+	ctx := context.Background()
+	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt
+	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
+
+	type args struct {
+		ctx       context.Context
+		userID    string
+		assistant profileutils.Assistant
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "fail: failed to update user assistant",
+			args: args{
+				ctx:       ctx,
+				userID:    uuid.NewString(),
+				assistant: profileutils.FemaleAssistant,
+			},
+			wantErr: true,
+		},
+		{
+			name: "success: update user assistant success",
+			args: args{
+				ctx:    ctx,
+				userID: uuid.NewString(),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "success: update user assistant success" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					docs := []*firestore.DocumentSnapshot{
+						{
+							Ref: &firestore.DocumentRef{
+								ID: "5555",
+							},
+						},
+					}
+					return docs, nil
+				}
+
+				fakeFireStoreClientExt.UpdateFn = func(ctx context.Context, command *fb.UpdateCommand) error {
+					return nil
+				}
+			}
+			if tt.name == "fail: failed to update user assistant" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					docs := []*firestore.DocumentSnapshot{
+						{
+							Ref: &firestore.DocumentRef{
+								ID: "5555",
+							},
+						},
+					}
+					return docs, fmt.Errorf("cannot create firestore document")
+				}
+
+				fakeFireStoreClientExt.UpdateFn = func(ctx context.Context, command *fb.UpdateCommand) error {
+					return fmt.Errorf("cannot create firestore document")
+				}
+			}
+			_, err := repo.UpdateUserAssistant(tt.args.ctx, tt.args.userID, tt.args.assistant)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
 			}
 		})
 	}

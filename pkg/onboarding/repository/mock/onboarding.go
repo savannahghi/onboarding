@@ -206,6 +206,11 @@ type FakeOnboardingRepository struct {
 	//agents
 	CreateAgentProfileFn        func(ctx context.Context, agentProfile domain.AgentProfile) error
 	CheckIfAgentProfileExistsFn func(ctx context.Context, profileID string) (bool, error)
+
+	//userAssistant
+	CreateUserAssistantFn func(ctx context.Context, userID string, assistant profileutils.Assistant) (*dto.Preference, error)
+	GetUserAssistantFn    func(ctx context.Context, userID string) (*dto.Preference, error)
+	UpdateUserAssistantFn func(ctx context.Context, userID string, preference profileutils.Assistant) (*dto.Preference, error)
 }
 
 // GetSupplierProfileByID ...
@@ -1016,4 +1021,19 @@ func (f *FakeOnboardingRepository) CreateAgentProfile(ctx context.Context, agent
 //CheckIfAgentProfileExists ...
 func (f *FakeOnboardingRepository) CheckIfAgentProfileExists(ctx context.Context, profileID string) (bool, error) {
 	return f.CheckIfAgentProfileExistsFn(ctx, profileID)
+}
+
+//CreateUserAssistant ...
+func (f *FakeOnboardingRepository) CreateUserAssistant(ctx context.Context, userID string, assistant profileutils.Assistant) (*dto.Preference, error) {
+	return f.CreateUserAssistantFn(ctx, userID, assistant)
+}
+
+//GetUserAssistant ...
+func (f *FakeOnboardingRepository) GetUserAssistant(ctx context.Context, userID string) (*dto.Preference, error) {
+	return f.GetUserAssistantFn(ctx, userID)
+}
+
+//UpdateUserAssistant ...
+func (f *FakeOnboardingRepository) UpdateUserAssistant(ctx context.Context, userID string, preference profileutils.Assistant) (*dto.Preference, error) {
+	return f.UpdateUserAssistantFn(ctx, userID, preference)
 }

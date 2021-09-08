@@ -485,3 +485,13 @@ func AgentNotFoundError(err error) error {
 	}
 
 }
+
+// AssistantFoundError returns an error message when a user assistant is not found
+func AssistantFoundError(err error) error {
+	return &errorcodeutil.CustomError{
+		Err:     err,
+		Message: AssistantNotFoundMessage,
+		Code:    int(errorcodeutil.ProfileNotFound),
+	}
+
+}
