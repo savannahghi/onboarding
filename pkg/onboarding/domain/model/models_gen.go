@@ -149,51 +149,6 @@ func (e GeneralOptionType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-type Persona string
-
-const (
-	PersonaAlice  Persona = "ALICE"
-	PersonaJuma   Persona = "JUMA"
-	PersonaBob    Persona = "BOB"
-	PersonaAndrew Persona = "ANDREW"
-)
-
-var AllPersona = []Persona{
-	PersonaAlice,
-	PersonaJuma,
-	PersonaBob,
-	PersonaAndrew,
-}
-
-func (e Persona) IsValid() bool {
-	switch e {
-	case PersonaAlice, PersonaJuma, PersonaBob, PersonaAndrew:
-		return true
-	}
-	return false
-}
-
-func (e Persona) String() string {
-	return string(e)
-}
-
-func (e *Persona) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Persona(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Persona", str)
-	}
-	return nil
-}
-
-func (e Persona) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
 type SignUpMethod string
 
 const (
