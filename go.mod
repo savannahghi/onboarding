@@ -14,7 +14,6 @@ require (
 	github.com/aws/aws-sdk-go v1.39.4 // indirect
 	github.com/brianvoe/gofakeit v3.18.0+incompatible
 	github.com/brianvoe/gofakeit/v5 v5.11.2
-	github.com/casbin/casbin/v2 v2.31.3
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/uuid v1.2.0

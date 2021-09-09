@@ -1547,17 +1547,6 @@ enum AddressType {
   WORK
 }
 
-enum EmploymentType {
-  EMPLOYED
-  SELF_EMPLOYED
-}
-
-enum Persona {
-  ALICE
-  JUMA
-  BOB
-  ANDREW
-}
 
 enum ChannelOfContact {
   APP
