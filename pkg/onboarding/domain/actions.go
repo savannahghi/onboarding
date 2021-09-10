@@ -10,7 +10,6 @@ const (
 	StaticBase = "https://assets.healthcloud.co.ke"
 
 	RoleNavActionIcon     = StaticBase + "/actions/roles_navaction.png"
-	EmployeeNavActionIcon = StaticBase + "/actions/employee_navaction.png"
 	ConsumerNavActionIcon = StaticBase + "/actions/consumer_navaction.png"
 	HelpNavActionIcon     = StaticBase + "/actions/help_navaction.png"
 	HomeNavActionIcon     = StaticBase + "/actions/home_navaction.png"
@@ -100,10 +99,6 @@ const (
 	PartnerNavactionSequence
 
 	ConsumerNavactionSequence
-
-	EmployeeNavActionSequence
-	EmployeeSearchNavActionSequence
-	EmployeeRegistrationActionSequence
 
 	PatientNavActionSequence
 	PatientSearchNavActionSequence

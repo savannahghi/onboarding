@@ -2,6 +2,8 @@ package usecases
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
@@ -9,8 +11,10 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
+	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
+	"github.com/savannahghi/pubsubtools"
 	"github.com/savannahghi/scalarutils"
 )
 
@@ -50,6 +54,8 @@ type SignUpUseCases interface {
 	SetPhoneAsPrimary(ctx context.Context, phone, otp string) (bool, error)
 
 	RemoveUserByPhoneNumber(ctx context.Context, phone string) error
+
+	RegisterUser(ctx context.Context, input dto.RegisterUserInput) (*profileutils.UserProfile, error)
 }
 
 // SignUpUseCasesImpl represents usecase implementation object
@@ -379,4 +385,85 @@ func (s *SignUpUseCasesImpl) RemoveUserByPhoneNumber(ctx context.Context, phone 
 		return exceptions.NormalizeMSISDNError(err)
 	}
 	return s.infrastructure.PurgeUserByPhoneNumber(ctx, *phoneNumber)
+}
+
+// RegisterUser creates a new userprofile
+func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.RegisterUserInput) (*profileutils.UserProfile, error) {
+	ctx, span := tracer.Start(ctx, "RegisterUser")
+	defer span.End()
+
+	uid, err := s.baseExt.GetLoggedInUserUID(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.UserNotFoundError(err)
+	}
+
+	// create a user profile
+	//make createdByID optional only if the profile of the creating user is found
+	profile, err := s.infrastructure.GetUserProfileByUID(ctx, uid, false)
+	var profileID string
+	if err == nil {
+		profileID = profile.ID
+	}
+
+	phoneNumber, err := s.baseExt.NormalizeMSISDN(*input.PhoneNumber)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.NormalizeMSISDNError(err)
+	}
+
+	timestamp := time.Now().In(pubsubtools.TimeLocation)
+
+	userProfile := profileutils.UserProfile{
+		PrimaryEmailAddress: input.Email,
+		UserBioData: profileutils.BioData{
+			FirstName:   input.FirstName,
+			LastName:    input.LastName,
+			Gender:      enumutils.Gender(*input.Gender),
+			DateOfBirth: input.DateOfBirth,
+		},
+		CreatedByID: &profileID,
+		Created:     &timestamp,
+		Roles:       input.RoleIDs,
+	}
+
+	createdProfile, err := s.infrastructure.CreateDetailedUserProfile(ctx, *phoneNumber, userProfile)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	// set the user default communications settings
+	defaultCommunicationSetting := true
+	_, err = s.infrastructure.SetUserCommunicationsSettings(
+		ctx,
+		createdProfile.ID,
+		&defaultCommunicationSetting,
+		&defaultCommunicationSetting,
+		&defaultCommunicationSetting,
+		&defaultCommunicationSetting,
+	)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	otp, err := s.pinUsecase.SetUserTempPIN(ctx, createdProfile.ID)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	message := input.WelcomeMessage
+	if message == nil {
+		message = &domain.WelcomeMessage
+	}
+
+	formartedMessage := fmt.Sprintf(*message, *input.FirstName, otp)
+
+	if err := s.infrastructure.SendSMS(ctx, []string{*phoneNumber}, formartedMessage); err != nil {
+		return nil, fmt.Errorf("unable to send consumer registration message: %w", err)
+	}
+
+	return createdProfile, nil
 }
