@@ -985,31 +985,9 @@ func TestRoleUseCaseImpl_RevokeRolePermissions(t *testing.T) {
 		return
 	}
 
-	perms := []profileutils.Permission{}
-	for _, perm := range allPerms {
-		if perm.Scope == "role.create" {
-			perm.Allowed = true
-		}
-		perms = append(perms, perm)
-	}
-
-	expectedOutput := dto.RoleOutput{
-		ID:          "123",
-		Scopes:      []string{"role.create"},
-		Permissions: perms,
-	}
-
 	type args struct {
 		ctx       context.Context
 		inputData dto.RolePermissionInput
-	}
-
-	input := args{
-		ctx: ctx,
-		inputData: dto.RolePermissionInput{
-			RoleID: "123",
-			Scopes: []string{"role.create"},
-		},
 	}
 
 	tests := []struct {
@@ -1019,45 +997,91 @@ func TestRoleUseCaseImpl_RevokeRolePermissions(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "sad unable to get logged in user",
-			args:    input,
+			name: "sad unable to get logged in user",
+			args: args{
+				ctx: ctx,
+				inputData: dto.RolePermissionInput{
+					RoleID: "123",
+					Scopes: []string{"role.create"},
+				},
+			},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "sad unable to check if user has permissions",
-			args:    input,
+			name: "sad unable to check if user has permissions",
+			args: args{
+				ctx: ctx,
+				inputData: dto.RolePermissionInput{
+					RoleID: "123",
+					Scopes: []string{"role.create"},
+				},
+			},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "sad user do not have required permission",
-			args:    input,
+			name: "sad user do not have required permission",
+			args: args{
+				ctx: ctx,
+				inputData: dto.RolePermissionInput{
+					RoleID: "123",
+					Scopes: []string{"role.create"},
+				},
+			},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "sad unable to get role by id",
-			args:    input,
+			name: "sad unable to get role by id",
+			args: args{
+				ctx: ctx,
+				inputData: dto.RolePermissionInput{
+					RoleID: "123",
+					Scopes: []string{"role.create"},
+				},
+			},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "sad unable to get user profile",
-			args:    input,
+			name: "sad unable to get user profile",
+			args: args{
+				ctx: ctx,
+				inputData: dto.RolePermissionInput{
+					RoleID: "123",
+					Scopes: []string{"role.create"},
+				},
+			},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "sad unable to update role details",
-			args:    input,
+			name: "sad unable to update role details",
+			args: args{
+				ctx: ctx,
+				inputData: dto.RolePermissionInput{
+					RoleID: "123",
+					Scopes: []string{"role.create"},
+				},
+			},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "happy revoked role permissions",
-			args:    input,
-			want:    &expectedOutput,
+			name: "happy revoked role permissions",
+			args: args{
+				ctx: ctx,
+				inputData: dto.RolePermissionInput{
+					RoleID: "123",
+					Scopes: []string{"role.create"},
+				},
+			},
+			want: &dto.RoleOutput{
+				ID:          "123",
+				Scopes:      []string{},
+				Permissions: allPerms,
+			},
 			wantErr: false,
 		},
 	}
@@ -1140,7 +1164,10 @@ func TestRoleUseCaseImpl_RevokeRolePermissions(t *testing.T) {
 					return true, nil
 				}
 				fakeRepo.GetRoleByIDFn = func(ctx context.Context, roleID string) (*profileutils.Role, error) {
-					return &profileutils.Role{}, nil
+					return &profileutils.Role{
+						ID:     "123",
+						Scopes: []string{"role.create"},
+					}, nil
 				}
 				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{}, nil
@@ -1148,7 +1175,7 @@ func TestRoleUseCaseImpl_RevokeRolePermissions(t *testing.T) {
 				fakeRepo.UpdateRoleDetailsFn = func(ctx context.Context, profileID string, role profileutils.Role) (*profileutils.Role, error) {
 					return &profileutils.Role{
 						ID:     "123",
-						Scopes: []string{"role.create"},
+						Scopes: []string{},
 					}, nil
 				}
 			}

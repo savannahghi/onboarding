@@ -1486,7 +1486,7 @@ func (p *ProfileUseCaseImpl) RefreshNavigationActions(
 		return nil, err
 	}
 
-	navActions, err := utils.GetUserNavigationActions(ctx, *profile, *roles)
+	navActions, err := utils.GetUserNavigationActions(ctx, *profile, *roles, domain.AllNavigationActions)
 	if err != nil {
 		return nil, err
 	}
@@ -1581,7 +1581,7 @@ func (p *ProfileUseCaseImpl) GetNavigationActions(
 		return nil, err
 	}
 
-	navActions, err := utils.GetUserNavigationActions(ctx, *userProfile, *roles)
+	navActions, err := utils.GetUserNavigationActions(ctx, *userProfile, *roles, domain.AllNavigationActions)
 	if err != nil {
 		return nil, err
 	}

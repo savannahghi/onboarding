@@ -65,9 +65,10 @@ func TestCheckUserHasPermission(t *testing.T) {
 func TestGetUserNavigationActions(t *testing.T) {
 	ctx := context.Background()
 	type args struct {
-		ctx   context.Context
-		user  profileutils.UserProfile
-		roles []profileutils.Role
+		ctx     context.Context
+		user    profileutils.UserProfile
+		roles   []profileutils.Role
+		actions []domain.NavigationAction
 	}
 
 	homeNavAction := domain.HomeNavAction
@@ -92,6 +93,7 @@ func TestGetUserNavigationActions(t *testing.T) {
 						Active: true,
 					},
 				},
+				actions: domain.AllNavigationActions,
 			},
 			want: &dto.GroupedNavigationActions{
 				Primary: []domain.NavigationAction{
@@ -105,7 +107,7 @@ func TestGetUserNavigationActions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetUserNavigationActions(tt.args.ctx, tt.args.user, tt.args.roles)
+			got, err := GetUserNavigationActions(tt.args.ctx, tt.args.user, tt.args.roles, tt.args.actions)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetUserNavigationActions() error = %v, wantErr %v", err, tt.wantErr)
 				return

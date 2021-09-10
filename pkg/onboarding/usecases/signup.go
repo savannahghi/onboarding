@@ -202,7 +202,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		return nil, err
 	}
 
-	navActions, err := utils.GetUserNavigationActions(ctx, *profile, *roles)
+	navActions, err := utils.GetUserNavigationActions(ctx, *profile, *roles, domain.AllNavigationActions)
 	if err != nil {
 		return nil, err
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
+	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
 )
@@ -117,7 +118,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 		}
 	}
 
-	navActions, err := utils.GetUserNavigationActions(ctx, *profile, *roles)
+	navActions, err := utils.GetUserNavigationActions(ctx, *profile, *roles, domain.AllNavigationActions)
 	if err != nil {
 		return nil, err
 	}

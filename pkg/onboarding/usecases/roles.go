@@ -135,7 +135,13 @@ func (r *RoleUseCaseImpl) CreateRole(
 		return nil, err
 	}
 
-	perms, err := role.Permissions(ctx)
+	allPerms, err := profileutils.AllPermissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -204,7 +210,13 @@ func (r *RoleUseCaseImpl) CreateUnauthorizedRole(
 		}
 	}
 
-	perms, err := role.Permissions(ctx)
+	allPerms, err := profileutils.AllPermissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -253,7 +265,13 @@ func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, e
 
 	roleOutput := []*dto.RoleOutput{}
 	for _, role := range *roles {
-		perms, err := role.Permissions(ctx)
+		allPerms, err := profileutils.AllPermissions(ctx)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			return nil, err
+		}
+
+		perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			return nil, err
@@ -316,11 +334,18 @@ func (r *RoleUseCaseImpl) FindRoleByName(
 
 	for _, role := range *roles {
 		if strings.Contains(strings.ToLower(role.Name), strings.ToLower(*roleName)) {
-			perms, err := role.Permissions(ctx)
+			allPerms, err := profileutils.AllPermissions(ctx)
 			if err != nil {
 				utils.RecordSpanError(span, err)
 				return nil, err
 			}
+
+			perms, err := r.Permissions(ctx, role.Scopes, allPerms)
+			if err != nil {
+				utils.RecordSpanError(span, err)
+				return nil, err
+			}
+
 			output := &dto.RoleOutput{
 				ID:          role.ID,
 				Name:        role.Name,
@@ -475,8 +500,13 @@ func (r *RoleUseCaseImpl) AddPermissionsToRole(
 		return nil, err
 	}
 
-	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	allPerms, err := profileutils.AllPermissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -551,8 +581,13 @@ func (r *RoleUseCaseImpl) RevokeRolePermission(
 		return nil, err
 	}
 
-	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	allPerms, err := profileutils.AllPermissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -742,8 +777,13 @@ func (r *RoleUseCaseImpl) ActivateRole(
 		return nil, err
 	}
 
-	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	allPerms, err := profileutils.AllPermissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -809,7 +849,13 @@ func (r *RoleUseCaseImpl) DeactivateRole(
 	}
 
 	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	allPerms, err := profileutils.AllPermissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -876,7 +922,13 @@ func (r *RoleUseCaseImpl) UpdateRolePermissions(
 	}
 
 	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	allPerms, err := profileutils.AllPermissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -937,7 +989,13 @@ func (r *RoleUseCaseImpl) GetRoleByName(ctx context.Context, name string) (*dto.
 	}
 
 	// get permissions
-	perms, err := role.Permissions(ctx)
+	allPerms, err := profileutils.AllPermissions(ctx)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -967,7 +1025,13 @@ func (r RoleUseCaseImpl) GetRolesByIDs(ctx context.Context, roleIDs []string) ([
 
 	roleOutput := []*dto.RoleOutput{}
 	for _, role := range *roles {
-		perms, err := role.Permissions(ctx)
+		allPerms, err := profileutils.AllPermissions(ctx)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			return nil, err
+		}
+
+		perms, err := r.Permissions(ctx, role.Scopes, allPerms)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			return nil, err
@@ -1018,4 +1082,22 @@ func (r RoleUseCaseImpl) AssignMultipleRoles(ctx context.Context, userID string,
 	}
 
 	return true, nil
+}
+
+// Permissions returns all permissions with role scoped marked as allowed
+func (r RoleUseCaseImpl) Permissions(ctx context.Context, scopes []string, allPermissions []profileutils.Permission) ([]profileutils.Permission, error) {
+	perms := []profileutils.Permission{}
+
+	for _, perm := range allPermissions {
+		// check if this permission is among the role's scopes
+		// and mark is as allowed
+		for _, scope := range scopes {
+			if perm.Scope == scope {
+				perm.Allowed = true
+			}
+		}
+		perms = append(perms, perm)
+	}
+
+	return perms, nil
 }

@@ -172,7 +172,7 @@ var (
 		Group:              RoleGroup,
 		Title:              RoleNavActionTitle,
 		Icon:               RoleNavActionIcon,
-		RequiredPermission: &profileutils.CanViewRole,
+		RequiredPermission: nil,
 		SequenceNumber:     RoleNavActionSequence,
 	}
 
@@ -214,7 +214,7 @@ var (
 		Group:              PatientGroup,
 		Title:              PatientNavActionTitle,
 		Icon:               PatientNavActionIcon,
-		RequiredPermission: &profileutils.CanViewPatient,
+		RequiredPermission: nil,
 		SequenceNumber:     PatientNavActionSequence,
 	}
 
