@@ -142,6 +142,10 @@ func SharedAuthenticatedISCRoutes(handlers rest.HandlersInterfaces, r *mux.Route
 	// Interservice Authenticated routes
 	isc := r.PathPrefix("/internal").Subrouter()
 	isc.Use(interserviceclient.InterServiceAuthenticationMiddleware())
+	isc.Path("/register_user").Methods(
+		http.MethodPost,
+		http.MethodOptions).
+		HandlerFunc(handlers.RegisterUser())
 	isc.Path("/user_profile").Methods(
 		http.MethodPost,
 		http.MethodOptions).
