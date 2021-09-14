@@ -3,7 +3,7 @@
 ![Linting and Tests](https://github.com/savannahghi/onboarding/actions/workflows/ci.yml/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/savannahghi/onboarding/badge.svg?branch=main)](https://coveralls.io/github/savannahghi/onboarding?branch=main)
 
-This service manages user onboarding process.
+This library powers the onboarding service.
 
 ## Description
 
@@ -84,20 +84,4 @@ For more information, see:
 - [Onion Architecture](http://jeffreypalermo.com/blog/the-onion-architecture-part-1/) by Jeffrey Palermo
 - [Implementing Domain-Driven Design](http://www.amazon.com/Implementing-Domain-Driven-Design-Vaughn-Vernon/dp/0321834577)
 
-## Environment variables
 
-For local development, you need to _export_ the following env vars:
-
-```bash
-# Google Cloud Settings
-export GOOGLE_APPLICATION_CREDENTIALS="<a path to a Google service account JSON file>"
-export GOOGLE_CLOUD_PROJECT="<the name of the project that the service account above belongs to>"
-export FIREBASE_WEB_API_KEY="<an API key from the Firebase console for the project mentioned above>"
-
-```
-
-Deployment
-----------
-
-This application is deployed via Google Cloud Build ( <https://cloud.google.com/build> ) to Google Cloud Run ( <https://cloud.google.com/run> ).
-There's a `cloudbuild.yaml` file in the home folder. Secrets (e.g production settings) are managed with Google Secret Manager ( <https://cloud.google.com/secret-manager> ).
