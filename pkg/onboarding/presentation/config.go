@@ -52,13 +52,10 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	if err != nil {
 		return nil, err
 	}
-	infrastructure, err := infrastructure.NewInfrastructureInteractor()
-	if err != nil {
-		return nil, err
-	}
+	infrastructure := infrastructure.NewInfrastructureInteractor()
 
 	// Initialize base (common) extension
-	baseExt := extension.NewBaseExtensionImpl()
+	baseExt := extension.NewBaseExtensionImpl(fc)
 	pinExt := extension.NewPINExtensionImpl()
 
 	usecases := usecases.NewUsecasesInteractor(infrastructure, baseExt, pinExt)

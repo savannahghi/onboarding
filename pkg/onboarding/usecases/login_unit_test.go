@@ -19,9 +19,7 @@ func TestProfileUseCaseImpl_ResumeWIthPin(t *testing.T) {
 	ctx := context.Background()
 	i, err := InitializeFakeOnboardingInteractor()
 	if err != nil {
-		t.Errorf("failed to fake initialize onboarding interactor: %v",
-			err,
-		)
+		t.Errorf("failed to fake initialize onboarding interactor: %v", err)
 		return
 	}
 	type args struct {
@@ -101,13 +99,13 @@ func TestProfileUseCaseImpl_ResumeWIthPin(t *testing.T) {
 						PhoneNumber: "0721568526",
 					}, nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfrastructure.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
 					}, nil
 				}
 
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfrastructure.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return &domain.PIN{ID: "123", ProfileID: "456"}, nil
 				}
 				fakePinExt.ComparePINFn = func(rawPwd string, salt string, encodedPwd string, options *extension.Options) bool {
@@ -195,7 +193,7 @@ func TestProfileUseCaseImpl_ResumeWIthPin(t *testing.T) {
 				}
 			}
 
-			isLogin, err := i.Login.ResumeWithPin(
+			isLogin, err := i.ResumeWithPin(
 				tt.args.ctx,
 				tt.args.pin,
 			)
@@ -449,7 +447,7 @@ func TestProfileUseCaseImpl_LoginByPhone(t *testing.T) {
 				}
 			}
 
-			got, err := i.Login.LoginByPhone(
+			got, err := i.LoginByPhone(
 				tt.args.ctx,
 				tt.args.phone,
 				tt.args.PIN,
@@ -541,7 +539,7 @@ func TestProfileUseCaseImpl_RefreshToken(t *testing.T) {
 					return nil, fmt.Errorf("invalid refresh token")
 				}
 			}
-			got, err := i.Login.RefreshToken(tt.args.ctx, tt.args.token)
+			got, err := i.RefreshToken(tt.args.ctx, tt.args.token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"ProfileUseCaseImpl.RefreshToken() error = %v, wantErr %v",
@@ -626,7 +624,7 @@ func TestProfileUseCaseImpl_LoginAsAnonymous(t *testing.T) {
 				}
 			}
 
-			got, err := i.Login.LoginAsAnonymous(tt.args.ctx)
+			got, err := i.LoginAsAnonymous(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"ProfileUseCaseImpl.LoginAsAnonymous() error = %v, wantErr %v",

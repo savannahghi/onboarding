@@ -416,7 +416,7 @@ func (h *HandlersInterfacesImpl) SendOTP() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.infrastructure.GenerateAndSendOTP(
+		response, err := h.infrastructure.Engagement.GenerateAndSendOTP(
 			ctx,
 			*payload.PhoneNumber,
 			payload.AppID,
@@ -461,7 +461,7 @@ func (h *HandlersInterfacesImpl) SendRetryOTP() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.infrastructure.SendRetryOTP(
+		response, err := h.infrastructure.Engagement.SendRetryOTP(
 			ctx,
 			*retryPayload.Phone,
 			*retryPayload.RetryStep,
