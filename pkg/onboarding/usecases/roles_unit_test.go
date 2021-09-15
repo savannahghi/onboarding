@@ -185,7 +185,7 @@ func TestRoleUseCaseImpl_CreateRole(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.CreateRole(tt.args.ctx, tt.args.input)
+			got, err := i.CreateRole(tt.args.ctx, tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.CreateRole() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -326,7 +326,7 @@ func TestRoleUseCaseImpl_GetAllRoles(t *testing.T) {
 					return []*profileutils.UserProfile{}, nil
 				}
 			}
-			got, err := i.Role.GetAllRoles(tt.args.ctx)
+			got, err := i.GetAllRoles(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.GetAllRoles() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -469,7 +469,7 @@ func TestRoleUseCaseImpl_FindRoleByName(t *testing.T) {
 					return []*profileutils.UserProfile{}, nil
 				}
 			}
-			got, err := i.Role.FindRoleByName(tt.args.ctx, tt.args.roleName)
+			got, err := i.FindRoleByName(tt.args.ctx, tt.args.roleName)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.FindRoleByName() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -586,7 +586,7 @@ func TestRoleUseCaseImpl_DeleteRole(t *testing.T) {
 					return true, nil
 				}
 			}
-			got, err := i.Role.DeleteRole(tt.args.ctx, tt.args.roleID)
+			got, err := i.DeleteRole(tt.args.ctx, tt.args.roleID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.DeleteRole() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -675,7 +675,7 @@ func TestRoleUseCaseImpl_UnauthorizedDeleteRole(t *testing.T) {
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := i.Role.UnauthorizedDeleteRole(tt.args.ctx, tt.args.roleID)
+			got, err := i.UnauthorizedDeleteRole(tt.args.ctx, tt.args.roleID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.UnauthorizedDeleteRole() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -732,7 +732,7 @@ func TestRoleUseCaseImpl_GetAllPermissions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := i.Role.GetAllPermissions(tt.args.ctx)
+			got, err := i.GetAllPermissions(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"RoleUseCaseImpl.GetAllPermissions() error = %v, wantErr %v",
@@ -951,7 +951,7 @@ func TestRoleUseCaseImpl_AddPermissionsToRole(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.AddPermissionsToRole(tt.args.ctx, tt.args.input)
+			got, err := i.AddPermissionsToRole(tt.args.ctx, tt.args.input)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
@@ -1153,7 +1153,7 @@ func TestRoleUseCaseImpl_RevokeRolePermissions(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.RevokeRolePermission(tt.args.ctx, tt.args.inputData)
+			got, err := i.RevokeRolePermission(tt.args.ctx, tt.args.inputData)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
@@ -1408,7 +1408,7 @@ func TestRoleUseCaseImpl_AssignRole(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.AssignRole(tt.args.ctx, tt.args.userID, tt.args.roleID)
+			got, err := i.AssignRole(tt.args.ctx, tt.args.userID, tt.args.roleID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.AssignRole() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1673,7 +1673,7 @@ func TestRoleUseCaseImpl_RevokeRole(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.RevokeRole(tt.args.ctx, tt.args.userID, tt.args.roleID, tt.args.reason)
+			got, err := i.RevokeRole(tt.args.ctx, tt.args.userID, tt.args.roleID, tt.args.reason)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.RevokeRole() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1850,7 +1850,7 @@ func TestRoleUseCaseImpl_DeactivateRole(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.DeactivateRole(tt.args.ctx, tt.args.roleID)
+			got, err := i.DeactivateRole(tt.args.ctx, tt.args.roleID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.DeactivateRole() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -2027,7 +2027,7 @@ func TestRoleUseCaseImpl_ActivateRole(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.ActivateRole(tt.args.ctx, tt.args.roleID)
+			got, err := i.ActivateRole(tt.args.ctx, tt.args.roleID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.ActivateRole() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -2242,7 +2242,7 @@ func TestRoleUseCaseImpl_UpdateRolePermissions(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.UpdateRolePermissions(tt.args.ctx, tt.args.input)
+			got, err := i.UpdateRolePermissions(tt.args.ctx, tt.args.input)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
@@ -2384,7 +2384,7 @@ func TestRoleUseCaseImpl_CreateUnauthorizedRole(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.CreateUnauthorizedRole(tt.args.ctx, tt.args.input)
+			got, err := i.CreateUnauthorizedRole(tt.args.ctx, tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.CreateRole() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -2634,7 +2634,7 @@ func TestRoleUseCaseImpl_AssignMultipleRoles(t *testing.T) {
 				}
 			}
 
-			got, err := i.Role.AssignMultipleRoles(tt.args.ctx, tt.args.userID, tt.args.roleIDs)
+			got, err := i.AssignMultipleRoles(tt.args.ctx, tt.args.userID, tt.args.roleIDs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RoleUseCaseImpl.AssignMultipleRoles() error = %v, wantErr %v", err, tt.wantErr)
 				return

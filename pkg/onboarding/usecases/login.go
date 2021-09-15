@@ -64,7 +64,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	profile, err := l.infrastructure.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := l.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -75,7 +75,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 		return nil, err
 	}
 
-	PINData, err := l.infrastructure.GetPINByProfileID(ctx, profile.ID)
+	PINData, err := l.infrastructure.Database.GetPINByProfileID(ctx, profile.ID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// the error is wrapped already. No need to wrap it again
@@ -88,7 +88,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 
 	}
 
-	auth, err := l.infrastructure.GenerateAuthCredentials(ctx, *phoneNumber, profile)
+	auth, err := l.infrastructure.Database.GenerateAuthCredentials(ctx, *phoneNumber, profile)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -101,14 +101,14 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 	}
 
 	// fetch the user's communication settings
-	comms, err := l.infrastructure.GetUserCommunicationsSettings(ctx, profile.ID)
+	comms, err := l.infrastructure.Database.GetUserCommunicationsSettings(ctx, profile.ID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
 	// get navigation actions
-	roles, err := l.infrastructure.GetRolesByIDs(ctx, profile.Roles)
+	roles, err := l.infrastructure.Database.GetRolesByIDs(ctx, profile.Roles)
 	if err != nil {
 		if strings.Contains(err.Error(), "role not found") {
 			roles = nil
@@ -145,7 +145,7 @@ func (l *LoginUseCasesImpl) RefreshToken(ctx context.Context, token string) (*pr
 	ctx, span := tracer.Start(ctx, "RefreshToken")
 	defer span.End()
 
-	return l.infrastructure.ExchangeRefreshTokenForIDToken(ctx, token)
+	return l.infrastructure.Database.ExchangeRefreshTokenForIDToken(ctx, token)
 }
 
 // LoginAsAnonymous logs in a user as anonymous. This anonymous user will not have a userProfile
@@ -157,7 +157,7 @@ func (l *LoginUseCasesImpl) LoginAsAnonymous(
 	ctx, span := tracer.Start(ctx, "LoginAsAnonymous")
 	defer span.End()
 
-	return l.infrastructure.GenerateAuthCredentialsForAnonymousUser(ctx)
+	return l.infrastructure.Database.GenerateAuthCredentialsForAnonymousUser(ctx)
 }
 
 // ResumeWithPin called by the frontend check whether the currently logged in user is the one trying
@@ -176,7 +176,7 @@ func (l *LoginUseCasesImpl) ResumeWithPin(ctx context.Context, pin string) (bool
 	if profile == nil {
 		return false, exceptions.ProfileNotFoundError(err)
 	}
-	PINData, err := l.infrastructure.GetPINByProfileID(ctx, profile.ID)
+	PINData, err := l.infrastructure.Database.GetPINByProfileID(ctx, profile.ID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.PinNotFoundError(err)

@@ -117,7 +117,7 @@ func TestProfileUseCaseImpl_UpdateVerifiedUIDS(t *testing.T) {
 				}
 			}
 
-			err := i.Onboarding.UpdateVerifiedUIDS(tt.args.ctx, tt.args.uids)
+			err := i.UpdateVerifiedUIDS(tt.args.ctx, tt.args.uids)
 
 			if tt.wantErr {
 				if err == nil {
@@ -236,7 +236,7 @@ func TestProfileUseCaseImpl_UpdateSecondaryEmailAddresses(t *testing.T) {
 				}
 			}
 
-			err := i.Onboarding.UpdateSecondaryEmailAddresses(tt.args.ctx, tt.args.emailAddresses)
+			err := i.UpdateSecondaryEmailAddresses(tt.args.ctx, tt.args.emailAddresses)
 
 			if tt.wantErr {
 				if err == nil {
@@ -313,7 +313,7 @@ func TestProfileUseCaseImpl_UpdateUserName(t *testing.T) {
 					return nil, fmt.Errorf("unable to get logged user")
 				}
 			}
-			err := i.Onboarding.UpdateUserName(tt.args.ctx, tt.args.userName)
+			err := i.UpdateUserName(tt.args.ctx, tt.args.userName)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("error expected got %v", err)
@@ -433,7 +433,7 @@ func TestProfileUseCaseImpl_UpdateVerifiedIdentifiers(t *testing.T) {
 				}
 			}
 
-			err := i.Onboarding.UpdateVerifiedIdentifiers(tt.args.ctx, tt.args.identifiers)
+			err := i.UpdateVerifiedIdentifiers(tt.args.ctx, tt.args.identifiers)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("error expected got %v", err)
@@ -603,7 +603,7 @@ func TestProfileUseCaseImpl_UpdatePrimaryEmailAddress(t *testing.T) {
 				}
 			}
 
-			err := i.Onboarding.UpdatePrimaryEmailAddress(tt.args.ctx, tt.args.emailAddress)
+			err := i.UpdatePrimaryEmailAddress(tt.args.ctx, tt.args.emailAddress)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("error expected got %v", err)
@@ -941,7 +941,7 @@ func TestProfileUseCaseImpl_SetPrimaryEmailAddress(t *testing.T) {
 				}
 			}
 
-			err := i.Onboarding.SetPrimaryEmailAddress(
+			err := i.SetPrimaryEmailAddress(
 				tt.args.ctx,
 				tt.args.emailAddress,
 				tt.args.otp,
@@ -1066,7 +1066,7 @@ func TestProfileUseCaseImpl_UpdatePermissions(t *testing.T) {
 				}
 			}
 
-			err := i.Onboarding.UpdatePermissions(tt.args.ctx, tt.args.perms)
+			err := i.UpdatePermissions(tt.args.ctx, tt.args.perms)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("error expected got %v", err)
@@ -1154,7 +1154,7 @@ func TestProfileUseCaseImpl_AddRoleToUser(t *testing.T) {
 				}
 			}
 
-			err := i.Onboarding.AddRoleToUser(tt.args.ctx, tt.args.phone, tt.args.role)
+			err := i.AddRoleToUser(tt.args.ctx, tt.args.phone, tt.args.role)
 
 			if tt.wantErr {
 				if err == nil {
@@ -1240,7 +1240,7 @@ func TestProfileUseCaseImpl_RemoveRoleToUser(t *testing.T) {
 				}
 			}
 
-			err := i.Onboarding.RemoveRoleToUser(tt.args.ctx, tt.args.phone)
+			err := i.RemoveRoleToUser(tt.args.ctx, tt.args.phone)
 
 			if tt.wantErr {
 				if err == nil {
@@ -1398,7 +1398,7 @@ func TestProfileUseCaseImpl_GetUserProfileAttributes(t *testing.T) {
 				}
 			}
 
-			attribute, err := i.Onboarding.GetUserProfileAttributes(
+			attribute, err := i.GetUserProfileAttributes(
 				tt.args.ctx,
 				tt.args.UIDs,
 				tt.args.attribute,
@@ -1486,7 +1486,7 @@ func TestProfileUseCaseImpl_ConfirmedEmailAddresses(t *testing.T) {
 				}
 			}
 
-			confirmedEmails, err := i.Onboarding.ConfirmedEmailAddresses(
+			confirmedEmails, err := i.ConfirmedEmailAddresses(
 				tt.args.ctx,
 				tt.args.UIDs,
 			)
@@ -1570,7 +1570,7 @@ func TestProfileUseCaseImpl_ConfirmedPhoneNumbers(t *testing.T) {
 				}
 			}
 
-			confirmedEmails, err := i.Onboarding.ConfirmedPhoneNumbers(
+			confirmedEmails, err := i.ConfirmedPhoneNumbers(
 				tt.args.ctx,
 				tt.args.UIDs,
 			)
@@ -1652,7 +1652,7 @@ func TestProfileUseCaseImpl_validFCM(t *testing.T) {
 				}
 			}
 
-			validFCM, err := i.Onboarding.ValidFCMTokens(
+			validFCM, err := i.ValidFCMTokens(
 				tt.args.ctx,
 				tt.args.UIDs,
 			)
@@ -1813,7 +1813,7 @@ func TestProfileUseCaseImpl_ProfileAttributes(t *testing.T) {
 				}
 			}
 
-			attribute, err := i.Onboarding.ProfileAttributes(
+			attribute, err := i.ProfileAttributes(
 				tt.args.ctx,
 				tt.args.UIDs,
 				tt.args.attribute,
@@ -2035,7 +2035,7 @@ func TestProfileUseCaseImpl_UpdateSuspended(t *testing.T) {
 				}
 			}
 
-			err := i.Onboarding.UpdateSuspended(
+			err := i.UpdateSuspended(
 				tt.args.ctx,
 				tt.args.status,
 				tt.args.phone,
@@ -2304,7 +2304,7 @@ func TestProfileUseCaseImpl_UpdatePrimaryPhoneNumber(t *testing.T) {
 
 			}
 
-			err := i.Onboarding.UpdatePrimaryPhoneNumber(
+			err := i.UpdatePrimaryPhoneNumber(
 				tt.args.ctx,
 				tt.args.phone,
 				tt.args.useContext,
@@ -2635,7 +2635,7 @@ func TestProfileUseCase_UpdateBioData(t *testing.T) {
 
 			}
 
-			err := i.Onboarding.UpdateBioData(tt.args.ctx, tt.args.data)
+			err := i.UpdateBioData(tt.args.ctx, tt.args.data)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("error expected got %v", err)
@@ -2724,7 +2724,7 @@ func TestProfileUseCase_CheckPhoneExists(t *testing.T) {
 					return false, fmt.Errorf("error checking if phone number exists")
 				}
 			}
-			_, err := i.Onboarding.CheckPhoneExists(tt.args.ctx, tt.args.phone)
+			_, err := i.CheckPhoneExists(tt.args.ctx, tt.args.phone)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("error expected got %v", err)
@@ -2791,7 +2791,7 @@ func TestProfileUseCase_CheckEmailExists(t *testing.T) {
 					return false, fmt.Errorf("failed to if email exists")
 				}
 			}
-			_, err := i.Onboarding.CheckEmailExists(tt.args.ctx, tt.args.email)
+			_, err := i.CheckEmailExists(tt.args.ctx, tt.args.email)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("error expected got %v", err)
@@ -2907,7 +2907,7 @@ func TestProfileUseCaseImpl_UpdatePhotoUploadID(t *testing.T) {
 					return fmt.Errorf("failed to update photo upload ID")
 				}
 			}
-			err := i.Onboarding.UpdatePhotoUploadID(tt.args.ctx, tt.args.uploadID)
+			err := i.UpdatePhotoUploadID(tt.args.ctx, tt.args.uploadID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"ProfileUseCaseImpl.UpdatePhotoUploadID() error = %v, wantErr %v",
@@ -3082,7 +3082,7 @@ func TestProfileUseCaseImpl_AddAddress(t *testing.T) {
 				}
 			}
 
-			_, err := i.Onboarding.AddAddress(
+			_, err := i.AddAddress(
 				tt.args.ctx,
 				tt.args.input,
 				tt.args.addressType,
@@ -3234,7 +3234,7 @@ func TestProfileUseCaseImpl_GetAddresses(t *testing.T) {
 				}
 			}
 
-			_, err := i.Onboarding.GetAddresses(tt.args.ctx)
+			_, err := i.GetAddresses(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"ProfileUseCaseImpl.GetAddresses() error = %v, wantErr %v",
@@ -3340,7 +3340,7 @@ func TestProfileUseCaseImpl_GetUserCommunicationsSettings(t *testing.T) {
 				}
 			}
 
-			_, err := i.Onboarding.GetUserCommunicationsSettings(tt.args.ctx)
+			_, err := i.GetUserCommunicationsSettings(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"ProfileUseCaseImpl.GetUserCommunicationsSettings() error = %v, wantErr %v",
@@ -3469,7 +3469,7 @@ func TestProfileUseCaseImpl_SetUserCommunicationsSettings(t *testing.T) {
 				}
 			}
 
-			_, err := i.Onboarding.SetUserCommunicationsSettings(
+			_, err := i.SetUserCommunicationsSettings(
 				tt.args.ctx,
 				&tt.args.allowWhatsApp,
 				&tt.args.allowTextSms,
@@ -3630,7 +3630,7 @@ func TestProfileUseCaseImpl_SaveFavoriteNavActions(t *testing.T) {
 					return nil
 				}
 			}
-			got, err := i.Onboarding.SaveFavoriteNavActions(tt.args.ctx, tt.args.title)
+			got, err := i.SaveFavoriteNavActions(tt.args.ctx, tt.args.title)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"ProfileUseCaseImpl.SaveFavoriteNavActions() error = %v, wantErr %v",
@@ -3774,7 +3774,7 @@ func TestProfileUseCaseImpl_DeleteFavoriteNavActions(t *testing.T) {
 					return nil
 				}
 			}
-			got, err := i.Onboarding.DeleteFavoriteNavActions(tt.args.ctx, tt.args.title)
+			got, err := i.DeleteFavoriteNavActions(tt.args.ctx, tt.args.title)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"ProfileUseCaseImpl.DeleteFavoriteNavActions() error = %v, wantErr %v",
@@ -3869,7 +3869,7 @@ func TestProfileUseCaseImpl_RefreshNavigationActions(t *testing.T) {
 				}
 			}
 
-			got, err := i.Onboarding.RefreshNavigationActions(tt.args.ctx)
+			got, err := i.RefreshNavigationActions(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"ProfileUseCaseImpl.RefreshNavigationActions() error = %v, wantErr %v",
@@ -3971,7 +3971,7 @@ func TestProfileUseCaseImpl_FindUserByPhone(t *testing.T) {
 					return p, nil
 				}
 			}
-			got, err := i.Onboarding.FindUserByPhone(tt.args.ctx, tt.args.phoneNumber)
+			got, err := i.FindUserByPhone(tt.args.ctx, tt.args.phoneNumber)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProfileUseCaseImpl.FindUserByPhone() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -4078,7 +4078,7 @@ func TestProfileUseCaseImpl_GetNavigationActions(t *testing.T) {
 					return &[]profileutils.Role{}, nil
 				}
 			}
-			got, err := i.Onboarding.GetNavigationActions(tt.args.ctx)
+			got, err := i.GetNavigationActions(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"ProfileUseCaseImpl.GetNavigationActions() error = %v, wantErr %v",

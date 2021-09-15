@@ -6,17 +6,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
 )
 
-// Usecases is an interface that combines of all usescases
-type Usecases interface {
-	LoginUseCases
-	ProfileUseCase
-	RoleUseCase
-	SignUpUseCases
-	SurveyUseCases
-	UserPINUseCases
-	admin.Usecase
-}
-
 // Interactor is an implementation of the usecases interface
 type Interactor struct {
 	LoginUseCases
@@ -29,7 +18,7 @@ type Interactor struct {
 }
 
 // NewUsecasesInteractor initializes a new usecases interactor
-func NewUsecasesInteractor(infrastructure infrastructure.Infrastructure, baseExtension extension.BaseExtension, pinsExtension extension.PINExtension) Usecases {
+func NewUsecasesInteractor(infrastructure infrastructure.Infrastructure, baseExtension extension.BaseExtension, pinsExtension extension.PINExtension) Interactor {
 
 	profile := NewProfileUseCase(infrastructure, baseExtension)
 	login := NewLoginUseCases(infrastructure, profile, baseExtension, pinsExtension)
@@ -39,7 +28,7 @@ func NewUsecasesInteractor(infrastructure infrastructure.Infrastructure, baseExt
 	surveys := NewSurveyUseCases(infrastructure, baseExtension)
 	services := admin.NewService(baseExtension)
 
-	impl := &Interactor{
+	impl := Interactor{
 		login,
 		profile,
 		roles,

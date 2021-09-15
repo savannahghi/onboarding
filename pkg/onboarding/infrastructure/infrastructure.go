@@ -2,9 +2,10 @@ package infrastructure
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
@@ -21,50 +22,42 @@ const (
 	TopicVersion = "v1"
 )
 
-// Infrastructure defines the contract provided by the infrastructure layer
-// It's a combination of interactions with external services/dependencies
-type Infrastructure interface {
-	database.Repository
-	engagement.ServiceEngagement
-	pubsubmessaging.ServicePubSub
-}
-
-// Interactor is an implementation of the infrastructure interface
+// Infrastructure is an implementation of the infrastructure interface
 // It combines each individual service implementation
-type Interactor struct {
-	database.Repository
-	engagement.ServiceEngagement
-	pubsubmessaging.ServicePubSub
+type Infrastructure struct {
+	Database   database.Repository
+	Engagement engagement.ServiceEngagement
+	Pubsub     pubsubmessaging.ServicePubSub
 }
 
 // NewInfrastructureInteractor initializes a new infrastructure interactor
-func NewInfrastructureInteractor() (Infrastructure, error) {
+func NewInfrastructureInteractor() Infrastructure {
 	ctx := context.Background()
 
 	db := database.NewDbService()
 
-	baseExtension := extension.NewBaseExtensionImpl()
+	baseExtension := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
 
 	projectID, err := serverutils.GetEnvVar(serverutils.GoogleCloudProjectIDEnvVarName)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
 	pubSubClient, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 	pubsub, err := pubsubmessaging.NewServicePubSubMessaging(pubSubClient, baseExtension, db)
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
+		log.Fatal(err)
 	}
 
 	engagementClient := utils.NewInterServiceClient("engagement", baseExtension)
 	engagement := engagement.NewServiceEngagementImpl(engagementClient, baseExtension)
 
-	return &Interactor{
+	return Infrastructure{
 		db,
 		engagement,
 		pubsub,
-	}, nil
+	}
 }

@@ -52,13 +52,10 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	if err != nil {
 		return nil, err
 	}
-	infrastructure, err := infrastructure.NewInfrastructureInteractor()
-	if err != nil {
-		return nil, err
-	}
+	infrastructure := infrastructure.NewInfrastructureInteractor()
 
 	// Initialize base (common) extension
-	baseExt := extension.NewBaseExtensionImpl()
+	baseExt := extension.NewBaseExtensionImpl(fc)
 	pinExt := extension.NewPINExtensionImpl()
 
 	usecases := usecases.NewUsecasesInteractor(infrastructure, baseExt, pinExt)
@@ -130,7 +127,7 @@ func HealthStatusCheck(w http.ResponseWriter, r *http.Request) {
 
 // GQLHandler sets up a GraphQL resolver
 func GQLHandler(ctx context.Context,
-	service usecases.Usecases,
+	service usecases.Interactor,
 ) http.HandlerFunc {
 	resolver, err := graph.NewResolver(ctx, service)
 	if err != nil {
