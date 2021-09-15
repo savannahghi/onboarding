@@ -3,39 +3,57 @@
 package interactor
 
 import (
+	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
 )
 
-// Interactor represents an assemble of all use cases into a single object that can be instantiated anywhere
-type Interactor struct {
-	Onboarding usecases.ProfileUseCase
-	Signup     usecases.SignUpUseCases
-	Login      usecases.LoginUseCases
-	Survey     usecases.SurveyUseCases
-	UserPIN    usecases.UserPINUseCases
-	AdminSrv   admin.Usecase
-	Role       usecases.RoleUseCase
+// Usecases is an interface that combines of all usescases
+type Usecases interface {
+	usecases.ProfileUseCase
+	usecases.SignUpUseCases
+	usecases.LoginUseCases
+	usecases.SurveyUseCases
+	usecases.UserPINUseCases
+	admin.Usecase
+	usecases.RoleUseCase
 }
 
-// NewOnboardingInteractor returns a new onboarding interactor
-func NewOnboardingInteractor(
-	profile usecases.ProfileUseCase,
-	su usecases.SignUpUseCases,
-	login usecases.LoginUseCases,
-	survey usecases.SurveyUseCases,
-	userpin usecases.UserPINUseCases,
-	admin admin.Usecase,
-	role usecases.RoleUseCase,
-) (*Interactor, error) {
+// Interactor is an implementation of the usecases interface
+type Interactor struct {
+	usecases.LoginUseCases
+	usecases.ProfileUseCase
+	usecases.RoleUseCase
+	usecases.SignUpUseCases
+	usecases.SurveyUseCases
+	usecases.UserPINUseCases
+	admin.Usecase
+}
 
-	return &Interactor{
-		Onboarding: profile,
-		Signup:     su,
-		Login:      login,
-		Survey:     survey,
-		UserPIN:    userpin,
-		AdminSrv:   admin,
-		Role:       role,
-	}, nil
+// NewUsecasesInteractor initializes a new usecases interactor
+func NewUsecasesInteractor(
+	infrastructure infrastructure.Infrastructure,
+	baseExtension extension.BaseExtension,
+	pinsExtension extension.PINExtension) Usecases {
+
+	profile := usecases.NewProfileUseCase(infrastructure, baseExtension)
+	login := usecases.NewLoginUseCases(infrastructure, profile, baseExtension, pinsExtension)
+	roles := usecases.NewRoleUseCases(infrastructure, baseExtension)
+	pins := usecases.NewUserPinUseCase(infrastructure, profile, baseExtension, pinsExtension)
+	signup := usecases.NewSignUpUseCases(infrastructure, profile, pins, baseExtension)
+	surveys := usecases.NewSurveyUseCases(infrastructure, baseExtension)
+	services := admin.NewService(baseExtension)
+
+	impl := &Interactor{
+		login,
+		profile,
+		roles,
+		signup,
+		surveys,
+		pins,
+		services,
+	}
+
+	return impl
 }

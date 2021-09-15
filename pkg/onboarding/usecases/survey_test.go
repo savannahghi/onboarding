@@ -108,7 +108,7 @@ func TestSurveyUseCasesImpl_RecordPostVisitSurvey(t *testing.T) {
 				}
 			}
 
-			got, err := i.Survey.RecordPostVisitSurvey(tt.args.ctx, tt.args.input)
+			got, err := i.RecordPostVisitSurvey(tt.args.ctx, tt.args.input)
 
 			if tt.wantErr {
 				if err == nil {

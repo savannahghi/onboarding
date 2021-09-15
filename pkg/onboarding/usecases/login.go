@@ -64,7 +64,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	profile, err := l.infrastructure.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := l.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -75,7 +75,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 		return nil, err
 	}
 
-	PINData, err := l.infrastructure.GetPINByProfileID(ctx, profile.ID)
+	PINData, err := l.infrastructure.Database.GetPINByProfileID(ctx, profile.ID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// the error is wrapped already. No need to wrap it again
@@ -88,7 +88,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 
 	}
 
-	auth, err := l.infrastructure.GenerateAuthCredentials(ctx, *phoneNumber, profile)
+	auth, err := l.infrastructure.Database.GenerateAuthCredentials(ctx, *phoneNumber, profile)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
