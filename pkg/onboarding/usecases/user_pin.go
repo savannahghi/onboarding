@@ -81,7 +81,7 @@ func (u *UserPinUseCaseImpl) SetUserPIN(
 		PINNumber: encryptedPin,
 		Salt:      salt,
 	}
-	if _, err := u.infrastructure.SavePIN(ctx, pinPayload); err != nil {
+	if _, err := u.infrastructure.Database.SavePIN(ctx, pinPayload); err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.SaveUserPinError(err)
 	}
@@ -106,7 +106,7 @@ func (u *UserPinUseCaseImpl) RequestPINReset(
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	pr, err := u.infrastructure.GetUserProfileByPrimaryPhoneNumber(ctx, *phoneNumber, false)
+	pr, err := u.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(ctx, *phoneNumber, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
@@ -118,7 +118,7 @@ func (u *UserPinUseCaseImpl) RequestPINReset(
 		return nil, exceptions.ExistingPINError(err)
 	}
 	// generate and send otp to the phone number
-	otpResp, err := u.infrastructure.GenerateAndSendOTP(ctx, phone, appID)
+	otpResp, err := u.infrastructure.Engagement.GenerateAndSendOTP(ctx, phone, appID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, exceptions.GenerateAndSendOTPError(err)
@@ -143,7 +143,7 @@ func (u *UserPinUseCaseImpl) ResetUserPIN(
 		return false, exceptions.NormalizeMSISDNError(err)
 	}
 
-	verified, err := u.infrastructure.VerifyOTP(ctx, phone, OTP)
+	verified, err := u.infrastructure.Engagement.VerifyOTP(ctx, phone, OTP)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.VerifyOTPError(err)
@@ -153,7 +153,7 @@ func (u *UserPinUseCaseImpl) ResetUserPIN(
 		return false, exceptions.VerifyOTPError(nil)
 	}
 
-	profile, err := u.infrastructure.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := u.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -179,7 +179,7 @@ func (u *UserPinUseCaseImpl) ResetUserPIN(
 		PINNumber: encryptedPin,
 		Salt:      salt,
 	}
-	_, err = u.infrastructure.UpdatePIN(ctx, profile.ID, pinPayload)
+	_, err = u.infrastructure.Database.UpdatePIN(ctx, profile.ID, pinPayload)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.InternalServerError(err)
@@ -202,7 +202,7 @@ func (u *UserPinUseCaseImpl) ChangeUserPIN(
 		return false, exceptions.NormalizeMSISDNError(err)
 	}
 
-	profile, err := u.infrastructure.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := u.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -227,7 +227,7 @@ func (u *UserPinUseCaseImpl) ChangeUserPIN(
 		PINNumber: encryptedPin,
 		Salt:      salt,
 	}
-	_, err = u.infrastructure.UpdatePIN(ctx, profile.ID, pinPayload)
+	_, err = u.infrastructure.Database.UpdatePIN(ctx, profile.ID, pinPayload)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.InternalServerError(err)
@@ -241,7 +241,7 @@ func (u *UserPinUseCaseImpl) CheckHasPIN(ctx context.Context, profileID string) 
 	ctx, span := tracer.Start(ctx, "CheckHasPIN")
 	defer span.End()
 
-	pinData, err := u.infrastructure.GetPINByProfileID(ctx, profileID)
+	pinData, err := u.infrastructure.Database.GetPINByProfileID(ctx, profileID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
@@ -276,7 +276,7 @@ func (u *UserPinUseCaseImpl) SetUserTempPIN(ctx context.Context, profileID strin
 		Salt:      salt,
 		IsOTP:     true,
 	}
-	if _, err := u.infrastructure.SavePIN(ctx, pinPayload); err != nil {
+	if _, err := u.infrastructure.Database.SavePIN(ctx, pinPayload); err != nil {
 		utils.RecordSpanError(span, err)
 		return "", exceptions.SaveUserPinError(err)
 	}

@@ -50,7 +50,7 @@ func (rs *SurveyUseCasesImpl) RecordPostVisitSurvey(
 		return false, exceptions.UserNotFoundError(err)
 	}
 
-	if err := rs.infrastructure.RecordPostVisitSurvey(ctx, input, UID); err != nil {
+	if err := rs.infrastructure.Database.RecordPostVisitSurvey(ctx, input, UID); err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.InternalServerError(fmt.Errorf(exceptions.InternalServerErrorMsg))
 	}

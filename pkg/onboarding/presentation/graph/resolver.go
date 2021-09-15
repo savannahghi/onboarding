@@ -18,7 +18,7 @@ import (
 
 // Resolver sets up a GraphQL resolver with all necessary dependencies
 type Resolver struct {
-	usecases usecases.Usecases
+	usecases usecases.Interactor
 }
 
 //go:generate go run github.com/99designs/gqlgen
@@ -26,7 +26,7 @@ type Resolver struct {
 // NewResolver sets up the dependencies needed for query and mutation resolvers to work
 func NewResolver(
 	ctx context.Context,
-	usecases usecases.Usecases,
+	usecases usecases.Interactor,
 ) (*Resolver, error) {
 	return &Resolver{
 		usecases: usecases,
@@ -34,9 +34,6 @@ func NewResolver(
 }
 
 func (r Resolver) checkPreconditions() {
-	if r.usecases == nil {
-		log.Panicf("expected onboarding usecases to be defined resolver")
-	}
 
 }
 
