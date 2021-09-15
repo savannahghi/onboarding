@@ -114,7 +114,7 @@ func TestUserPinUseCaseUnitTest_SetUserPIN(t *testing.T) {
 				}
 			}
 
-			isSet, err := i.UserPIN.SetUserPIN(tt.args.ctx, tt.args.pin, tt.args.profileID)
+			isSet, err := i.SetUserPIN(tt.args.ctx, tt.args.pin, tt.args.profileID)
 
 			if tt.wantErr {
 				if err == nil {
@@ -333,7 +333,7 @@ func TestUserPinUseCaseUnitTest_ResetUserPIN(t *testing.T) {
 				}
 			}
 
-			got, err := i.UserPIN.ResetUserPIN(tt.args.ctx, tt.args.phone, tt.args.PIN, tt.args.OTP)
+			got, err := i.ResetUserPIN(tt.args.ctx, tt.args.phone, tt.args.PIN, tt.args.OTP)
 
 			if tt.wantErr {
 				if err == nil {
@@ -514,7 +514,7 @@ func TestUserPinUseCaseImpl_ChangeUserPINUnitTest(t *testing.T) {
 				}
 			}
 
-			got, err := i.UserPIN.ChangeUserPIN(tt.args.ctx, tt.args.phone, tt.args.pin)
+			got, err := i.ChangeUserPIN(tt.args.ctx, tt.args.phone, tt.args.pin)
 
 			if tt.wantErr {
 				if err == nil {
@@ -608,7 +608,7 @@ func TestUserPinUseCaseImpl_CheckHasPIN(t *testing.T) {
 				}
 			}
 
-			got, err := i.UserPIN.CheckHasPIN(tt.args.ctx, tt.args.profileID)
+			got, err := i.CheckHasPIN(tt.args.ctx, tt.args.profileID)
 
 			if tt.wantErr {
 				if err == nil {
@@ -771,7 +771,7 @@ func TestUserPinUseCaseImpl_RequestPINReset(t *testing.T) {
 				}
 			}
 
-			got, err := i.UserPIN.RequestPINReset(tt.args.ctx, tt.args.phone, tt.args.appID)
+			got, err := i.RequestPINReset(tt.args.ctx, tt.args.phone, tt.args.appID)
 
 			if tt.wantErr {
 				if err == nil {
@@ -881,7 +881,7 @@ func TestUserPinUseCaseImpl_SetUserTempPIN(t *testing.T) {
 				}
 			}
 
-			got, err := i.UserPIN.SetUserTempPIN(tt.args.ctx, tt.args.profileID)
+			got, err := i.SetUserTempPIN(tt.args.ctx, tt.args.profileID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"UserPinUseCaseImpl.SetUserTempPIN() error = %v, wantErr %v",

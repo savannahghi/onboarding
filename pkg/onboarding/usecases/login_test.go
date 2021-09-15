@@ -22,23 +22,25 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
-	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 
 	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/repository/mock"
 
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
+	mockInfra "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/mock"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
+
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	pubsubmessagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub/mock"
-	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
 )
+
+var testUsecase interactor.Usecases
+var testInfrastructure infrastructure.Infrastructure
 
 func TestMain(m *testing.M) {
 	log.Printf("Setting tests up ...")
@@ -123,34 +125,19 @@ func InitializeTestFirebaseClient(ctx context.Context) (*firestore.Client, *auth
 	return fsc, fbc
 }
 
-func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
-
-	infrastructure, _ := infrastructure.NewInfrastructureInteractor()
-
-	ext := extension.NewBaseExtensionImpl()
+func InitializeTestService(ctx context.Context, infrastructure infrastructure.Infrastructure) (interactor.Usecases, error) {
+	ext := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
 
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(infrastructure, ext)
-	login := usecases.NewLoginUseCases(infrastructure, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(infrastructure, ext)
-	userpin := usecases.NewUserPinUseCase(infrastructure, profile, ext, pinExt)
-	su := usecases.NewSignUpUseCases(infrastructure, profile, userpin, ext)
 
-	return &interactor.Interactor{
-		Onboarding: profile,
-		Signup:     su,
-		Login:      login,
-		Survey:     survey,
-		UserPIN:    userpin,
-	}, nil
+	i := interactor.NewUsecasesInteractor(infrastructure, ext, pinExt)
+
+	return i, nil
 }
 
 func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, error) {
 	ctx := context.Background()
-	infrastructure, err := infrastructure.NewInfrastructureInteractor()
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize test service: %v", err)
-	}
+	infrastructure := testInfrastructure
 	testAppID := uuid.New().String()
 	return infrastructure.GenerateAndSendOTP(ctx, phone, &testAppID)
 }
@@ -161,18 +148,15 @@ func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, err
 // to get their auth credentials
 func CreateOrLoginTestUserByPhone(t *testing.T) (*auth.Token, error) {
 	ctx := context.Background()
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize test service")
-	}
+	s := testUsecase
 	phone := interserviceclient.TestUserPhoneNumber
 	flavour := feedlib.FlavourConsumer
 	pin := interserviceclient.TestUserPin
 	testAppID := uuid.New().String()
-	otp, err := s.Signup.VerifyPhoneNumber(ctx, phone, &testAppID)
+	otp, err := s.VerifyPhoneNumber(ctx, phone, &testAppID)
 	if err != nil {
 		if strings.Contains(err.Error(), exceptions.CheckPhoneNumberExistError().Error()) {
-			logInCreds, err := s.Login.LoginByPhone(
+			logInCreds, err := s.LoginByPhone(
 				ctx,
 				phone,
 				interserviceclient.TestUserPin,
@@ -190,7 +174,7 @@ func CreateOrLoginTestUserByPhone(t *testing.T) (*auth.Token, error) {
 		return nil, fmt.Errorf("failed to check if test phone exists: %v", err)
 	}
 
-	u, err := s.Signup.CreateUserByPhone(
+	u, err := s.CreateUserByPhone(
 		ctx,
 		&dto.SignUpInput{
 			PhoneNumber: &phone,
@@ -249,11 +233,7 @@ func TestLoginUseCasesImpl_LoginByPhone(t *testing.T) {
 		return
 	}
 	flavour := feedlib.FlavourConsumer
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		t.Errorf("unable to initialize test service")
-		return
-	}
+	s := testUsecase
 
 	type args struct {
 		ctx     context.Context
@@ -319,7 +299,7 @@ func TestLoginUseCasesImpl_LoginByPhone(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			authResponse, err := s.Login.LoginByPhone(
+			authResponse, err := s.LoginByPhone(
 				tt.args.ctx,
 				tt.args.phone,
 				tt.args.PIN,
@@ -347,12 +327,11 @@ var fakePinExt extMock.PINExtensionImpl
 var fakeEngagementSvs engagementMock.FakeServiceEngagement
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
 
-// InitializeFakeOnboaridingInteractor represents a fakeonboarding interactor
-func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
+var fakeInfrastructure mockInfra.FakeInfrastructure
+
+func InitializeFakeInfrastructure() infrastructure.Infrastructure {
 	var r repository.OnboardingRepository = &fakeRepo
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
-	var ext extension.BaseExtension = &fakeBaseExt
-	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
 
 	type InfrastructureMock struct {
@@ -363,23 +342,19 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	infra := func() infrastructure.Infrastructure {
 		return &InfrastructureMock{r, engagementSvc, ps}
 	}()
+	return infra
+}
 
-	profile := usecases.NewProfileUseCase(infra, ext)
-	login := usecases.NewLoginUseCases(infra, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(infra, ext)
-	userpin := usecases.NewUserPinUseCase(infra, profile, ext, pinExt)
-	su := usecases.NewSignUpUseCases(infra, profile, userpin, ext)
-	adminSrv := adminSrv.NewService(ext)
-	role := usecases.NewRoleUseCases(infra, ext)
+// InitializeFakeOnboardingInteractor represents a fakeonboarding interactor
+func InitializeFakeOnboardingInteractor() (interactor.Usecases, error) {
+	var ext extension.BaseExtension = &fakeBaseExt
+	var pinExt extension.PINExtension = &fakePinExt
 
-	i, err := interactor.NewOnboardingInteractor(
-		profile, su, login,
-		survey, userpin,
-		adminSrv, role,
+	infra := InitializeFakeInfrastructure()
+
+	i := interactor.NewUsecasesInteractor(
+		infra, ext, pinExt,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("can't instantiate service : %w", err)
-	}
 	return i, nil
 
 }

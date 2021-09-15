@@ -58,7 +58,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	}
 
 	// Initialize base (common) extension
-	baseExt := extension.NewBaseExtensionImpl()
+	baseExt := extension.NewBaseExtensionImpl(fc)
 	pinExt := extension.NewPINExtensionImpl()
 
 	usecases := usecases.NewUsecasesInteractor(infrastructure, baseExt, pinExt)

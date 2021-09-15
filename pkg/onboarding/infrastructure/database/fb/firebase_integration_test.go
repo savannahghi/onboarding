@@ -31,7 +31,6 @@ import (
 	"firebase.google.com/go/auth"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
-	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 )
 
 var (
@@ -100,26 +99,20 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
+func InitializeTestService(ctx context.Context) (interactor.Usecases, error) {
+	infrastructure, err := infrastructure.NewInfrastructureInteractor()
+	if err != nil {
+		return nil, err
+	}
 
-	infrastructure, _ := infrastructure.NewInfrastructureInteractor()
-
-	ext := extension.NewBaseExtensionImpl()
+	ext := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
 
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(infrastructure, ext)
-	login := usecases.NewLoginUseCases(infrastructure, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(infrastructure, ext)
-	userpin := usecases.NewUserPinUseCase(infrastructure, profile, ext, pinExt)
-	su := usecases.NewSignUpUseCases(infrastructure, profile, userpin, ext)
 
-	return &interactor.Interactor{
-		Onboarding: profile,
-		Signup:     su,
-		Login:      login,
-		Survey:     survey,
-		UserPIN:    userpin,
-	}, nil
+	usecases := interactor.NewUsecasesInteractor(
+		infrastructure, ext, pinExt,
+	)
+	return usecases, nil
 }
 
 func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, error) {
@@ -145,7 +138,7 @@ func CreateOrLoginTestUserByPhone(t *testing.T) (*auth.Token, error) {
 	phone := interserviceclient.TestUserPhoneNumber
 	flavour := feedlib.FlavourConsumer
 	pin := interserviceclient.TestUserPin
-	exists, err := s.Onboarding.CheckPhoneExists(ctx, phone)
+	exists, err := s.CheckPhoneExists(ctx, phone)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check if test phone exists: %v", err)
 	}
@@ -156,7 +149,7 @@ func CreateOrLoginTestUserByPhone(t *testing.T) (*auth.Token, error) {
 			return nil, fmt.Errorf("failed to generate test OTP: %v", err)
 		}
 
-		u, err := s.Signup.CreateUserByPhone(
+		u, err := s.CreateUserByPhone(
 			ctx,
 			&dto.SignUpInput{
 				PhoneNumber: &phone,
@@ -176,7 +169,7 @@ func CreateOrLoginTestUserByPhone(t *testing.T) (*auth.Token, error) {
 		} // We add the test user UID to the expected auth.Token
 		return authCred, nil
 	}
-	logInCreds, err := s.Login.LoginByPhone(
+	logInCreds, err := s.LoginByPhone(
 		ctx,
 		phone,
 		interserviceclient.TestUserPin,
@@ -230,7 +223,7 @@ func TestPurgeUserByPhoneNumber(t *testing.T) {
 	s, err := InitializeTestService(context.Background())
 	assert.Nil(t, err)
 	// clean up
-	_ = s.Signup.RemoveUserByPhoneNumber(
+	_ = s.RemoveUserByPhoneNumber(
 		context.Background(),
 		interserviceclient.TestUserPhoneNumber,
 	)
@@ -289,7 +282,7 @@ func TestPurgeUserByPhoneNumber(t *testing.T) {
 
 	// now set a  pin. this should not fail
 	userpin := "1234"
-	pset, err := s.UserPIN.SetUserPIN(ctx, userpin, invalidpr1.ID)
+	pset, err := s.SetUserPIN(ctx, userpin, invalidpr1.ID)
 	assert.Nil(t, err)
 	assert.NotNil(t, pset)
 	assert.Equal(t, true, pset)

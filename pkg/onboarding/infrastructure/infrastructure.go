@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
@@ -43,7 +44,7 @@ func NewInfrastructureInteractor() (Infrastructure, error) {
 
 	db := database.NewDbService()
 
-	baseExtension := extension.NewBaseExtensionImpl()
+	baseExtension := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
 
 	projectID, err := serverutils.GetEnvVar(serverutils.GoogleCloudProjectIDEnvVarName)
 	if err != nil {

@@ -25,13 +25,11 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
-	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
 	"github.com/sirupsen/logrus"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation"
-	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 )
 
 const (
@@ -51,7 +49,8 @@ var (
 	srv            *http.Server
 	baseURL        string
 	serverErr      error
-	testInteractor *interactor.Interactor
+	testInteractor interactor.Usecases
+	testInfra      infrastructure.Infrastructure
 )
 
 func mapToJSONReader(m map[string]interface{}) (io.Reader, error) {
@@ -83,32 +82,24 @@ func initializeAcceptanceTestFirebaseClient(ctx context.Context) (*firestore.Cli
 	return fsc, fbc
 }
 
-func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
-	infrastructure, _ := infrastructure.NewInfrastructureInteractor()
-
-	// Initialize base (common) extension
-	baseExt := extension.NewBaseExtensionImpl()
+func InitializeTestService(ctx context.Context, infra infrastructure.Infrastructure) (interactor.Usecases, error) {
+	ext := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
 
 	pinExt := extension.NewPINExtensionImpl()
 
-	// Initialize the usecases
-	profile := usecases.NewProfileUseCase(infrastructure, baseExt)
-	login := usecases.NewLoginUseCases(infrastructure, profile, baseExt, pinExt)
-	survey := usecases.NewSurveyUseCases(infrastructure, baseExt)
-	userpin := usecases.NewUserPinUseCase(infrastructure, profile, baseExt, pinExt)
-	su := usecases.NewSignUpUseCases(infrastructure, profile, userpin, baseExt)
-	role := usecases.NewRoleUseCases(infrastructure, baseExt)
-	adminSrv := adminSrv.NewService(baseExt)
-
-	i, err := interactor.NewOnboardingInteractor(
-		profile, su, login, survey,
-		userpin, adminSrv, role,
+	usecases := interactor.NewUsecasesInteractor(
+		infra, ext, pinExt,
 	)
+	return usecases, nil
+}
+
+func InitializeTestInfrastructure(ctx context.Context) (infrastructure.Infrastructure, error) {
+	infrastructure, err := infrastructure.NewInfrastructureInteractor()
 	if err != nil {
-		return nil, fmt.Errorf("can't instantiate service : %w", err)
+		return nil, err
 	}
 
-	return i, nil
+	return infrastructure, nil
 }
 
 func composeInValidUserPayload(t *testing.T) *dto.SignUpInput {
@@ -216,7 +207,7 @@ func CreateTestRole(t *testing.T, roleName string) (*dto.RoleOutput, error) {
 
 	validPayload := composeValidRolePayload(t, roleName)
 
-	role, err := testInteractor.Role.CreateUnauthorizedRole(ctx, *validPayload)
+	role, err := testInteractor.CreateUnauthorizedRole(ctx, *validPayload)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +218,7 @@ func CreateTestRole(t *testing.T, roleName string) (*dto.RoleOutput, error) {
 func AssignTestRole(t *testing.T, profileID, roleID string) (bool, error) {
 	ctx := getTestAuthenticatedContext(t)
 
-	_, err := testInteractor.Role.AssignRole(ctx, profileID, roleID)
+	_, err := testInteractor.AssignRole(ctx, profileID, roleID)
 	if err != nil {
 		return false, err
 	}
@@ -238,12 +229,12 @@ func AssignTestRole(t *testing.T, profileID, roleID string) (bool, error) {
 func RemoveTestRole(t *testing.T, name string) (bool, error) {
 	ctx := getTestAuthenticatedContext(t)
 
-	role, err := testInteractor.Role.GetRoleByName(ctx, testRoleName)
+	role, err := testInteractor.GetRoleByName(ctx, testRoleName)
 	if err != nil {
 		return false, err
 	}
 
-	_, err = testInteractor.Role.DeleteRole(ctx, role.ID)
+	_, err = testInteractor.DeleteRole(ctx, role.ID)
 	if err != nil {
 		return false, err
 	}
@@ -368,7 +359,7 @@ func TestRemoveTestUserByPhone(t *testing.T) {
 func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, error) {
 	infrastructure, err := infrastructure.NewInfrastructureInteractor()
 	if err != nil {
-		t.Error("failed to setup signup usecase")
+		return nil, err
 	}
 	ctx := context.Background()
 	testAppID := uuid.New().String()
@@ -381,9 +372,9 @@ func getTestUserCredentials(t *testing.T) (*profileutils.UserResponse, error) {
 	phone := interserviceclient.TestUserPhoneNumber
 	pin := testPIN
 	flavour := feedlib.FlavourPro
-	userResponse, err := testInteractor.Login.LoginByPhone(ctx, phone, pin, flavour)
+	userResponse, err := testInteractor.LoginByPhone(ctx, phone, pin, flavour)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get role by name: %v", err)
+		return nil, fmt.Errorf("unable to get test user credentials: %v", err)
 	}
 
 	return userResponse, nil
@@ -395,7 +386,7 @@ func getRoleByName(t *testing.T, name string) (*dto.RoleOutput, error) {
 	phone := interserviceclient.TestUserPhoneNumber
 	pin := testPIN
 	flavour := feedlib.FlavourPro
-	userResponse, err := testInteractor.Login.LoginByPhone(ctx, phone, pin, flavour)
+	userResponse, err := testInteractor.LoginByPhone(ctx, phone, pin, flavour)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get role by name: %v", err)
 	}
@@ -407,7 +398,7 @@ func getRoleByName(t *testing.T, name string) (*dto.RoleOutput, error) {
 		authCred,
 	)
 
-	role, err := testInteractor.Role.GetRoleByName(authenticatedContext, name)
+	role, err := testInteractor.GetRoleByName(authenticatedContext, name)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get role by name: %v", err)
 	}
@@ -500,7 +491,15 @@ func TestMain(m *testing.M) {
 
 	fsc, _ := initializeAcceptanceTestFirebaseClient(ctx)
 
-	i, err := InitializeTestService(ctx)
+	infra, err := InitializeTestInfrastructure(ctx)
+	if err != nil {
+		log.Printf("unable to initialize test infrastructure: %v", err)
+		return
+	}
+
+	testInfra = infra
+
+	i, err := InitializeTestService(ctx, infra)
 	if err != nil {
 		log.Printf("unable to initialize test service: %v", err)
 		return
