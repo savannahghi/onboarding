@@ -94,7 +94,7 @@ func TestSurveyUseCasesImpl_RecordPostVisitSurvey(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "8716-7e2aead29f2c", nil
 				}
-				fakeRepo.RecordPostVisitSurveyFn = func(ctx context.Context, input dto.PostVisitSurveyInput, UID string) error {
+				fakeInfraRepo.RecordPostVisitSurveyFn = func(ctx context.Context, input dto.PostVisitSurveyInput, UID string) error {
 					return nil
 				}
 			}
@@ -103,12 +103,12 @@ func TestSurveyUseCasesImpl_RecordPostVisitSurvey(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "8716-7e2aead29f2c", nil
 				}
-				fakeRepo.RecordPostVisitSurveyFn = func(ctx context.Context, input dto.PostVisitSurveyInput, UID string) error {
+				fakeInfraRepo.RecordPostVisitSurveyFn = func(ctx context.Context, input dto.PostVisitSurveyInput, UID string) error {
 					return fmt.Errorf("unable to record post visit survey")
 				}
 			}
 
-			got, err := i.Survey.RecordPostVisitSurvey(tt.args.ctx, tt.args.input)
+			got, err := i.RecordPostVisitSurvey(tt.args.ctx, tt.args.input)
 
 			if tt.wantErr {
 				if err == nil {

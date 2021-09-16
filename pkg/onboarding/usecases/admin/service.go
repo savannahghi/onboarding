@@ -45,7 +45,7 @@ type Service struct {
 	baseExt extension.BaseExtension
 }
 
-// NewService initializes a valid OTP service
+// NewService returns admin service
 func NewService(ext extension.BaseExtension) *Service {
 	return &Service{
 		baseExt: ext,

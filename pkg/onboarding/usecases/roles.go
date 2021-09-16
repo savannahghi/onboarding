@@ -112,7 +112,7 @@ func (r *RoleUseCaseImpl) CreateRole(
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanCreateRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanCreateRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -123,13 +123,13 @@ func (r *RoleUseCaseImpl) CreateRole(
 		)
 	}
 
-	userProfile, err := r.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
+	userProfile, err := r.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
-	role, err := r.infrastructure.CreateRole(ctx, userProfile.ID, input)
+	role, err := r.infrastructure.Database.CreateRole(ctx, userProfile.ID, input)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -171,7 +171,7 @@ func (r *RoleUseCaseImpl) CreateUnauthorizedRole(
 		return nil, err
 	}
 
-	userProfile, err := r.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
+	userProfile, err := r.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -179,11 +179,11 @@ func (r *RoleUseCaseImpl) CreateUnauthorizedRole(
 
 	var role *profileutils.Role
 
-	role, err = r.infrastructure.CreateRole(ctx, userProfile.ID, input)
+	role, err = r.infrastructure.Database.CreateRole(ctx, userProfile.ID, input)
 	if err != nil {
 		// check if error is from existing role
 		if strings.Contains(err.Error(), "role with similar name exists") {
-			existing, err := r.infrastructure.GetRoleByName(ctx, input.Name)
+			existing, err := r.infrastructure.Database.GetRoleByName(ctx, input.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -191,7 +191,7 @@ func (r *RoleUseCaseImpl) CreateUnauthorizedRole(
 			// change the scopes
 			existing.Scopes = input.Scopes
 
-			role, err = r.infrastructure.UpdateRoleDetails(ctx, userProfile.ID, *existing)
+			role, err = r.infrastructure.Database.UpdateRoleDetails(ctx, userProfile.ID, *existing)
 			if err != nil {
 				utils.RecordSpanError(span, err)
 				return nil, err
@@ -234,7 +234,7 @@ func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, e
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanViewRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanViewRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -245,7 +245,7 @@ func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, e
 		)
 	}
 
-	roles, err := r.infrastructure.GetAllRoles(ctx)
+	roles, err := r.infrastructure.Database.GetAllRoles(ctx)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -259,7 +259,7 @@ func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, e
 			return nil, err
 		}
 
-		users, err := r.infrastructure.GetUserProfilesByRoleID(ctx, role.ID)
+		users, err := r.infrastructure.Database.GetUserProfilesByRoleID(ctx, role.ID)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			return nil, err
@@ -295,7 +295,7 @@ func (r *RoleUseCaseImpl) FindRoleByName(
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanViewRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanViewRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -308,7 +308,7 @@ func (r *RoleUseCaseImpl) FindRoleByName(
 
 	roleOutput := []*dto.RoleOutput{}
 
-	roles, err := r.infrastructure.GetAllRoles(ctx)
+	roles, err := r.infrastructure.Database.GetAllRoles(ctx)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -347,7 +347,7 @@ func (r *RoleUseCaseImpl) DeleteRole(ctx context.Context, roleID string) (bool, 
 		return false, err
 	}
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
@@ -358,7 +358,7 @@ func (r *RoleUseCaseImpl) DeleteRole(ctx context.Context, roleID string) (bool, 
 		)
 	}
 
-	success, err := r.infrastructure.DeleteRole(ctx, roleID)
+	success, err := r.infrastructure.Database.DeleteRole(ctx, roleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
@@ -373,7 +373,7 @@ func (r *RoleUseCaseImpl) UnauthorizedDeleteRole(ctx context.Context, roleID str
 	ctx, span := tracer.Start(ctx, "UnauthorizedDeleteRole")
 	defer span.End()
 
-	role, err := r.infrastructure.GetRoleByID(ctx, roleID)
+	role, err := r.infrastructure.Database.GetRoleByID(ctx, roleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
@@ -383,7 +383,7 @@ func (r *RoleUseCaseImpl) UnauthorizedDeleteRole(ctx context.Context, roleID str
 		return false, fmt.Errorf("only test roles can be removed")
 	}
 
-	success, err := r.infrastructure.DeleteRole(ctx, roleID)
+	success, err := r.infrastructure.Database.DeleteRole(ctx, roleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
@@ -433,7 +433,7 @@ func (r *RoleUseCaseImpl) AddPermissionsToRole(
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -444,7 +444,7 @@ func (r *RoleUseCaseImpl) AddPermissionsToRole(
 		)
 	}
 
-	role, err := r.infrastructure.GetRoleByID(ctx, input.RoleID)
+	role, err := r.infrastructure.Database.GetRoleByID(ctx, input.RoleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -462,14 +462,14 @@ func (r *RoleUseCaseImpl) AddPermissionsToRole(
 		}
 	}
 
-	userProfile, err := r.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
+	userProfile, err := r.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
 	// save role to database
-	updatedRole, err := r.infrastructure.UpdateRoleDetails(ctx, userProfile.ID, *role)
+	updatedRole, err := r.infrastructure.Database.UpdateRoleDetails(ctx, userProfile.ID, *role)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -509,7 +509,7 @@ func (r *RoleUseCaseImpl) RevokeRolePermission(
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -520,7 +520,7 @@ func (r *RoleUseCaseImpl) RevokeRolePermission(
 		)
 	}
 
-	role, err := r.infrastructure.GetRoleByID(ctx, input.RoleID)
+	role, err := r.infrastructure.Database.GetRoleByID(ctx, input.RoleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -538,14 +538,14 @@ func (r *RoleUseCaseImpl) RevokeRolePermission(
 
 	role.Scopes = newScopes
 
-	userProfile, err := r.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
+	userProfile, err := r.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
 	// save role to database
-	updatedRole, err := r.infrastructure.UpdateRoleDetails(ctx, userProfile.ID, *role)
+	updatedRole, err := r.infrastructure.Database.UpdateRoleDetails(ctx, userProfile.ID, *role)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -579,13 +579,13 @@ func (r *RoleUseCaseImpl) AssignRole(
 	ctx, span := tracer.Start(ctx, "AssignRole")
 	defer span.End()
 
-	role, err := r.infrastructure.GetRoleByID(ctx, roleID)
+	role, err := r.infrastructure.Database.GetRoleByID(ctx, roleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
 	}
 
-	profile, err := r.infrastructure.GetUserProfileByID(ctx, userID, false)
+	profile, err := r.infrastructure.Database.GetUserProfileByID(ctx, userID, false)
 	if err != nil {
 		return false, err
 	}
@@ -600,7 +600,7 @@ func (r *RoleUseCaseImpl) AssignRole(
 
 	updated := append(profile.Roles, roleID)
 
-	err = r.infrastructure.UpdateUserRoleIDs(ctx, profile.ID, updated)
+	err = r.infrastructure.Database.UpdateUserRoleIDs(ctx, profile.ID, updated)
 	if err != nil {
 		return false, err
 	}
@@ -626,7 +626,7 @@ func (r *RoleUseCaseImpl) RevokeRole(
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanAssignRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanAssignRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
@@ -637,13 +637,13 @@ func (r *RoleUseCaseImpl) RevokeRole(
 		)
 	}
 
-	role, err := r.infrastructure.GetRoleByID(ctx, roleID)
+	role, err := r.infrastructure.Database.GetRoleByID(ctx, roleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
 	}
 
-	profile, err := r.infrastructure.GetUserProfileByID(ctx, userID, false)
+	profile, err := r.infrastructure.Database.GetUserProfileByID(ctx, userID, false)
 	if err != nil {
 		return false, err
 	}
@@ -671,7 +671,7 @@ func (r *RoleUseCaseImpl) RevokeRole(
 		}
 	}
 
-	err = r.infrastructure.UpdateUserRoleIDs(ctx, profile.ID, updated)
+	err = r.infrastructure.Database.UpdateUserRoleIDs(ctx, profile.ID, updated)
 	if err != nil {
 		return false, err
 	}
@@ -683,11 +683,11 @@ func (r *RoleUseCaseImpl) RevokeRole(
 		Reason:    reason,
 	}
 	// logged in user profile
-	p, err := r.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
+	p, err := r.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		return false, err
 	}
-	err = r.infrastructure.SaveRoleRevocation(ctx, p.ID, log)
+	err = r.infrastructure.Database.SaveRoleRevocation(ctx, p.ID, log)
 	if err != nil {
 		return false, err
 	}
@@ -710,7 +710,7 @@ func (r *RoleUseCaseImpl) ActivateRole(
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -721,13 +721,13 @@ func (r *RoleUseCaseImpl) ActivateRole(
 		)
 	}
 
-	role, err := r.infrastructure.GetRoleByID(ctx, roleID)
+	role, err := r.infrastructure.Database.GetRoleByID(ctx, roleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
-	userProfile, err := r.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
+	userProfile, err := r.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -736,7 +736,7 @@ func (r *RoleUseCaseImpl) ActivateRole(
 	role.Active = true
 
 	// save role to database
-	updatedRole, err := r.infrastructure.UpdateRoleDetails(ctx, userProfile.ID, *role)
+	updatedRole, err := r.infrastructure.Database.UpdateRoleDetails(ctx, userProfile.ID, *role)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -776,7 +776,7 @@ func (r *RoleUseCaseImpl) DeactivateRole(
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -787,13 +787,13 @@ func (r *RoleUseCaseImpl) DeactivateRole(
 		)
 	}
 
-	role, err := r.infrastructure.GetRoleByID(ctx, roleID)
+	role, err := r.infrastructure.Database.GetRoleByID(ctx, roleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
-	userProfile, err := r.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
+	userProfile, err := r.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -802,7 +802,7 @@ func (r *RoleUseCaseImpl) DeactivateRole(
 	role.Active = false
 
 	// save role to database
-	updatedRole, err := r.infrastructure.UpdateRoleDetails(ctx, userProfile.ID, *role)
+	updatedRole, err := r.infrastructure.Database.UpdateRoleDetails(ctx, userProfile.ID, *role)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -842,7 +842,7 @@ func (r *RoleUseCaseImpl) UpdateRolePermissions(
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanEditRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -853,7 +853,7 @@ func (r *RoleUseCaseImpl) UpdateRolePermissions(
 		)
 	}
 
-	role, err := r.infrastructure.GetRoleByID(ctx, input.RoleID)
+	role, err := r.infrastructure.Database.GetRoleByID(ctx, input.RoleID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -862,14 +862,14 @@ func (r *RoleUseCaseImpl) UpdateRolePermissions(
 	// new scopes
 	role.Scopes = input.Scopes
 
-	userProfile, err := r.infrastructure.GetUserProfileByUID(ctx, user.UID, false)
+	userProfile, err := r.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
 	// save role to database
-	updatedRole, err := r.infrastructure.UpdateRoleDetails(ctx, userProfile.ID, *role)
+	updatedRole, err := r.infrastructure.Database.UpdateRoleDetails(ctx, userProfile.ID, *role)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -904,7 +904,7 @@ func (r *RoleUseCaseImpl) CheckPermission(
 	ctx, span := tracer.Start(ctx, "CheckPermission")
 	defer span.End()
 
-	return r.infrastructure.CheckIfUserHasPermission(ctx, uid, permission)
+	return r.infrastructure.Database.CheckIfUserHasPermission(ctx, uid, permission)
 }
 
 // GetRoleByName retrieves a role with the matching name
@@ -920,7 +920,7 @@ func (r *RoleUseCaseImpl) GetRoleByName(ctx context.Context, name string) (*dto.
 	}
 
 	// Check logged in user has the right permissions
-	allowed, err := r.infrastructure.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanViewRole)
+	allowed, err := r.infrastructure.Database.CheckIfUserHasPermission(ctx, user.UID, profileutils.CanViewRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -931,7 +931,7 @@ func (r *RoleUseCaseImpl) GetRoleByName(ctx context.Context, name string) (*dto.
 		)
 	}
 
-	role, err := r.infrastructure.GetRoleByName(ctx, name)
+	role, err := r.infrastructure.Database.GetRoleByName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -960,7 +960,7 @@ func (r RoleUseCaseImpl) GetRolesByIDs(ctx context.Context, roleIDs []string) ([
 	ctx, span := tracer.Start(ctx, "GetRolesByIDs")
 	defer span.End()
 
-	roles, err := r.infrastructure.GetRolesByIDs(ctx, roleIDs)
+	roles, err := r.infrastructure.Database.GetRolesByIDs(ctx, roleIDs)
 	if err != nil {
 		return nil, err
 	}

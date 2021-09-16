@@ -76,14 +76,14 @@ func TestSignUpUseCasesImpl_RetirePushToken(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:         "f4f39af7--91bd-42b3af315a4e",
 						PushTokens: []string{"token12", "token23", "token34"},
 					}, nil
 				}
 
-				fakeRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
+				fakeInfraRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
 					return nil
 				}
 			}
@@ -97,14 +97,14 @@ func TestSignUpUseCasesImpl_RetirePushToken(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:         "f4f39af7--91bd-42b3af315a4e",
 						PushTokens: []string{"token12", "token23", "token34"},
 					}, nil
 				}
 
-				fakeRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
+				fakeInfraRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
 					return fmt.Errorf("failed to retire push token")
 				}
 			}
@@ -118,19 +118,19 @@ func TestSignUpUseCasesImpl_RetirePushToken(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:         "f4f39af7--91bd-42b3af315a4e",
 						PushTokens: []string{"token12", "token23", "token34"},
 					}, nil
 				}
 
-				fakeRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
+				fakeInfraRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
 					return fmt.Errorf("failed to retire push token")
 				}
 			}
 
-			got, err := i.Signup.RetirePushToken(tt.args.ctx, tt.args.token)
+			got, err := i.RetirePushToken(tt.args.ctx, tt.args.token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"SignUpUseCasesImpl.RetirePushToken() error = %v, wantErr %v",
@@ -256,7 +256,7 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					return true, nil
 				}
 
-				fakeRepo.GetOrCreatePhoneNumberUserFn = func(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
+				fakeInfraRepo.GetOrCreatePhoneNumberUserFn = func(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
 					return &dto.CreatedUserResponse{
 						UID:         "5cf354a2-1d3e-400d-8716-7e2aead29f2c",
 						DisplayName: "John Doe",
@@ -265,14 +265,14 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.CreateUserProfileFn = func(ctx context.Context, phoneNumber, uid string) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.CreateUserProfileFn = func(ctx context.Context, phoneNumber, uid string) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "5cf354a2-1d3e-400d-8716-7e2aead29f2c",
 						PrimaryPhone: &phone,
 					}, nil
 				}
 
-				fakeRepo.GenerateAuthCredentialsFn = func(ctx context.Context, phone string, profile *profileutils.UserProfile) (*profileutils.AuthCredentialResponse, error) {
+				fakeInfraRepo.GenerateAuthCredentialsFn = func(ctx context.Context, phone string, profile *profileutils.UserProfile) (*profileutils.AuthCredentialResponse, error) {
 					customToken := uuid.New().String()
 					idToken := uuid.New().String()
 					refreshToken := uuid.New().String()
@@ -289,7 +289,7 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
@@ -300,11 +300,11 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					return "salt", "password"
 				}
 
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return true, nil
 				}
 				// Finished mocking SetUserPin
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string,
+				fakeInfraRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string,
 					allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return &profileutils.UserCommunicationsSetting{
 						ID:            uuid.New().String(),
@@ -315,7 +315,7 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.GetRolesByIDsFn = func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error) {
+				fakeInfraRepo.GetRolesByIDsFn = func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error) {
 					roles := []profileutils.Role{}
 					return &roles, nil
 				}
@@ -338,7 +338,7 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					return true, nil
 				}
 
-				fakeRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
+				fakeInfraRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
 					return true, nil
 				}
 			}
@@ -348,7 +348,7 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					return true, nil
 				}
 
-				fakeRepo.GetOrCreatePhoneNumberUserFn = func(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
+				fakeInfraRepo.GetOrCreatePhoneNumberUserFn = func(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
 					return &dto.CreatedUserResponse{
 						UID:         "5cf354a2-1d3e-400d-8716-7e2aead29f2c",
 						DisplayName: "John Doe",
@@ -357,7 +357,7 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.CreateUserProfileFn = func(ctx context.Context, phoneNumber, uid string) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.CreateUserProfileFn = func(ctx context.Context, phoneNumber, uid string) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("fail to create user profile")
 				}
 			}
@@ -367,7 +367,7 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					return true, nil
 				}
 
-				fakeRepo.GetOrCreatePhoneNumberUserFn = func(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
+				fakeInfraRepo.GetOrCreatePhoneNumberUserFn = func(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
 					return &dto.CreatedUserResponse{
 						UID:         "5cf354a2-1d3e-400d-8716-7e2aead29f2c",
 						DisplayName: "John Doe",
@@ -376,13 +376,13 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.CreateUserProfileFn = func(ctx context.Context, phoneNumber, uid string) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.CreateUserProfileFn = func(ctx context.Context, phoneNumber, uid string) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: "5cf354a2-1d3e-400d-8716-7e2aead29f2c",
 					}, nil
 				}
 
-				fakeRepo.GenerateAuthCredentialsFn = func(ctx context.Context, phone string, profile *profileutils.UserProfile) (*profileutils.AuthCredentialResponse, error) {
+				fakeInfraRepo.GenerateAuthCredentialsFn = func(ctx context.Context, phone string, profile *profileutils.UserProfile) (*profileutils.AuthCredentialResponse, error) {
 					return nil, fmt.Errorf("failed to generate auth credentials")
 				}
 			}
@@ -392,7 +392,7 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					return true, nil
 				}
 
-				fakeRepo.GetOrCreatePhoneNumberUserFn = func(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
+				fakeInfraRepo.GetOrCreatePhoneNumberUserFn = func(ctx context.Context, phone string) (*dto.CreatedUserResponse, error) {
 					return &dto.CreatedUserResponse{
 						UID:         "5cf354a2-1d3e-400d-8716-7e2aead29f2c",
 						DisplayName: "John Doe",
@@ -401,14 +401,14 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.CreateUserProfileFn = func(ctx context.Context, phoneNumber, uid string) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.CreateUserProfileFn = func(ctx context.Context, phoneNumber, uid string) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "5cf354a2-1d3e-400d-8716-7e2aead29f2c",
 						PrimaryPhone: &phone,
 					}, nil
 				}
 
-				fakeRepo.GenerateAuthCredentialsFn = func(ctx context.Context, phone string, profile *profileutils.UserProfile) (*profileutils.AuthCredentialResponse, error) {
+				fakeInfraRepo.GenerateAuthCredentialsFn = func(ctx context.Context, phone string, profile *profileutils.UserProfile) (*profileutils.AuthCredentialResponse, error) {
 					customToken := uuid.New().String()
 					idToken := uuid.New().String()
 					refreshToken := uuid.New().String()
@@ -425,7 +425,7 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
@@ -436,12 +436,12 @@ func TestSignUpUseCasesImpl_CreateUserByPhone(t *testing.T) {
 					return "salt", "password"
 				}
 
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return false, fmt.Errorf("failed to save user pin")
 				}
 			}
 
-			_, err := i.Signup.CreateUserByPhone(tt.args.ctx, tt.args.input)
+			_, err := i.CreateUserByPhone(tt.args.ctx, tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"SignUpUseCasesImpl.CreateUserByPhone() error = %v, wantErr %v",
@@ -535,7 +535,7 @@ func TestSignUpUseCasesImpl_VerifyPhoneNumber(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
+				fakeInfraRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
 					return false, nil
 				}
 
@@ -556,7 +556,7 @@ func TestSignUpUseCasesImpl_VerifyPhoneNumber(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
+				fakeInfraRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
 					return true, nil
 				}
 			}
@@ -567,7 +567,7 @@ func TestSignUpUseCasesImpl_VerifyPhoneNumber(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
+				fakeInfraRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
 					return false, fmt.Errorf("unable to check if phone exists")
 				}
 			}
@@ -578,7 +578,7 @@ func TestSignUpUseCasesImpl_VerifyPhoneNumber(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
+				fakeInfraRepo.CheckIfPhoneNumberExistsFn = func(ctx context.Context, phone string) (bool, error) {
 					return false, nil
 				}
 
@@ -587,7 +587,7 @@ func TestSignUpUseCasesImpl_VerifyPhoneNumber(t *testing.T) {
 				}
 			}
 
-			_, err := i.Signup.VerifyPhoneNumber(tt.args.ctx, tt.args.phone, tt.args.appID)
+			_, err := i.VerifyPhoneNumber(tt.args.ctx, tt.args.phone, tt.args.appID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"SignUpUseCasesImpl.VerifyPhoneNumber() error = %v, wantErr %v",
@@ -666,7 +666,7 @@ func TestSignUpUseCasesImpl_RemoveUserByPhoneNumber(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.PurgeUserByPhoneNumberFn = func(ctx context.Context, phone string) error {
+				fakeInfraRepo.PurgeUserByPhoneNumberFn = func(ctx context.Context, phone string) error {
 					return nil
 				}
 			}
@@ -677,7 +677,7 @@ func TestSignUpUseCasesImpl_RemoveUserByPhoneNumber(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.PurgeUserByPhoneNumberFn = func(ctx context.Context, phone string) error {
+				fakeInfraRepo.PurgeUserByPhoneNumberFn = func(ctx context.Context, phone string) error {
 					return fmt.Errorf("failed to purge user by phonenumber")
 				}
 			}
@@ -688,7 +688,7 @@ func TestSignUpUseCasesImpl_RemoveUserByPhoneNumber(t *testing.T) {
 				}
 			}
 
-			err := i.Signup.RemoveUserByPhoneNumber(tt.args.ctx, tt.args.phone)
+			err := i.RemoveUserByPhoneNumber(tt.args.ctx, tt.args.phone)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"SignUpUseCasesImpl.RemoveUserByPhoneNumber() error = %v, wantErr %v",
@@ -781,7 +781,7 @@ func TestSignUpUseCasesImpl_SetPhoneAsPrimary(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "ABCDE",
 						PrimaryPhone: &phoneNumber,
@@ -791,11 +791,11 @@ func TestSignUpUseCasesImpl_SetPhoneAsPrimary(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.UpdatePrimaryPhoneNumberFn = func(ctx context.Context, id string, phoneNumber string) error {
+				fakeInfraRepo.UpdatePrimaryPhoneNumberFn = func(ctx context.Context, id string, phoneNumber string) error {
 					return nil
 				}
 
-				fakeRepo.UpdateSecondaryPhoneNumbersFn = func(ctx context.Context, id string, phoneNumbers []string) error {
+				fakeInfraRepo.UpdateSecondaryPhoneNumbersFn = func(ctx context.Context, id string, phoneNumbers []string) error {
 					return nil
 				}
 			}
@@ -823,7 +823,7 @@ func TestSignUpUseCasesImpl_SetPhoneAsPrimary(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "ABCDE",
 						PrimaryPhone: &phoneNumber,
@@ -833,12 +833,12 @@ func TestSignUpUseCasesImpl_SetPhoneAsPrimary(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.UpdatePrimaryPhoneNumberFn = func(ctx context.Context, id string, phoneNumber string) error {
+				fakeInfraRepo.UpdatePrimaryPhoneNumberFn = func(ctx context.Context, id string, phoneNumber string) error {
 					return fmt.Errorf("failed to update primary phone")
 				}
 			}
 
-			got, err := i.Signup.SetPhoneAsPrimary(tt.args.ctx, tt.args.phone, tt.args.otp)
+			got, err := i.SetPhoneAsPrimary(tt.args.ctx, tt.args.phone, tt.args.otp)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"SignUpUseCasesImpl.SetPhoneAsPrimary() error = %v, wantErr %v",
@@ -930,19 +930,19 @@ func TestSignUpUseCasesImpl_RegisterPushToken(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:        "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
 						Suspended: false,
 					}, nil
 				}
-				fakeRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
+				fakeInfraRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
 					return nil
 				}
 			}
 
 			if tt.name == "invalid:nil_token" {
-				fakeRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
+				fakeInfraRepo.UpdatePushTokensFn = func(ctx context.Context, id string, pushToken []string) error {
 					return fmt.Errorf("failed to register push token")
 				}
 			}
@@ -951,7 +951,7 @@ func TestSignUpUseCasesImpl_RegisterPushToken(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("failed to get user profile")
 				}
 			}
@@ -962,7 +962,7 @@ func TestSignUpUseCasesImpl_RegisterPushToken(t *testing.T) {
 				}
 			}
 
-			got, err := i.Signup.RegisterPushToken(tt.args.ctx, tt.args.token)
+			got, err := i.RegisterPushToken(tt.args.ctx, tt.args.token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"SignUpUseCasesImpl.RegisterPushToken() error = %v, wantErr %v",
@@ -1028,7 +1028,7 @@ func TestSignUpUseCasesImpl_CompleteSignup(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.New().String(), nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.New().String(),
 						UserBioData: profileutils.BioData{
@@ -1046,7 +1046,7 @@ func TestSignUpUseCasesImpl_CompleteSignup(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.New().String(),
 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
@@ -1082,7 +1082,7 @@ func TestSignUpUseCasesImpl_CompleteSignup(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.New().String(), nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("failed to get user profile")
 				}
 			}
@@ -1097,7 +1097,7 @@ func TestSignUpUseCasesImpl_CompleteSignup(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.New().String(), nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.New().String(),
 					}, nil
@@ -1107,7 +1107,7 @@ func TestSignUpUseCasesImpl_CompleteSignup(t *testing.T) {
 					return uuid.New().String(), nil
 				}
 
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.New().String(),
 						VerifiedIdentifiers: []profileutils.VerifiedIdentifier{
@@ -1126,7 +1126,7 @@ func TestSignUpUseCasesImpl_CompleteSignup(t *testing.T) {
 				}
 			}
 
-			got, err := i.Signup.CompleteSignup(tt.args.ctx, tt.args.flavour)
+			got, err := i.CompleteSignup(tt.args.ctx, tt.args.flavour)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"SignUpUseCasesImpl.CompleteSignup() error = %v, wantErr %v",
@@ -1207,7 +1207,7 @@ func TestSignUpUseCasesImpl_GetUserRecoveryPhoneNumbers(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
@@ -1230,11 +1230,11 @@ func TestSignUpUseCasesImpl_GetUserRecoveryPhoneNumbers(t *testing.T) {
 					return &phone, nil
 				}
 
-				fakeRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("failed to get user profile")
 				}
 			}
-			got, err := i.Signup.GetUserRecoveryPhoneNumbers(tt.args.ctx, tt.args.phone)
+			got, err := i.GetUserRecoveryPhoneNumbers(tt.args.ctx, tt.args.phone)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"SignUpUseCasesImpl.GetUserRecoveryPhoneNumbers() error = %v, wantErr %v",
@@ -1355,7 +1355,7 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           uuid.New().String(),
 						PrimaryPhone: &phone,
@@ -1365,14 +1365,14 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           uuid.New().String(),
 						PrimaryPhone: &phone,
 					}, nil
 				}
 
-				fakeRepo.UpdatePhotoUploadIDFn = func(ctx context.Context, id string, uploadID string) error {
+				fakeInfraRepo.UpdatePhotoUploadIDFn = func(ctx context.Context, id string, uploadID string) error {
 					return nil
 				}
 
@@ -1385,14 +1385,14 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 					}, nil
 				}
 
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspend bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspend bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "f4f39af7-5b64-4c2f-91bd-42b3af315a4e",
 						PrimaryPhone: &phone,
 					}, nil
 				}
 
-				fakeRepo.UpdateBioDataFn = func(ctx context.Context, id string, data profileutils.BioData) error {
+				fakeInfraRepo.UpdateBioDataFn = func(ctx context.Context, id string, data profileutils.BioData) error {
 					return nil
 				}
 
@@ -1414,7 +1414,7 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.New().String(),
 					}, nil
@@ -1423,13 +1423,13 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.New().String(),
 					}, nil
 				}
 
-				fakeRepo.UpdatePhotoUploadIDFn = func(ctx context.Context, id string, uploadID string) error {
+				fakeInfraRepo.UpdatePhotoUploadIDFn = func(ctx context.Context, id string, uploadID string) error {
 					return nil
 				}
 
@@ -1437,13 +1437,13 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.New().String(),
 					}, nil
 				}
 
-				fakeRepo.UpdateBioDataFn = func(ctx context.Context, id string, data profileutils.BioData) error {
+				fakeInfraRepo.UpdateBioDataFn = func(ctx context.Context, id string, data profileutils.BioData) error {
 					return fmt.Errorf("failed to update biodata")
 				}
 			}
@@ -1452,7 +1452,7 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.New().String(),
 					}, nil
@@ -1461,13 +1461,13 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.New().String(),
 					}, nil
 				}
 
-				fakeRepo.UpdatePhotoUploadIDFn = func(ctx context.Context, id string, uploadID string) error {
+				fakeInfraRepo.UpdatePhotoUploadIDFn = func(ctx context.Context, id string, uploadID string) error {
 					return fmt.Errorf("failed to update the photo upload ID")
 				}
 			}
@@ -1476,7 +1476,7 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return "5cf354a2-1d3e-400d-8716-7e2aead29f2c", nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("failed to get a user profile")
 				}
 			}
@@ -1487,7 +1487,7 @@ func TestSignUpUseCasesImpl_UpdateUserProfile(t *testing.T) {
 				}
 			}
 
-			got, err := i.Signup.UpdateUserProfile(tt.args.ctx, tt.args.input)
+			got, err := i.UpdateUserProfile(tt.args.ctx, tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"SignUpUseCasesImpl.UpdateUserProfile() error = %v, wantErr %v",
@@ -1627,7 +1627,7 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.NewString(), nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
 				}
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
@@ -1639,13 +1639,13 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.NewString(), nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
 				}
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					return &phoneNumber, nil
 				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("unable to create user profile")
 				}
 			}
@@ -1653,19 +1653,19 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.NewString(), nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
 				}
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					return &phoneNumber, nil
 				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           uuid.NewString(),
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
+				fakeInfraRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return nil, fmt.Errorf("unable to create communication settings")
 				}
 			}
@@ -1674,19 +1674,19 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.NewString(), nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
 				}
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					return &phoneNumber, nil
 				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           uuid.NewString(),
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
+				fakeInfraRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return &profileutils.UserCommunicationsSetting{}, nil
 				}
 				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
@@ -1695,7 +1695,7 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
 					return "pin", "sha"
 				}
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return false, fmt.Errorf("unable to create otp")
 				}
 			}
@@ -1704,19 +1704,19 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				fakeBaseExt.GetLoggedInUserUIDFn = func(ctx context.Context) (string, error) {
 					return uuid.NewString(), nil
 				}
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{ID: uuid.NewString()}, nil
 				}
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					return &phoneNumber, nil
 				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           uuid.NewString(),
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
+				fakeInfraRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return &profileutils.UserCommunicationsSetting{}, nil
 				}
 				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
@@ -1725,7 +1725,7 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
 					return "pin", "sha"
 				}
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return true, nil
 				}
 				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
@@ -1738,13 +1738,13 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 					return uuid.NewString(), nil
 				}
 
-				fakeRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByUIDFn = func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("unable to get user profile")
 				}
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					return &phoneNumber, nil
 				}
-				fakeRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.CreateDetailedUserProfileFn = func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID: uuid.NewString(),
 						UserBioData: profileutils.BioData{
@@ -1755,7 +1755,7 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 						PrimaryEmailAddress: &email,
 					}, nil
 				}
-				fakeRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
+				fakeInfraRepo.SetUserCommunicationsSettingsFn = func(ctx context.Context, profileID string, allowWhatsApp, allowTextSms, allowPush, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error) {
 					return &profileutils.UserCommunicationsSetting{}, nil
 				}
 				fakePinExt.GenerateTempPINFn = func(ctx context.Context) (string, error) {
@@ -1764,7 +1764,7 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
 					return "pin", "sha"
 				}
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return true, nil
 				}
 				fakeEngagementSvs.SendSMSFn = func(ctx context.Context, phoneNumbers []string, message string) error {
@@ -1772,7 +1772,7 @@ func TestSignUpUseCasesImpl_RegisterUser(t *testing.T) {
 				}
 			}
 
-			got, err := i.Signup.RegisterUser(tt.args.ctx, tt.args.input)
+			got, err := i.RegisterUser(tt.args.ctx, tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SignUpUseCasesImpl.RegisterUser() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -106,7 +106,7 @@ func (s *SignUpUseCasesImpl) VerifyPhoneNumber(
 		return nil, exceptions.CheckPhoneNumberExistError()
 	}
 	// generate and send otp to the phone number
-	otpResp, err := s.infrastructure.GenerateAndSendOTP(ctx, *phoneNumber, appID)
+	otpResp, err := s.infrastructure.Engagement.GenerateAndSendOTP(ctx, *phoneNumber, appID)
 
 	if err != nil {
 		utils.RecordSpanError(span, err)
@@ -130,7 +130,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
-	verified, err := s.infrastructure.VerifyOTP(
+	verified, err := s.infrastructure.Engagement.VerifyOTP(
 		ctx,
 		*userData.PhoneNumber,
 		*userData.OTP,
@@ -145,14 +145,14 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	}
 
 	// get or create user via their phone number
-	user, err := s.infrastructure.GetOrCreatePhoneNumberUser(ctx, *userData.PhoneNumber)
+	user, err := s.infrastructure.Database.GetOrCreatePhoneNumberUser(ctx, *userData.PhoneNumber)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
 	// create a user profile
-	profile, err := s.infrastructure.CreateUserProfile(
+	profile, err := s.infrastructure.Database.CreateUserProfile(
 		ctx,
 		*userData.PhoneNumber,
 		user.UID,
@@ -162,7 +162,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		return nil, exceptions.InternalServerError(err)
 	}
 	// generate auth credentials
-	auth, err := s.infrastructure.GenerateAuthCredentials(
+	auth, err := s.infrastructure.Database.GenerateAuthCredentials(
 		ctx,
 		*userData.PhoneNumber,
 		profile,
@@ -183,7 +183,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	}
 	// set the user default communications settings
 	defaultCommunicationSetting := true
-	comms, err := s.infrastructure.SetUserCommunicationsSettings(
+	comms, err := s.infrastructure.Database.SetUserCommunicationsSettings(
 		ctx,
 		profile.ID,
 		&defaultCommunicationSetting,
@@ -197,7 +197,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	}
 
 	// get navigation actions
-	roles, err := s.infrastructure.GetRolesByIDs(ctx, profile.Roles)
+	roles, err := s.infrastructure.Database.GetRolesByIDs(ctx, profile.Roles)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +327,7 @@ func (s *SignUpUseCasesImpl) GetUserRecoveryPhoneNumbers(
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	pr, err := s.infrastructure.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
+	pr, err := s.infrastructure.Database.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
@@ -384,7 +384,7 @@ func (s *SignUpUseCasesImpl) RemoveUserByPhoneNumber(ctx context.Context, phone 
 		utils.RecordSpanError(span, err)
 		return exceptions.NormalizeMSISDNError(err)
 	}
-	return s.infrastructure.PurgeUserByPhoneNumber(ctx, *phoneNumber)
+	return s.infrastructure.Database.PurgeUserByPhoneNumber(ctx, *phoneNumber)
 }
 
 // RegisterUser creates a new userprofile
@@ -400,7 +400,7 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 
 	// create a user profile
 	//make createdByID optional only if the profile of the creating user is found
-	profile, err := s.infrastructure.GetUserProfileByUID(ctx, uid, false)
+	profile, err := s.infrastructure.Database.GetUserProfileByUID(ctx, uid, false)
 	var profileID string
 	if err == nil {
 		profileID = profile.ID
@@ -427,7 +427,7 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 		Roles:       input.RoleIDs,
 	}
 
-	createdProfile, err := s.infrastructure.CreateDetailedUserProfile(ctx, *phoneNumber, userProfile)
+	createdProfile, err := s.infrastructure.Database.CreateDetailedUserProfile(ctx, *phoneNumber, userProfile)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -435,7 +435,7 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 
 	// set the user default communications settings
 	defaultCommunicationSetting := true
-	_, err = s.infrastructure.SetUserCommunicationsSettings(
+	_, err = s.infrastructure.Database.SetUserCommunicationsSettings(
 		ctx,
 		createdProfile.ID,
 		&defaultCommunicationSetting,
@@ -461,7 +461,7 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 
 	formartedMessage := fmt.Sprintf(*message, *input.FirstName, otp)
 
-	if err := s.infrastructure.SendSMS(ctx, []string{*phoneNumber}, formartedMessage); err != nil {
+	if err := s.infrastructure.Engagement.SendSMS(ctx, []string{*phoneNumber}, formartedMessage); err != nil {
 		return nil, fmt.Errorf("unable to send consumer registration message: %w", err)
 	}
 

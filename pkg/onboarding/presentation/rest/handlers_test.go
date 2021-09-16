@@ -23,19 +23,18 @@ import (
 
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
+	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/mock"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	pubsubmessagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/rest"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
-	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/repository/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 )
 
-var fakeRepo mockRepo.FakeOnboardingRepository
+var fakeRepo mockRepo.FakeInfrastructure
 var fakeEngagementSvs engagementMock.FakeServiceEngagement
 var fakeBaseExt extMock.FakeBaseExtensionImpl
 var fakePinExt extMock.PINExtensionImpl
@@ -50,31 +49,27 @@ func InitializeFakeInfrastructure() infrastructure.Infrastructure {
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
 
-	type InfrastructureMock struct {
-		database.Repository
-		engagement.ServiceEngagement
-		pubsubmessaging.ServicePubSub
+	return infrastructure.Infrastructure{
+		Database:   r,
+		Engagement: engagementSvc,
+		Pubsub:     ps,
 	}
-
-	return &InfrastructureMock{r, engagementSvc, ps}
-
 }
 
 // InitializeFakeOnboardingInteractor represents a fakeonboarding interactor
-func InitializeFakeOnboardingInteractor() (usecases.Usecases, error) {
+func InitializeFakeOnboardingInteractor() (usecases.Interactor, error) {
 	var r repository.OnboardingRepository = &fakeRepo
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
 	var ext extension.BaseExtension = &fakeBaseExt
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
 
-	type InfrastructureMock struct {
-		repository.OnboardingRepository
-		engagement.ServiceEngagement
-		pubsubmessaging.ServicePubSub
-	}
 	infra := func() infrastructure.Infrastructure {
-		return &InfrastructureMock{r, engagementSvc, ps}
+		return infrastructure.Infrastructure{
+			Database:   r,
+			Engagement: engagementSvc,
+			Pubsub:     ps,
+		}
 	}()
 
 	i := usecases.NewUsecasesInteractor(infra, ext, pinExt)
