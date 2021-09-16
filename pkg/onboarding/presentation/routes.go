@@ -18,7 +18,7 @@ func SharedRoutes(handlers rest.HandlersInterfaces, r *mux.Router) {
 }
 
 // SharedUnauthenticatedRoutes return REST routes shared by open/closed onboarding services
-func SharedUnauthenticatedRoutes(handlers rest.HandlersInterfaces, r *mux.Router) {
+func SharedUnauthenticatedRoutes(handlers rest.HandlersInterfaces, r *mux.Router) *mux.Router {
 	// Unauthenticated routes
 	r.Path("/switch_flagged_features").Methods(
 		http.MethodPost,
@@ -102,10 +102,12 @@ func SharedUnauthenticatedRoutes(handlers rest.HandlersInterfaces, r *mux.Router
 		http.MethodPost,
 		http.MethodOptions).
 		HandlerFunc(handlers.RemoveAdminPermsToUser())
+
+	return r
 }
 
 // SharedAuthenticatedRoutes return REST routes shared by open/closed onboarding services
-func SharedAuthenticatedRoutes(handlers rest.HandlersInterfaces, r *mux.Router) {
+func SharedAuthenticatedRoutes(handlers rest.HandlersInterfaces, r *mux.Router) *mux.Router {
 	fc := &firebasetools.FirebaseClient{}
 	firebaseApp, _ := fc.InitFirebase()
 
@@ -135,10 +137,12 @@ func SharedAuthenticatedRoutes(handlers rest.HandlersInterfaces, r *mux.Router) 
 		http.MethodOptions).
 		HandlerFunc(handlers.RemoveRoleToUser())
 
+	return r
+
 }
 
 // SharedAuthenticatedISCRoutes return ISC REST routes shared by open/closed onboarding services
-func SharedAuthenticatedISCRoutes(handlers rest.HandlersInterfaces, r *mux.Router) {
+func SharedAuthenticatedISCRoutes(handlers rest.HandlersInterfaces, r *mux.Router) *mux.Router {
 	// Interservice Authenticated routes
 	isc := r.PathPrefix("/internal").Subrouter()
 	isc.Use(interserviceclient.InterServiceAuthenticationMiddleware())
@@ -218,4 +222,6 @@ func SharedAuthenticatedISCRoutes(handlers rest.HandlersInterfaces, r *mux.Route
 		http.MethodPost,
 		http.MethodOptions).
 		HandlerFunc(handlers.RemoveRoleByName())
+
+	return r
 }
