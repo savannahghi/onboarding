@@ -2071,3 +2071,46 @@ func TestRemoveRoleToUser(t *testing.T) {
 		})
 	}
 }
+
+func TestFindUsersByPhone(t *testing.T) {
+	ctx := context.Background()
+	primaryPhone := interserviceclient.TestUserPhoneNumber
+	// clean up
+	_ = testUsecase.RemoveUserByPhoneNumber(ctx, primaryPhone)
+
+	otp, err := generateTestOTP(t, primaryPhone)
+	if err != nil {
+		t.Errorf("failed to generate test OTP: %v", err)
+		return
+	}
+	pin := "1234"
+
+	resp, err := testUsecase.CreateUserByPhone(
+		context.Background(),
+		&dto.SignUpInput{
+			PhoneNumber: &primaryPhone,
+			PIN:         &pin,
+			Flavour:     feedlib.FlavourConsumer,
+			OTP:         &otp.OTP,
+		},
+	)
+	if err != nil {
+		t.Errorf("failed to create a user by phone")
+		return
+	}
+
+	assert.Nil(t, err)
+	assert.NotNil(t, resp)
+	assert.NotNil(t, resp.Profile)
+	assert.NotNil(t, resp.Profile.UserName)
+
+	// find the created user by phone
+	users, err := testUsecase.FindUsersByPhone(ctx, primaryPhone)
+	assert.Nil(t, err)
+	assert.Equal(t, len(users), 1)
+
+	// find a user that does not exists
+	users, err = testUsecase.FindUsersByPhone(ctx, "07123")
+	assert.Nil(t, err)
+	assert.Equal(t, len(users), 0)
+}

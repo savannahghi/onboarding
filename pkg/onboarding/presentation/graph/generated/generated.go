@@ -181,6 +181,7 @@ type ComplexityRoot struct {
 		FetchUserNavigationActions    func(childComplexity int) int
 		FindRoleByName                func(childComplexity int, roleName *string) int
 		FindUserByPhone               func(childComplexity int, phoneNumber string) int
+		FindUsersByPhone              func(childComplexity int, phoneNumber string) int
 		GetAddresses                  func(childComplexity int) int
 		GetAllPermissions             func(childComplexity int) int
 		GetAllRoles                   func(childComplexity int) int
@@ -302,6 +303,7 @@ type QueryResolver interface {
 	FindRoleByName(ctx context.Context, roleName *string) ([]*dto.RoleOutput, error)
 	GetAllPermissions(ctx context.Context) ([]*profileutils.Permission, error)
 	FindUserByPhone(ctx context.Context, phoneNumber string) (*profileutils.UserProfile, error)
+	FindUsersByPhone(ctx context.Context, phoneNumber string) ([]*profileutils.UserProfile, error)
 	GetNavigationActions(ctx context.Context) (*dto.GroupedNavigationActions, error)
 }
 type UserProfileResolver interface {
@@ -1079,6 +1081,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.FindUserByPhone(childComplexity, args["phoneNumber"].(string)), true
 
+	case "Query.findUsersByPhone":
+		if e.complexity.Query.FindUsersByPhone == nil {
+			break
+		}
+
+		args, err := ec.field_Query_findUsersByPhone_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FindUsersByPhone(childComplexity, args["phoneNumber"].(string)), true
+
 	case "Query.getAddresses":
 		if e.complexity.Query.GetAddresses == nil {
 			break
@@ -1724,7 +1738,7 @@ input ProfileSuspensionInput {
   userProfile: UserProfile!
 
   resumeWithPIN(pin: String!): Boolean!
-  
+
   getAddresses: UserAddresses!
 
   getUserCommunicationsSettings: UserCommunicationsSetting!
@@ -1740,6 +1754,8 @@ input ProfileSuspensionInput {
   getAllPermissions: [Permission!]!
 
   findUserByPhone(phoneNumber: String!): UserProfile!
+
+  findUsersByPhone(phoneNumber: String!): [UserProfile]
 
   getNavigationActions: GroupedNavigationActions
 }
@@ -1766,7 +1782,7 @@ extend type Mutation {
   updateUserName(username: String!): Boolean!
 
   registerPushToken(token: String!): Boolean!
-   
+
   recordPostVisitSurvey(input: PostVisitSurveyInput!): Boolean!
 
   setupAsExperimentParticipant(participate: Boolean): Boolean!
@@ -2603,6 +2619,21 @@ func (ec *executionContext) field_Query_findRoleByName_args(ctx context.Context,
 }
 
 func (ec *executionContext) field_Query_findUserByPhone_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["phoneNumber"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phoneNumber"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["phoneNumber"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_findUsersByPhone_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -5989,6 +6020,45 @@ func (ec *executionContext) _Query_findUserByPhone(ctx context.Context, field gr
 	res := resTmp.(*profileutils.UserProfile)
 	fc.Result = res
 	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐUserProfile(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_findUsersByPhone(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_findUsersByPhone_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FindUsersByPhone(rctx, args["phoneNumber"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*profileutils.UserProfile)
+	fc.Result = res
+	return ec.marshalOUserProfile2ᚕᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐUserProfile(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_getNavigationActions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9844,6 +9914,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "findUsersByPhone":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_findUsersByPhone(ctx, field)
 				return res
 			})
 		case "getNavigationActions":

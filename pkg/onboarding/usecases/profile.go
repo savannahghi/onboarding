@@ -169,6 +169,8 @@ type ProfileUseCase interface {
 	SwitchUserFlaggedFeatures(ctx context.Context, phoneNumber string) (*dto.OKResp, error)
 
 	FindUserByPhone(ctx context.Context, phoneNumber string) (*profileutils.UserProfile, error)
+
+	FindUsersByPhone(ctx context.Context, phoneNumber string) ([]*profileutils.UserProfile, error)
 }
 
 // ProfileUseCaseImpl represents usecase implementation object
@@ -1557,6 +1559,24 @@ func (p *ProfileUseCaseImpl) FindUserByPhone(ctx context.Context, phoneNumber st
 	}
 
 	return profile, nil
+}
+
+// FindUsersByPhone searches for a user using a phone number
+func (p *ProfileUseCaseImpl) FindUsersByPhone(ctx context.Context, phoneNumber string) ([]*profileutils.UserProfile, error) {
+	ctx, span := tracer.Start(ctx, "FindUsersByPhone")
+	defer span.End()
+
+	users := []*profileutils.UserProfile{}
+
+	user, err := p.FindUserByPhone(ctx, phoneNumber)
+	if err != nil {
+		span.RecordError(err)
+		return users, nil
+	}
+
+	users = append(users, user)
+
+	return users, nil
 }
 
 //GetNavigationActions is the new method to get navigation actions based on user roles and permissions
