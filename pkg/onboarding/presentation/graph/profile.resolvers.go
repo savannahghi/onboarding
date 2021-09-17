@@ -487,6 +487,15 @@ func (r *queryResolver) FindUserByPhone(ctx context.Context, phoneNumber string)
 	return profile, err
 }
 
+func (r *queryResolver) FindUsersByPhone(ctx context.Context, phoneNumber string) ([]*profileutils.UserProfile, error) {
+	startTime := time.Now()
+
+	users, err := r.usecases.FindUsersByPhone(ctx, phoneNumber)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "findUsersByPhone", err)
+
+	return users, err
+}
+
 func (r *queryResolver) GetNavigationActions(ctx context.Context) (*dto.GroupedNavigationActions, error) {
 	startTime := time.Now()
 
