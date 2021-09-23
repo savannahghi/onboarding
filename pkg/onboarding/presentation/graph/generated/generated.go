@@ -1591,11 +1591,12 @@ enum FilterOperatorType {
   NOT_CONTAINS_TOKEN
 }
 
-enum LinkType {
+extend enum LinkType {
   YOUTUBE_VIDEO
   PNG_IMAGE
   PDF_DOCUMENT
   SVG_IMAGE
+  MP4
   DEFAULT
 }
 
