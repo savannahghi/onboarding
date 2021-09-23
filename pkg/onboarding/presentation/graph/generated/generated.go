@@ -1596,6 +1596,7 @@ enum LinkType {
   PNG_IMAGE
   PDF_DOCUMENT
   SVG_IMAGE
+  MP4
   DEFAULT
 }
 
