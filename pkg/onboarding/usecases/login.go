@@ -58,6 +58,10 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 	ctx, span := tracer.Start(ctx, "LoginByPhone")
 	defer span.End()
 
+	if ok := flavour.IsValid(); !ok {
+		return nil, exceptions.WrongEnumTypeError(flavour.String())
+	}
+
 	phoneNumber, err := l.baseExt.NormalizeMSISDN(phone)
 	if err != nil {
 		utils.RecordSpanError(span, err)
