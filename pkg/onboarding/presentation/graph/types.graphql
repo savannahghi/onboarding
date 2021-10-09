@@ -505,7 +505,7 @@ type RoleOutput {
 type Permission {
   scope: String!
   description: String!
-  group: PermissionGroup!
+  group: String!
   allowed: Boolean!
 }
 
