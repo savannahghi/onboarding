@@ -764,7 +764,7 @@ func TestRepository_GetCustomerProfileByID(t *testing.T) {
 				return
 			}
 			if serverutils.IsDebug() {
-				log.Printf("Customer....%v", customerProfile)
+				log.Printf("Customer.....%v", customerProfile)
 			}
 		})
 	}
