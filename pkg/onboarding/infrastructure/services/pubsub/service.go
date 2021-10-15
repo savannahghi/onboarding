@@ -9,11 +9,8 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/common"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
-
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 )
 
@@ -55,12 +52,7 @@ type ServicePubSub interface {
 
 	// Publishers
 	EDIMemberCoverLinking(ctx context.Context, data dto.LinkCoverPubSubMessage) error
-	NotifyCreateContact(ctx context.Context, contact domain.CRMContact) error
 	NotifyCoverLinking(ctx context.Context, data dto.LinkCoverPubSubMessage) error
-	NotifyUpdateContact(
-		ctx context.Context,
-		contact domain.CRMContact,
-	) error
 	NotifyCreateCustomer(
 		ctx context.Context,
 		data dto.CustomerPubSubMessage,
@@ -76,7 +68,6 @@ type ServicePubSubMessaging struct {
 	client  *pubsub.Client
 	baseExt extension.BaseExtension
 	erp     erp.AccountingUsecase
-	crm     crm.ServiceCrm
 	edi     edi.ServiceEdi
 	repo    repository.OnboardingRepository
 }
@@ -86,7 +77,6 @@ func NewServicePubSubMessaging(
 	client *pubsub.Client,
 	ext extension.BaseExtension,
 	erp erp.AccountingUsecase,
-	crm crm.ServiceCrm,
 	edi edi.ServiceEdi,
 	repo repository.OnboardingRepository,
 ) (*ServicePubSubMessaging, error) {
@@ -94,7 +84,6 @@ func NewServicePubSubMessaging(
 		client:  client,
 		baseExt: ext,
 		erp:     erp,
-		crm:     crm,
 		edi:     edi,
 		repo:    repo,
 	}
@@ -145,8 +134,6 @@ func (ps ServicePubSubMessaging) TopicIDs() []string {
 	return []string{
 		ps.AddPubSubNamespace(common.CreateCustomerTopic),
 		ps.AddPubSubNamespace(common.CreateSupplierTopic),
-		ps.AddPubSubNamespace(common.CreateCRMContact),
-		ps.AddPubSubNamespace(common.UpdateCRMContact),
 		ps.AddPubSubNamespace(common.LinkCoverTopic),
 		ps.AddPubSubNamespace(common.LinkEDIMemberCoverTopic),
 	}

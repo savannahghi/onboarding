@@ -2,7 +2,6 @@ package ussd_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/brianvoe/gofakeit"
@@ -10,8 +9,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/scalarutils"
-
-	hubspotDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 )
 
 func TestImpl_HandleUserRegistration_Unittest(t *testing.T) {
@@ -96,20 +93,10 @@ func TestImpl_HandleUserRegistration_Unittest(t *testing.T) {
 					return &domain.USSDLeadDetails{}, nil
 				}
 
-				fakeCrm.OptOutFn = func(ctx context.Context, phoneNumber string) (*hubspotDomain.CRMContact, error) {
-					return &hubspotDomain.CRMContact{ContactID: uuid.NewString()}, nil
-				}
-
 				fakeRepo.SaveUSSDEventFn = func(ctx context.Context, input *dto.USSDEvent) (*dto.USSDEvent, error) {
 					return &dto.USSDEvent{
 						SessionID: uuid.NewString(),
 					}, nil
-				}
-			}
-
-			if tt.name == "Sad_case:optout" {
-				fakeCrm.OptOutFn = func(ctx context.Context, phoneNumber string) (*hubspotDomain.CRMContact, error) {
-					return nil, fmt.Errorf("an error occurred %w", err)
 				}
 			}
 

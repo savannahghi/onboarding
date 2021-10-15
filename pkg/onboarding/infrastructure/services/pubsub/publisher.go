@@ -7,7 +7,6 @@ import (
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/common"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 )
 
 func (ps *ServicePubSubMessaging) newPublish(
@@ -24,22 +23,6 @@ func (ps *ServicePubSubMessaging) newPublish(
 		ps.AddPubSubNamespace(topic),
 		payload,
 	)
-}
-
-// NotifyCreateContact publishes to crm.contact.create topic
-func (ps *ServicePubSubMessaging) NotifyCreateContact(
-	ctx context.Context,
-	contact domain.CRMContact,
-) error {
-	return ps.newPublish(ctx, contact, common.CreateCRMContact)
-}
-
-// NotifyUpdateContact publishes to crm.contact.update topic
-func (ps *ServicePubSubMessaging) NotifyUpdateContact(
-	ctx context.Context,
-	contact domain.CRMContact,
-) error {
-	return ps.newPublish(ctx, contact, common.UpdateCRMContact)
 }
 
 // NotifyCreateCustomer publishes to customers.create topic

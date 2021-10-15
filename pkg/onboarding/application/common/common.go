@@ -14,12 +14,6 @@ const (
 	// CreateSupplierTopic is the TopicID for supplier creation Topic
 	CreateSupplierTopic = "suppliers.create"
 
-	// CreateCRMContact is the TopicID for CRM contact creation
-	CreateCRMContact = "crm.contact.create"
-
-	// UpdateCRMContact is the topicID for CRM contact updates
-	UpdateCRMContact = "crm.contact.update"
-
 	// LinkCoverTopic is the topicID for cover linking topic
 	LinkCoverTopic = "covers.link"
 

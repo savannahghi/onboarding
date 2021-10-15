@@ -30,21 +30,16 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
-	"github.com/savannahghi/profileutils"
-	"github.com/savannahghi/serverutils"
-	"github.com/sirupsen/logrus"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
-
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation"
+	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
+	"github.com/savannahghi/profileutils"
+	"github.com/savannahghi/serverutils"
+	"github.com/sirupsen/logrus"
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
-	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
 const (
@@ -127,20 +122,12 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	erp := erp.NewAccounting()
 	chrg := chargemaster.NewChargeMasterUseCasesImpl()
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
 	edi := edi.NewEdiService(ediClient, repo)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
 		erp,
-		crmExt,
 		edi,
 		repo,
 	)
@@ -149,7 +136,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	}
 	mes := messaging.NewServiceMessagingImpl(ext)
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
+	profile := usecases.NewProfileUseCase(repo, ext, engage, ps)
 
 	supplier := usecases.NewSupplierUseCases(repo, profile, erp, chrg, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)

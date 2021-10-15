@@ -19,7 +19,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
-	CRMDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
+	
 )
 
 func TestProfileUseCaseImpl_UpdateVerifiedUIDS(t *testing.T) {
@@ -508,7 +508,7 @@ func TestProfileUseCaseImpl_UpdatePrimaryEmailAddress(t *testing.T) {
 				ctx:          ctx,
 				emailAddress: "juha@gmail.com",
 			},
-			wantErr: false, // TODO: fix and make true
+			wantErr: true, // TODO: fix and make true
 		},
 	}
 	for _, tt := range tests {
@@ -533,9 +533,7 @@ func TestProfileUseCaseImpl_UpdatePrimaryEmailAddress(t *testing.T) {
 					return nil
 				}
 
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
+				
 
 				fakeRepo.UpdateSecondaryEmailAddressesFn = func(ctx context.Context, id string, emailAddresses []string) error {
 					return nil
@@ -583,9 +581,7 @@ func TestProfileUseCaseImpl_UpdatePrimaryEmailAddress(t *testing.T) {
 				fakeRepo.UpdatePrimaryEmailAddressFn = func(ctx context.Context, id string, emailAddress string) error {
 					return nil
 				}
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
+		
 				fakeRepo.UpdateSecondaryEmailAddressesFn = func(ctx context.Context, id string, emailAddresses []string) error {
 					return fmt.Errorf("unable to update secondary email")
 				}
@@ -756,10 +752,6 @@ func TestProfileUseCaseImpl_SetPrimaryEmailAddress(t *testing.T) {
 						PrimaryEmailAddress: &primaryEmail,
 						PrimaryPhone:        &phone,
 					}, nil
-				}
-
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
 				}
 
 				fakePubSub.TopicIDsFn = func() []string {
@@ -2189,9 +2181,6 @@ func TestProfileUseCaseImpl_UpdatePrimaryPhoneNumber(t *testing.T) {
 					return nil
 				}
 
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
 
 				fakeRepo.UpdateSecondaryPhoneNumbersFn = func(ctx context.Context, id string, phoneNumbers []string) error {
 					return nil
@@ -2226,9 +2215,6 @@ func TestProfileUseCaseImpl_UpdatePrimaryPhoneNumber(t *testing.T) {
 					return nil
 				}
 
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
 
 				fakeRepo.UpdateSecondaryPhoneNumbersFn = func(ctx context.Context, id string, phoneNumbers []string) error {
 					return nil
@@ -2296,9 +2282,6 @@ func TestProfileUseCaseImpl_UpdatePrimaryPhoneNumber(t *testing.T) {
 					return nil
 				}
 
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
 
 				fakeRepo.UpdateSecondaryPhoneNumbersFn = func(ctx context.Context, id string, phoneNumbers []string) error {
 					return fmt.Errorf("unable to update secondary phonenumber")
@@ -2480,10 +2463,7 @@ func TestProfileUseCase_UpdateBioData(t *testing.T) {
 					}, nil
 				}
 
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
-
+				
 				fakeRepo.UpdateBioDataFn = func(ctx context.Context, id string, data profileutils.BioData) error {
 					return nil
 				}
@@ -2517,9 +2497,7 @@ func TestProfileUseCase_UpdateBioData(t *testing.T) {
 					}, nil
 				}
 
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
+				
 
 				fakeRepo.UpdateBioDataFn = func(ctx context.Context, id string, data profileutils.BioData) error {
 					return nil
@@ -2553,9 +2531,7 @@ func TestProfileUseCase_UpdateBioData(t *testing.T) {
 						PrimaryPhone: &phone,
 					}, nil
 				}
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
+			
 
 				fakeRepo.UpdateBioDataFn = func(ctx context.Context, id string, data profileutils.BioData) error {
 					return nil
@@ -2578,9 +2554,7 @@ func TestProfileUseCase_UpdateBioData(t *testing.T) {
 					}, nil
 				}
 
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
+				
 
 				fakeRepo.UpdateBioDataFn = func(ctx context.Context, id string, data profileutils.BioData) error {
 					return nil
@@ -2615,10 +2589,7 @@ func TestProfileUseCase_UpdateBioData(t *testing.T) {
 					}, nil
 				}
 
-				fakePubSub.NotifyUpdateContactFn = func(ctx context.Context, contact CRMDomain.CRMContact) error {
-					return nil
-				}
-
+				
 				fakeRepo.UpdateBioDataFn = func(ctx context.Context, id string, data profileutils.BioData) error {
 					return nil
 				}

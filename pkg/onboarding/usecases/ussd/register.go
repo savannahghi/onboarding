@@ -80,10 +80,6 @@ func (u *Impl) HandleUserRegistration(ctx context.Context, session *domain.USSDL
 	}
 
 	if userResponse == RegOptOutInput && session.Level == InitialState {
-		_, err := u.crm.OptOut(ctx, session.PhoneNumber)
-		if err != nil {
-			return "END Something went wrong. Please try again."
-		}
 
 		// Capture opt out event
 		if _, err := u.onboardingRepository.SaveUSSDEvent(ctx, &dto.USSDEvent{
