@@ -29,7 +29,7 @@ func NewCrmService(hubSpotUsecases hubspotUsecases.HubSpotUsecases) *Hubspot {
 
 // OptOut marks a user as opted out of our marketing sms on both our firestore snd hubspot
 func (h *Hubspot) OptOut(ctx context.Context, phoneNumber string) (*hubspotDomain.CRMContact, error) {
-	return h.hubSpotUsecases.OptOut(ctx, phoneNumber)
+	return h.hubSpotUsecases.OptOutOrOptIn(ctx, phoneNumber, hubspotDomain.GeneralOptionTypeYes)
 }
 
 // CreateHubSpotContact creates a hubspot contact on both our crm and firestore
@@ -44,5 +44,5 @@ func (h *Hubspot) UpdateHubSpotContact(ctx context.Context, contact *hubspotDoma
 
 // GetContactByPhone gets a hubspot contact on both our crm and firestore
 func (h *Hubspot) GetContactByPhone(ctx context.Context, phone string) (*hubspotDomain.CRMContact, error) {
-	return h.hubSpotUsecases.GetContactByPhone(ctx, phone)
+	return h.hubSpotUsecases.GetOrCreateContactByPhone(ctx, phone)
 }
