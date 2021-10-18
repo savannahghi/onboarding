@@ -8,7 +8,6 @@ import (
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
 	"fmt"
 
@@ -40,13 +39,10 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
-	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
-	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
 const (
@@ -157,19 +153,11 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	erp := erp.NewAccounting()
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
 	edi := edi.NewEdiService(ediClient, fr)
-	// hubspot usecases
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(ctx, hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
+
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
 		erp,
-		crmExt,
 		edi,
 		fr,
 	)
@@ -178,7 +166,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	}
 	mes := messaging.NewServiceMessagingImpl(ext)
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(fr, ext, engage, ps, crmExt)
+	profile := usecases.NewProfileUseCase(fr, ext, engage, ps)
 	supplier := usecases.NewSupplierUseCases(fr, profile, erp, chrg, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(fr, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(fr, ext)
@@ -197,7 +185,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		Engagement:   engage,
 		PubSub:       ps,
 		EDI:          edi,
-		CrmExt:       crmExt,
 	}, nil
 }
 

@@ -10,22 +10,16 @@ import (
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
-	"github.com/savannahghi/serverutils"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
-
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
+	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	"github.com/savannahghi/serverutils"
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
-	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
 const (
@@ -80,20 +74,10 @@ func TestParseKYCAsMap(t *testing.T) {
 	edi := edi.NewEdiService(ediClient, repo)
 	erp := erp.NewAccounting()
 	chrg := chargemaster.NewChargeMasterUseCasesImpl()
-	// hubspot usecases
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		t.Errorf("failed to initialize hubspot crm repository: %w", err)
-		return
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
 		erp,
-		crmExt,
 		edi,
 		repo,
 	)
@@ -102,7 +86,7 @@ func TestParseKYCAsMap(t *testing.T) {
 		return
 	}
 	mes := messaging.NewServiceMessagingImpl(ext)
-	profile := NewProfileUseCase(repo, ext, engage, ps, crmExt)
+	profile := NewProfileUseCase(repo, ext, engage, ps)
 
 	supplier := SupplierUseCasesImpl{
 		repo:         repo,

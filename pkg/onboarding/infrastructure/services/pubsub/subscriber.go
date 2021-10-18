@@ -7,7 +7,6 @@ import (
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/common"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -130,46 +129,6 @@ func (ps ServicePubSubMessaging) ReceivePubSubPushMessages(
 			profile.ID,
 			*supplier,
 		); err != nil {
-			ps.baseExt.WriteJSONResponse(
-				w,
-				ps.baseExt.ErrorMap(err),
-				http.StatusBadRequest,
-			)
-			return
-		}
-
-	case ps.AddPubSubNamespace(common.CreateCRMContact):
-		var CRMContact domain.CRMContact
-		err := json.Unmarshal(message.Message.Data, &CRMContact)
-		if err != nil {
-			ps.baseExt.WriteJSONResponse(
-				w,
-				ps.baseExt.ErrorMap(err),
-				http.StatusBadRequest,
-			)
-			return
-		}
-		if _, err = ps.crm.CreateHubSpotContact(ctx, &CRMContact); err != nil {
-			ps.baseExt.WriteJSONResponse(
-				w,
-				ps.baseExt.ErrorMap(err),
-				http.StatusBadRequest,
-			)
-			return
-		}
-
-	case ps.AddPubSubNamespace(common.UpdateCRMContact):
-		var CRMContact domain.CRMContact
-		err := json.Unmarshal(message.Message.Data, &CRMContact)
-		if err != nil {
-			ps.baseExt.WriteJSONResponse(
-				w,
-				ps.baseExt.ErrorMap(err),
-				http.StatusBadRequest,
-			)
-			return
-		}
-		if _, err = ps.crm.UpdateHubSpotContact(ctx, &CRMContact); err != nil {
 			ps.baseExt.WriteJSONResponse(
 				w,
 				ps.baseExt.ErrorMap(err),

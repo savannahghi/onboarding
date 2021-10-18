@@ -21,15 +21,14 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases/ussd"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 
@@ -44,16 +43,12 @@ import (
 	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
-	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
-
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	messagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging/mock"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	pubsubmessagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub/mock"
 	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
-	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
+	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
 )
 
 const (
@@ -200,19 +195,11 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	erp := erp.NewAccounting()
 	chrg := chargemaster.NewChargeMasterUseCasesImpl()
-	// hubspot usecases
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
+
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
 		erp,
-		crmExt,
 		edi,
 		repo,
 	)
@@ -221,7 +208,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	}
 	mes := messaging.NewServiceMessagingImpl(ext)
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
+	profile := usecases.NewProfileUseCase(repo, ext, engage, ps)
 
 	supplier := usecases.NewSupplierUseCases(repo, profile, erp, chrg, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
@@ -231,7 +218,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
 	sms := usecases.NewSMSUsecase(repo, ext)
 
-	aitUssd := ussd.NewUssdUsecases(repo, ext, profile, userpin, su, pinExt, ps, crmExt)
+	aitUssd := ussd.NewUssdUsecases(repo, ext, profile, userpin, su, pinExt, ps)
 
 	return &interactor.Interactor{
 		Onboarding:   profile,
@@ -248,7 +235,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		SMS:          sms,
 		AITUSSD:      aitUssd,
 		EDI:          edi,
-		CrmExt:       crmExt,
 	}, nil
 }
 
@@ -470,15 +456,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
 	var ediSvc edi.ServiceEdi = &fakeEDISvc
 
-	// hubspot usecases
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
-	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
+	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps)
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
@@ -487,7 +465,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
 	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
 	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
-	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
+	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps)
 	adminSrv := adminSrv.NewService(ext)
 	sms := usecases.NewSMSUsecase(r, ext)
 	role := usecases.NewRoleUseCases(r, ext)
@@ -498,7 +476,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 		profile, su, supplier, login,
 		survey, userpin, erpSvc, chargemasterSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms,
-		aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		aitUssd, agent, admin, ediSvc, adminSrv,
 		role,
 	)
 	if err != nil {

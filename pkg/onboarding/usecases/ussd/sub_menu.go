@@ -41,11 +41,6 @@ func (u *Impl) HandleHomeMenu(ctx context.Context, level int, session *domain.US
 		return u.WelcomeMenu()
 
 	} else if userResponse == OptOutFromMarketingInput {
-		_, err := u.crm.OptOut(ctx, session.PhoneNumber)
-		if err != nil {
-			utils.RecordSpanError(span, err)
-			return "END Something went wrong. Please try again."
-		}
 
 		// Capture enter old PIN event
 		if _, err := u.onboardingRepository.SaveUSSDEvent(ctx, &dto.USSDEvent{

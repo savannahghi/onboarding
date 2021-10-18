@@ -25,7 +25,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	chargemasterMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster/mock"
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
@@ -46,9 +45,6 @@ import (
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
 	crmDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
-	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
-	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
 var fakeRepo mockRepo.FakeOnboardingRepository
@@ -71,15 +67,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
 	var ediSvc edi.ServiceEdi = &fakeEDISvc
 
-	// hubspot usecases
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
-	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
+	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps)
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
@@ -93,14 +81,14 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
 	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin, role)
 
-	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
+	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps)
 	adminSrv := adminSrv.NewService(ext)
 
 	i, err := interactor.NewOnboardingInteractor(
 		profile, su, supplier, login,
 		survey, userpin, erpSvc, chargemasterSvc,
 		engagementSvc, messagingSvc, nhif, ps, sms,
-		aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		aitUssd, agent, admin, ediSvc, adminSrv,
 		role,
 	)
 	if err != nil {

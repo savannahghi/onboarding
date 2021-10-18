@@ -6,8 +6,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
@@ -36,7 +34,6 @@ type Interactor struct {
 	Admin        usecases.AdminUseCase
 	EDI          edi.ServiceEdi
 	AdminSrv     admin.Usecase
-	CrmExt       crm.ServiceCrm
 	Role         usecases.RoleUseCase
 }
 
@@ -60,7 +57,6 @@ func NewOnboardingInteractor(
 	adm usecases.AdminUseCase,
 	edi edi.ServiceEdi,
 	admin admin.Usecase,
-	crmExt crm.ServiceCrm,
 	role usecases.RoleUseCase,
 ) (*Interactor, error) {
 
@@ -83,7 +79,6 @@ func NewOnboardingInteractor(
 		Admin:        adm,
 		EDI:          edi,
 		AdminSrv:     admin,
-		CrmExt:       crmExt,
 		Role:         role,
 	}, nil
 }

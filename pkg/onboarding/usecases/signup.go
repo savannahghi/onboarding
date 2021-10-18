@@ -22,7 +22,6 @@ import (
 	"github.com/savannahghi/pubsubtools"
 	"github.com/savannahghi/scalarutils"
 	"github.com/sirupsen/logrus"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 )
 
 const (
@@ -237,20 +236,6 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
-	}
-
-	contact := domain.CRMContact{
-		Properties: domain.ContactProperties{
-			Phone:                 *profile.PrimaryPhone,
-			FirstChannelOfContact: domain.ChannelOfContactApp,
-			BeWellEnrolled:        domain.GeneralOptionTypeYes,
-			BeWellAware:           domain.GeneralOptionTypeYes,
-		},
-	}
-
-	if err = s.pubsub.NotifyCreateContact(ctx, contact); err != nil {
-		utils.RecordSpanError(span, err)
-		log.Printf("failed to publish to crm.contact.create topic: %v", err)
 	}
 
 	// get navigation actions

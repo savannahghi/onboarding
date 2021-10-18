@@ -366,7 +366,7 @@ func TestSetPhoneAsPrimary(t *testing.T) {
 		return
 	}
 
-	_, exist := utils.FindItem(login5.Profile.SecondaryPhoneNumbers, secondaryPhone)
+	_, exist := utils.FindItem(login5.Profile.SecondaryPhoneNumbers, primaryPhone)
 	if !exist {
 		t.Errorf("the secondary phonenumber slice %v, does not contain %v",
 			login5.Profile.SecondaryPhoneNumbers,

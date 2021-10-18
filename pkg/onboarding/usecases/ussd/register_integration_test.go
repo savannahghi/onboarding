@@ -9,8 +9,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/scalarutils"
-
-	CRMDomain "gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 )
 
 const (
@@ -87,17 +85,6 @@ func TestImpl_HandleUserRegistration(t *testing.T) {
 		ContactChannel: ContactChannel,
 		WantCover:      WantCover,
 		PIN:            PIN,
-	}
-
-	// create a contact
-	_, err = u.CrmExt.CreateHubSpotContact(ctx, &CRMDomain.CRMContact{
-		Properties: CRMDomain.ContactProperties{
-			Phone: phoneNumber,
-		},
-	})
-	if err != nil {
-		t.Errorf("failed to create test contact: %w", err)
-		return
 	}
 
 	type args struct {

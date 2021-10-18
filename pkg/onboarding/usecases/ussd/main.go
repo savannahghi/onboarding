@@ -3,16 +3,14 @@ package ussd
 import (
 	"context"
 
-	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
-	"github.com/savannahghi/profileutils"
-
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
+	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
+	"github.com/savannahghi/profileutils"
 )
 
 const (
@@ -69,7 +67,6 @@ type Impl struct {
 	signUp               usecases.SignUpUseCases
 	pinExt               extension.PINExtension
 	pubsub               pubsubmessaging.ServicePubSub
-	crm                  crm.ServiceCrm
 }
 
 //NewUssdUsecases returns a new USSD usecase
@@ -81,7 +78,6 @@ func NewUssdUsecases(
 	signUp usecases.SignUpUseCases,
 	pinExt extension.PINExtension,
 	pubsub pubsubmessaging.ServicePubSub,
-	crm crm.ServiceCrm,
 ) Usecase {
 	return &Impl{
 		baseExt:              ext,
@@ -91,7 +87,6 @@ func NewUssdUsecases(
 		signUp:               signUp,
 		pinExt:               pinExt,
 		pubsub:               pubsub,
-		crm:                  crm,
 	}
 }
 

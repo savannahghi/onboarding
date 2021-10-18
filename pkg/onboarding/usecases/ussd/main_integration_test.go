@@ -19,32 +19,24 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	"github.com/savannahghi/serverutils"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
 	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
 	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
-	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
-	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
-	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
-	"github.com/savannahghi/onboarding/pkg/onboarding/usecases/ussd"
-
-	mockCrm "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm/mock"
-	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/repository/mock"
 
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
 	chargemasterMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster/mock"
 	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
-
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 	messagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging/mock"
+	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	pubsubmessagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub/mock"
+	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
+	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/repository/mock"
+	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
-	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
-	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
+	"github.com/savannahghi/onboarding/pkg/onboarding/usecases/ussd"
 )
 
 const (
@@ -98,20 +90,12 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 
 	erp := erp.NewAccounting()
 	chrg := chargemaster.NewChargeMasterUseCasesImpl()
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
 	edi := edi.NewEdiService(ediClient, repo)
 	ps, err := pubsubmessaging.NewServicePubSubMessaging(
 		pubSubClient,
 		ext,
 		erp,
-		crmExt,
 		edi,
 		repo,
 	)
@@ -120,7 +104,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	}
 	mes := messaging.NewServiceMessagingImpl(ext)
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
+	profile := usecases.NewProfileUseCase(repo, ext, engage, ps)
 
 	supplier := usecases.NewSupplierUseCases(repo, profile, erp, chrg, engage, mes, ext, ps)
 	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
@@ -130,7 +114,7 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
 	sms := usecases.NewSMSUsecase(repo, ext)
 
-	aitUssd := ussd.NewUssdUsecases(repo, ext, profile, userpin, su, pinExt, ps, crmExt)
+	aitUssd := ussd.NewUssdUsecases(repo, ext, profile, userpin, su, pinExt, ps)
 
 	return &interactor.Interactor{
 		Onboarding:   profile,
@@ -146,7 +130,6 @@ func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) 
 		PubSub:       ps,
 		SMS:          sms,
 		AITUSSD:      aitUssd,
-		CrmExt:       crmExt,
 	}, nil
 }
 
@@ -161,15 +144,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
 	var ediSvc edi.ServiceEdi = &fakeEDISvc
-
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
-	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
+	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps)
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
@@ -183,13 +158,13 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
 	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin, role)
 
-	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
+	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps)
 	adminSrv := adminSrv.NewService(ext)
 
 	i, err := interactor.NewOnboardingInteractor(
 		profile, su, supplier, login,
 		survey, userpin, erpSvc, chargemasterSvc,
-		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv,
 		role,
 	)
 	if err != nil {
@@ -284,7 +259,6 @@ var fakeEPRSvc erpMock.FakeServiceCommonTools
 var fakeChargeMasterSvc chargemasterMock.FakeServiceChargeMaster
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
 var fakeEDISvc ediMock.FakeServiceEDI
-var fakeCrm mockCrm.FakeServiceCrm
 
 // InitializeFakeUSSDTestService represents a fakeussd interactor
 func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
@@ -297,16 +271,8 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
 	var ediSvc edi.ServiceEdi = &fakeEDISvc
-	var crmSvc crmExt.ServiceCrm = &fakeCrm
 
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
-	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
+	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps)
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
 	survey := usecases.NewSurveyUseCases(r, ext)
 	supplier := usecases.NewSupplierUseCases(
@@ -319,13 +285,13 @@ func InitializeFakeUSSDTestService() (*interactor.Interactor, error) {
 	role := usecases.NewRoleUseCases(r, ext)
 	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
 	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin, role)
-	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmSvc)
+	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps)
 	adminSrv := adminSrv.NewService(ext)
 
 	i, err := interactor.NewOnboardingInteractor(
 		profile, su, supplier, login,
 		survey, userpin, erpSvc, chargemasterSvc,
-		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
+		engagementSvc, messagingSvc, nhif, ps, sms, aitUssd, agent, admin, ediSvc, adminSrv,
 		role,
 	)
 	if err != nil {
