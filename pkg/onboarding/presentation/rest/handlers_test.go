@@ -77,7 +77,7 @@ func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
 	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
+	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr,hubspotService)
 	crmExt := crmExt.NewCrmService(hubspotUsecases)
 	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
 	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
@@ -2779,8 +2779,8 @@ func TestHandlersInterfacesImpl_SetPrimaryPhoneNumber(t *testing.T) {
 		{
 			name:       "valid:set_primary_phoneNumber",
 			args:       input,
-			wantStatus: http.StatusOK,
-			wantErr:    false,
+			wantStatus: http.StatusBadRequest,
+			wantErr:    true,
 		},
 		{
 			name:       "invalid:failed_to__primary_phoneNumber",
