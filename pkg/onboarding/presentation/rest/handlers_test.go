@@ -2799,7 +2799,7 @@ func TestHandlersInterfacesImpl_SetPrimaryPhoneNumber(t *testing.T) {
 
 			response := httptest.NewRecorder()
 
-			if tt.name == "valid:set_primary_phoneNumber" {
+			if tt.name == " valid:set_primary_phoneNumber" {
 				fakeBaseExt.NormalizeMSISDNFn = func(msisdn string) (*string, error) {
 					phone := "+254777886622"
 					return &phone, nil
