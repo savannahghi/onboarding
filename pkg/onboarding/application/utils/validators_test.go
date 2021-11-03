@@ -8,12 +8,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"github.com/savannahghi/scalarutils"
 	"github.com/stretchr/testify/assert"
 )
 

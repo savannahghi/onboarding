@@ -42,13 +42,13 @@ enum PermissionType {
   REMOVE_SUPPLIER
   SUSPEND_SUPPLIER
   UNSUSPEND_SUPPLIER
+  PROCESS_KYC
 }
 
 enum AddressType {
   HOME
   WORK
 }
-
 
 enum ChannelOfContact {
   APP

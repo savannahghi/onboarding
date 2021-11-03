@@ -1554,13 +1554,13 @@ enum PermissionType {
   REMOVE_SUPPLIER
   SUSPEND_SUPPLIER
   UNSUSPEND_SUPPLIER
+  PROCESS_KYC
 }
 
 enum AddressType {
   HOME
   WORK
 }
-
 
 enum ChannelOfContact {
   APP
@@ -1955,7 +1955,7 @@ type RoleOutput {
 type Permission {
   scope: String!
   description: String!
-  group: PermissionGroup!
+  group: String!
   allowed: Boolean!
 }
 
@@ -5588,9 +5588,9 @@ func (ec *executionContext) _Permission_group(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(profileutils.PermissionGroup)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNPermissionGroup2githubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionGroup(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Permission_allowed(ctx context.Context, field graphql.CollectedField, obj *profileutils.Permission) (ret graphql.Marshaler) {
@@ -10858,16 +10858,6 @@ func (ec *executionContext) marshalNPermission2ᚖgithubᚗcomᚋsavannahghiᚋp
 		return graphql.Null
 	}
 	return ec._Permission(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNPermissionGroup2githubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionGroup(ctx context.Context, v interface{}) (profileutils.PermissionGroup, error) {
-	var res profileutils.PermissionGroup
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNPermissionGroup2githubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionGroup(ctx context.Context, sel ast.SelectionSet, v profileutils.PermissionGroup) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) unmarshalNPermissionType2githubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionType(ctx context.Context, v interface{}) (profileutils.PermissionType, error) {
