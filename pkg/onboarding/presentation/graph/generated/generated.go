@@ -1623,7 +1623,7 @@ enum Language {
 }
 
 
-type PageInfo
+extend type PageInfo
   @key(fields: "hasNextPage")
   @key(fields: "hasPreviousPage")
   @key(fields: "startCursor")
