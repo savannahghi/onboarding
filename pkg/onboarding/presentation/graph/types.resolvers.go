@@ -5,12 +5,17 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/graph/generated"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
 )
+
+func (r *permissionResolver) Group(ctx context.Context, obj *profileutils.Permission) (profileutils.PermissionGroup, error) {
+	panic(fmt.Errorf("not implemented"))
+}
 
 func (r *userProfileResolver) RoleDetails(ctx context.Context, obj *profileutils.UserProfile) ([]*dto.RoleOutput, error) {
 	return r.usecases.GetRolesByIDs(ctx, obj.Roles)
@@ -24,6 +29,9 @@ func (r *verifiedIdentifierResolver) Timestamp(ctx context.Context, obj *profile
 	}, nil
 }
 
+// Permission returns generated.PermissionResolver implementation.
+func (r *Resolver) Permission() generated.PermissionResolver { return &permissionResolver{r} }
+
 // UserProfile returns generated.UserProfileResolver implementation.
 func (r *Resolver) UserProfile() generated.UserProfileResolver { return &userProfileResolver{r} }
 
@@ -32,5 +40,6 @@ func (r *Resolver) VerifiedIdentifier() generated.VerifiedIdentifierResolver {
 	return &verifiedIdentifierResolver{r}
 }
 
+type permissionResolver struct{ *Resolver }
 type userProfileResolver struct{ *Resolver }
 type verifiedIdentifierResolver struct{ *Resolver }

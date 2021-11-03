@@ -25,8 +25,8 @@ type BioData {
   gender: Gender
 }
 
-type UserProfile @key(fields: "id") {
-  id: String!
+extend type UserProfile @key(fields: "id") {
+  id: String! @external
   userName: String!
   verifiedIdentifiers: [VerifiedIdentifier]
   primaryPhone: String!
@@ -49,7 +49,6 @@ type UserProfile @key(fields: "id") {
   """
   roleDetails: [RoleOutput]
 }
-
 
 type Address {
   latitude: String!
@@ -106,7 +105,7 @@ type NavigationActions {
   secondary: [NavAction]
 }
 
-type Microservice {
+extend type Microservice {
   id: String!
   name: String!
   url: String!
@@ -126,7 +125,7 @@ type RoleOutput {
 type Permission {
   scope: String!
   description: String!
-  group: String!
+  group: PermissionGroup!
   allowed: Boolean!
 }
 
