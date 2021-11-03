@@ -182,6 +182,7 @@ func TestService_ListMicroservices(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			fc := &firebasetools.FirebaseClient{}
 			ext := extension.NewBaseExtensionImpl(fc)
 			s := admin.NewService(ext)
@@ -264,6 +265,7 @@ func TestService_FindMicroserviceByID(t *testing.T) {
 }
 
 func TestService_CheckHealthEndpoint(t *testing.T) {
+
 	fc := &firebasetools.FirebaseClient{}
 	ext := extension.NewBaseExtensionImpl(fc)
 	s := admin.NewService(ext)

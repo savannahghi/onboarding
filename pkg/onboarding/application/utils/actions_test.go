@@ -73,11 +73,6 @@ func TestGetUserNavigationActions(t *testing.T) {
 	homeNavAction := domain.HomeNavAction
 	homeNavAction.Favorite = true
 
-	agentNavActions := domain.AgentNavActions
-	agentNavActions.Nested = []interface{}{
-		domain.AgentRegistrationNavAction,
-		domain.AgentidentificationNavAction,
-	}
 	tests := []struct {
 		name    string
 		args    args
@@ -103,9 +98,7 @@ func TestGetUserNavigationActions(t *testing.T) {
 					homeNavAction,
 					domain.HelpNavAction,
 				},
-				Secondary: []domain.NavigationAction{
-					agentNavActions,
-				},
+				Secondary: []domain.NavigationAction{},
 			},
 			wantErr: false,
 		},
@@ -197,23 +190,6 @@ func TestGroupPriority(t *testing.T) {
 		Title:          "Home",
 		SequenceNumber: 1,
 	}
-	navAction2 := domain.NavigationAction{
-		Group:          domain.AgentGroup,
-		Title:          "Agent",
-		SequenceNumber: 2,
-		Nested: []interface{}{
-			domain.NavigationAction{
-				Group:     domain.AgentGroup,
-				Title:     "Child 1",
-				HasParent: true,
-			},
-			domain.NavigationAction{
-				Group:     domain.AgentGroup,
-				Title:     "Child 2",
-				HasParent: true,
-			},
-		},
-	}
 	navAction3 := domain.NavigationAction{
 		Group:          domain.PatientGroup,
 		Title:          "Patients",
@@ -234,19 +210,12 @@ func TestGroupPriority(t *testing.T) {
 		Title:          "Consumers",
 		SequenceNumber: 6,
 	}
-	navAction7 := domain.NavigationAction{
-		Group:          domain.EmployeeGroup,
-		Title:          "Employee",
-		SequenceNumber: 7,
-	}
 
 	actions = append(actions, navAction1)
-	actions = append(actions, navAction2)
 	actions = append(actions, navAction3)
 	actions = append(actions, navAction4)
 	actions = append(actions, navAction5)
 	actions = append(actions, navAction6)
-	actions = append(actions, navAction7)
 
 	tests := []struct {
 		name          string
@@ -266,9 +235,7 @@ func TestGroupPriority(t *testing.T) {
 				navAction5,
 			},
 			wantSecondary: []domain.NavigationAction{
-				navAction2,
 				navAction6,
-				navAction7,
 			},
 		},
 	}
@@ -297,11 +264,10 @@ func TestGetUserPermissions(t *testing.T) {
 		{
 			name: "happy got the right permissions",
 			args: args{[]profileutils.Role{
-				{Name: "Agent Role", Scopes: []string{"agent.register", "agent.view"}, Active: true},
-				{Name: "Agent Role", Scopes: []string{"patient.create", "agent.view"}, Active: true},
-				{Name: "Agent Role", Scopes: []string{"role.view", "role.create"}, Active: false},
+				{Name: "Test Role", Scopes: []string{"patient.create", "role.view"}, Active: true},
+				{Name: "Tester Role", Scopes: []string{"role.view", "role.create"}, Active: false},
 			}},
-			want: []string{"agent.register", "agent.view", "patient.create"},
+			want: []string{"patient.create", "role.view"},
 		},
 	}
 	for _, tt := range tests {

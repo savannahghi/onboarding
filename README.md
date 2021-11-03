@@ -3,7 +3,7 @@
 ![Linting and Tests](https://github.com/savannahghi/onboarding/actions/workflows/ci.yml/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/savannahghi/onboarding/badge.svg?branch=main)](https://coveralls.io/github/savannahghi/onboarding?branch=main)
 
-This service manages user onboarding process.
+This library powers the onboarding service.
 
 ## Description
 
@@ -84,35 +84,4 @@ For more information, see:
 - [Onion Architecture](http://jeffreypalermo.com/blog/the-onion-architecture-part-1/) by Jeffrey Palermo
 - [Implementing Domain-Driven Design](http://www.amazon.com/Implementing-Domain-Driven-Design-Vaughn-Vernon/dp/0321834577)
 
-## Environment variables
 
-For local development, you need to _export_ the following env vars:
-
-```bash
-# Google Cloud Settings
-export GOOGLE_APPLICATION_CREDENTIALS="<a path to a Google service account JSON file>"
-export GOOGLE_CLOUD_PROJECT="<the name of the project that the service account above belongs to>"
-export FIREBASE_WEB_API_KEY="<an API key from the Firebase console for the project mentioned above>"
-
-# Go private modules
-export GOPRIVATE="gitlab.slade360emr.com/go/*,gitlab.slade360emr.com/optimalhealth/*"
-
-export REPOSITORY="firebase" # when we switch to PG the value will be `postgres`
-
-# Charge Master API settings
-export CHARGE_MASTER_API_HOST="<a charge master API host>"
-export CHARGE_MASTER_API_SCHEME=https
-export CHARGE_MASTER_TOKEN_URL="<an auth server token URL>"
-export CHARGE_MASTER_CLIENT_ID="<an auth server client ID>"
-export CHARGE_MASTER_CLIENT_SECRET="<an auth server client secret>"
-export CHARGE_MASTER_USERNAME="<an auth server username>"
-export CHARGE_MASTER_PASSWORD="<an auth server password>"
-export CHARGE_MASTER_GRANT_TYPE="<an auth server grant type>"
-
-```
-
-Deployment
-----------
-
-This application is deployed via Google Cloud Build ( <https://cloud.google.com/build> ) to Google Cloud Run ( <https://cloud.google.com/run> ).
-There's a `cloudbuild.yaml` file in the home folder. Secrets (e.g production settings) are managed with Google Secret Manager ( <https://cloud.google.com/secret-manager> ).

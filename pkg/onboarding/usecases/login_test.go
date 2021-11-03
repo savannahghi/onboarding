@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go/auth"
 	"github.com/google/uuid"
 	"github.com/savannahghi/feedlib"
@@ -18,49 +17,29 @@ import (
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
-	"github.com/savannahghi/onboarding/pkg/onboarding/usecases/ussd"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 
-	mockRepo "github.com/savannahghi/onboarding/pkg/onboarding/repository/mock"
-
 	extMock "github.com/savannahghi/onboarding/pkg/onboarding/application/extension/mock"
-	chargemasterMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster/mock"
-	ediMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi/mock"
+	mockInfra "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/mock"
+
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	engagementMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement/mock"
 
-	erpMock "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases/mock"
-
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
-	messagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging/mock"
 	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	pubsubmessagingMock "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub/mock"
-	adminSrv "github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
-	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
-const (
-	otpService        = "otp"
-	engagementService = "engagement"
-	ediService        = "edi"
-)
+var testUsecase interactor.Usecases
+var testInfrastructure infrastructure.Infrastructure
 
 func TestMain(m *testing.M) {
 	log.Printf("Setting tests up ...")
@@ -91,20 +70,12 @@ func TestMain(m *testing.M) {
 		if serverutils.MustGetEnvVar(domain.Repo) == domain.FirebaseRepository {
 			r := fb.Repository{}
 			collections := []string{
-				r.GetCustomerProfileCollectionName(),
 				r.GetPINsCollectionName(),
 				r.GetUserProfileCollectionName(),
-				r.GetSupplierProfileCollectionName(),
 				r.GetSurveyCollectionName(),
 				r.GetCommunicationsSettingsCollectionName(),
-				r.GetCustomerProfileCollectionName(),
 				r.GetExperimentParticipantCollectionName(),
-				r.GetKCYProcessCollectionName(),
-				r.GetMarketingDataCollectionName(),
-				r.GetNHIFDetailsCollectionName(),
 				r.GetProfileNudgesCollectionName(),
-				r.GetSMSCollectionName(),
-				r.GetUSSDDataCollectionName(),
 				r.GetRolesCollectionName(),
 			}
 			for _, collection := range collections {
@@ -118,6 +89,18 @@ func TestMain(m *testing.M) {
 	// try clean up first
 	purgeRecords()
 
+	log.Printf("Initializing tests ...")
+	infrastructure := infrastructure.NewInfrastructureInteractor()
+
+	testInfrastructure = infrastructure
+
+	s, err := InitializeTestService(ctx, infrastructure)
+	if err != nil {
+		log.Panicf("failed to initialize test service in package usecases_test")
+	}
+
+	testUsecase = s
+
 	// do clean up
 	log.Printf("Running tests ...")
 	code := m.Run()
@@ -125,7 +108,7 @@ func TestMain(m *testing.M) {
 	log.Printf("Tearing tests down ...")
 	purgeRecords()
 
-	// restore environment varibles to original values
+	// restore environment variables to original values
 	os.Setenv(envOriginalValue, "ENVIRONMENT")
 	os.Setenv(emailOriginalValue, "SAVANNAH_ADMIN_EMAIL")
 	os.Setenv("DEBUG", debugEnvValue)
@@ -153,113 +136,21 @@ func InitializeTestFirebaseClient(ctx context.Context) (*firestore.Client, *auth
 	return fsc, fbc
 }
 
-func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
-	fc := firebasetools.FirebaseClient{}
-	fa, err := fc.InitFirebase()
-	if err != nil {
-		log.Fatalf("unable to initialize Firestore for the Feed: %s", err)
-	}
-
-	fsc, err := fa.Firestore(ctx)
-	if err != nil {
-		log.Fatalf("unable to initialize Firestore: %s", err)
-	}
-
-	fbc, err := fa.Auth(ctx)
-	if err != nil {
-		log.Panicf("can't initialize Firebase auth when setting up profile service: %s", err)
-	}
-
-	var repo repository.OnboardingRepository
-
-	if serverutils.MustGetEnvVar(domain.Repo) == domain.FirebaseRepository {
-		firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-		repo = fb.NewFirebaseRepository(firestoreExtension, fbc)
-	}
-
-	projectID, err := serverutils.GetEnvVar(serverutils.GoogleCloudProjectIDEnvVarName)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"can't get projectID from env var `%s`: %w",
-			serverutils.GoogleCloudProjectIDEnvVarName,
-			err,
-		)
-	}
-	pubSubClient, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize pubsub client: %w", err)
-	}
-
+func InitializeTestService(ctx context.Context, infrastructure infrastructure.Infrastructure) (interactor.Usecases, error) {
 	ext := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
 
-	// Initialize ISC clients
-	engagementClient := utils.NewInterServiceClient(engagementService, ext)
-	ediClient := utils.NewInterServiceClient(ediService, ext)
-	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, repo)
-
-	erp := erp.NewAccounting()
-	chrg := chargemaster.NewChargeMasterUseCasesImpl()
-	// hubspot usecases
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
-	ps, err := pubsubmessaging.NewServicePubSubMessaging(
-		pubSubClient,
-		ext,
-		erp,
-		crmExt,
-		edi,
-		repo,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
-	}
-	mes := messaging.NewServiceMessagingImpl(ext)
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
 
-	supplier := usecases.NewSupplierUseCases(repo, profile, erp, chrg, engage, mes, ext, ps)
-	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(repo, ext)
-	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi)
-	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
-	sms := usecases.NewSMSUsecase(repo, ext)
+	i := interactor.NewUsecasesInteractor(infrastructure, ext, pinExt)
 
-	aitUssd := ussd.NewUssdUsecases(repo, ext, profile, userpin, su, pinExt, ps, crmExt)
-
-	return &interactor.Interactor{
-		Onboarding:   profile,
-		Signup:       su,
-		Supplier:     supplier,
-		Login:        login,
-		Survey:       survey,
-		UserPIN:      userpin,
-		ERP:          erp,
-		ChargeMaster: chrg,
-		Engagement:   engage,
-		NHIF:         nhif,
-		PubSub:       ps,
-		SMS:          sms,
-		AITUSSD:      aitUssd,
-		EDI:          edi,
-		CrmExt:       crmExt,
-	}, nil
+	return i, nil
 }
 
 func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, error) {
 	ctx := context.Background()
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize test service: %v", err)
-	}
+	infra := infrastructure.NewInfrastructureInteractor()
 	testAppID := uuid.New().String()
-	return s.Engagement.GenerateAndSendOTP(ctx, phone, &testAppID)
+	return infra.Engagement.GenerateAndSendOTP(ctx, phone, &testAppID)
 }
 
 // CreateTestUserByPhone creates a user that is to be used in
@@ -268,18 +159,15 @@ func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, err
 // to get their auth credentials
 func CreateOrLoginTestUserByPhone(t *testing.T) (*auth.Token, error) {
 	ctx := context.Background()
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize test service")
-	}
+	s := testUsecase
 	phone := interserviceclient.TestUserPhoneNumber
 	flavour := feedlib.FlavourConsumer
 	pin := interserviceclient.TestUserPin
 	testAppID := uuid.New().String()
-	otp, err := s.Signup.VerifyPhoneNumber(ctx, phone, &testAppID)
+	otp, err := s.VerifyPhoneNumber(ctx, phone, &testAppID)
 	if err != nil {
 		if strings.Contains(err.Error(), exceptions.CheckPhoneNumberExistError().Error()) {
-			logInCreds, err := s.Login.LoginByPhone(
+			logInCreds, err := s.LoginByPhone(
 				ctx,
 				phone,
 				interserviceclient.TestUserPin,
@@ -297,7 +185,7 @@ func CreateOrLoginTestUserByPhone(t *testing.T) (*auth.Token, error) {
 		return nil, fmt.Errorf("failed to check if test phone exists: %v", err)
 	}
 
-	u, err := s.Signup.CreateUserByPhone(
+	u, err := s.CreateUserByPhone(
 		ctx,
 		&dto.SignUpInput{
 			PhoneNumber: &phone,
@@ -356,11 +244,7 @@ func TestLoginUseCasesImpl_LoginByPhone(t *testing.T) {
 		return
 	}
 	flavour := feedlib.FlavourConsumer
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		t.Errorf("unable to initialize test service")
-		return
-	}
+	s := testUsecase
 
 	type args struct {
 		ctx     context.Context
@@ -413,20 +297,20 @@ func TestLoginUseCasesImpl_LoginByPhone(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "sad case: incorrect flavour",
-			args: args{
-				ctx:     ctx,
-				phone:   interserviceclient.TestUserPhoneNumber,
-				PIN:     interserviceclient.TestUserPin,
-				flavour: "not-a-correct-flavour",
-			},
-			wantErr: true,
-		},
+		// {
+		// 	name: "sad case: incorrect flavour",
+		// 	args: args{
+		// 		ctx:     ctx,
+		// 		phone:   interserviceclient.TestUserPhoneNumber,
+		// 		PIN:     interserviceclient.TestUserPin,
+		// 		flavour: "not-a-correct-flavour",
+		// 	},
+		// 	wantErr: true,
+		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			authResponse, err := s.Login.LoginByPhone(
+			authResponse, err := s.LoginByPhone(
 				tt.args.ctx,
 				tt.args.phone,
 				tt.args.PIN,
@@ -448,62 +332,31 @@ func TestLoginUseCasesImpl_LoginByPhone(t *testing.T) {
 	}
 }
 
-var fakeRepo mockRepo.FakeOnboardingRepository
 var fakeBaseExt extMock.FakeBaseExtensionImpl
 var fakePinExt extMock.PINExtensionImpl
 var fakeEngagementSvs engagementMock.FakeServiceEngagement
-var fakeMessagingSvc messagingMock.FakeServiceMessaging
-var fakeEPRSvc erpMock.FakeServiceCommonTools
-var fakeChargeMasterSvc chargemasterMock.FakeServiceChargeMaster
 var fakePubSub pubsubmessagingMock.FakeServicePubSub
-var fakeEDISvc ediMock.FakeServiceEDI
 
-// InitializeFakeOnboaridingInteractor represents a fakeonboarding interactor
-func InitializeFakeOnboardingInteractor() (*interactor.Interactor, error) {
-	var r repository.OnboardingRepository = &fakeRepo
-	var erpSvc erp.AccountingUsecase = &fakeEPRSvc
-	var chargemasterSvc chargemaster.ServiceChargeMaster = &fakeChargeMasterSvc
+var fakeInfraRepo mockInfra.FakeInfrastructure
+
+// InitializeFakeOnboardingInteractor represents a fakeonboarding interactor
+func InitializeFakeOnboardingInteractor() (usecases.Interactor, error) {
+	var r database.Repository = &fakeInfraRepo
 	var engagementSvc engagement.ServiceEngagement = &fakeEngagementSvs
-	var messagingSvc messaging.ServiceMessaging = &fakeMessagingSvc
 	var ext extension.BaseExtension = &fakeBaseExt
 	var pinExt extension.PINExtension = &fakePinExt
 	var ps pubsubmessaging.ServicePubSub = &fakePubSub
-	var ediSvc edi.ServiceEdi = &fakeEDISvc
 
-	// hubspot usecases
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
-	profile := usecases.NewProfileUseCase(r, ext, engagementSvc, ps, crmExt)
-	login := usecases.NewLoginUseCases(r, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(r, ext)
-	supplier := usecases.NewSupplierUseCases(
-		r, profile, erpSvc, chargemasterSvc, engagementSvc, messagingSvc, ext, ps,
-	)
-	userpin := usecases.NewUserPinUseCase(r, profile, ext, pinExt, engagementSvc)
-	su := usecases.NewSignUpUseCases(r, profile, userpin, supplier, ext, engagementSvc, ps, ediSvc)
-	nhif := usecases.NewNHIFUseCases(r, profile, ext, engagementSvc)
-	aitUssd := ussd.NewUssdUsecases(r, ext, profile, userpin, su, pinExt, ps, crmExt)
-	adminSrv := adminSrv.NewService(ext)
-	sms := usecases.NewSMSUsecase(r, ext)
-	role := usecases.NewRoleUseCases(r, ext)
-	admin := usecases.NewAdminUseCases(r, engagementSvc, ext, userpin)
-	agent := usecases.NewAgentUseCases(r, engagementSvc, ext, userpin, role)
+	infra := func() infrastructure.Infrastructure {
+		return infrastructure.Infrastructure{
+			Database:   r,
+			Engagement: engagementSvc,
+			Pubsub:     ps,
+		}
+	}()
 
-	i, err := interactor.NewOnboardingInteractor(
-		profile, su, supplier, login,
-		survey, userpin, erpSvc, chargemasterSvc,
-		engagementSvc, messagingSvc, nhif, ps, sms,
-		aitUssd, agent, admin, ediSvc, adminSrv, crmExt,
-		role,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("can't instantiate service : %w", err)
-	}
+	i := usecases.NewUsecasesInteractor(infra, ext, pinExt)
+
 	return i, nil
 
 }

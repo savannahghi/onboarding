@@ -6,15 +6,8 @@ import (
 	"net/http"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/common"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
-
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database"
 )
 
 const (
@@ -52,51 +45,25 @@ type ServicePubSub interface {
 		r *http.Request,
 	)
 	AddEngagementPubsubNameSpace(topic string) string
-
-	// Publishers
-	EDIMemberCoverLinking(ctx context.Context, data dto.LinkCoverPubSubMessage) error
-	NotifyCreateContact(ctx context.Context, contact domain.CRMContact) error
-	NotifyCoverLinking(ctx context.Context, data dto.LinkCoverPubSubMessage) error
-	NotifyUpdateContact(
-		ctx context.Context,
-		contact domain.CRMContact,
-	) error
-	NotifyCreateCustomer(
-		ctx context.Context,
-		data dto.CustomerPubSubMessage,
-	) error
-	NotifyCreateSupplier(
-		ctx context.Context,
-		data dto.SupplierPubSubMessage,
-	) error
 }
 
 // ServicePubSubMessaging sends "real" (production) notifications
 type ServicePubSubMessaging struct {
-	client  *pubsub.Client
-	baseExt extension.BaseExtension
-	erp     erp.AccountingUsecase
-	crm     crm.ServiceCrm
-	edi     edi.ServiceEdi
-	repo    repository.OnboardingRepository
+	client   *pubsub.Client
+	baseExt  extension.BaseExtension
+	database database.Repository
 }
 
 // NewServicePubSubMessaging ...
 func NewServicePubSubMessaging(
 	client *pubsub.Client,
 	ext extension.BaseExtension,
-	erp erp.AccountingUsecase,
-	crm crm.ServiceCrm,
-	edi edi.ServiceEdi,
-	repo repository.OnboardingRepository,
+	db database.Repository,
 ) (*ServicePubSubMessaging, error) {
 	s := &ServicePubSubMessaging{
-		client:  client,
-		baseExt: ext,
-		erp:     erp,
-		crm:     crm,
-		edi:     edi,
-		repo:    repo,
+		client:   client,
+		baseExt:  ext,
+		database: db,
 	}
 
 	ctx := context.Background()
@@ -142,14 +109,7 @@ func (ps ServicePubSubMessaging) AddPubSubNamespace(topicName string) string {
 
 // TopicIDs returns the known (registered) topic IDs
 func (ps ServicePubSubMessaging) TopicIDs() []string {
-	return []string{
-		ps.AddPubSubNamespace(common.CreateCustomerTopic),
-		ps.AddPubSubNamespace(common.CreateSupplierTopic),
-		ps.AddPubSubNamespace(common.CreateCRMContact),
-		ps.AddPubSubNamespace(common.UpdateCRMContact),
-		ps.AddPubSubNamespace(common.LinkCoverTopic),
-		ps.AddPubSubNamespace(common.LinkEDIMemberCoverTopic),
-	}
+	return []string{}
 }
 
 // PublishToPubsub sends a message to a specifeid Topic

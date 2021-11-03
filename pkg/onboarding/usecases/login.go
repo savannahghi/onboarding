@@ -9,7 +9,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
 )
 
@@ -29,21 +29,21 @@ type LoginUseCases interface {
 
 // LoginUseCasesImpl represents the usecase implementation object
 type LoginUseCasesImpl struct {
-	onboardingRepository repository.OnboardingRepository
-	profile              ProfileUseCase
-	baseExt              extension.BaseExtension
-	pinExt               extension.PINExtension
+	infrastructure infrastructure.Infrastructure
+	profile        ProfileUseCase
+	baseExt        extension.BaseExtension
+	pinExt         extension.PINExtension
 }
 
 // NewLoginUseCases initializes a new sign up usecase
 func NewLoginUseCases(
-	r repository.OnboardingRepository, p ProfileUseCase,
+	i infrastructure.Infrastructure, p ProfileUseCase,
 	ext extension.BaseExtension, pin extension.PINExtension) LoginUseCases {
 	return &LoginUseCasesImpl{
-		onboardingRepository: r,
-		profile:              p,
-		baseExt:              ext,
-		pinExt:               pin,
+		infrastructure: i,
+		profile:        p,
+		baseExt:        ext,
+		pinExt:         pin,
 	}
 }
 
@@ -58,13 +58,17 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 	ctx, span := tracer.Start(ctx, "LoginByPhone")
 	defer span.End()
 
+	if ok := flavour.IsValid(); !ok {
+		return nil, exceptions.WrongEnumTypeError(flavour.String())
+	}
+
 	phoneNumber, err := l.baseExt.NormalizeMSISDN(phone)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	profile, err := l.onboardingRepository.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := l.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -75,7 +79,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 		return nil, err
 	}
 
-	PINData, err := l.onboardingRepository.GetPINByProfileID(ctx, profile.ID)
+	PINData, err := l.infrastructure.Database.GetPINByProfileID(ctx, profile.ID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// the error is wrapped already. No need to wrap it again
@@ -88,7 +92,7 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 
 	}
 
-	auth, err := l.onboardingRepository.GenerateAuthCredentials(ctx, *phoneNumber, profile)
+	auth, err := l.infrastructure.Database.GenerateAuthCredentials(ctx, *phoneNumber, profile)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -100,25 +104,15 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 		auth.ChangePIN = true
 	}
 
-	customer, supplier, err := l.onboardingRepository.GetCustomerOrSupplierProfileByProfileID(
-		ctx,
-		flavour,
-		profile.ID,
-	)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, exceptions.RetrieveRecordError(err)
-	}
-
 	// fetch the user's communication settings
-	comms, err := l.onboardingRepository.GetUserCommunicationsSettings(ctx, profile.ID)
+	comms, err := l.infrastructure.Database.GetUserCommunicationsSettings(ctx, profile.ID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
 	// get navigation actions
-	roles, err := l.onboardingRepository.GetRolesByIDs(ctx, profile.Roles)
+	roles, err := l.infrastructure.Database.GetRolesByIDs(ctx, profile.Roles)
 	if err != nil {
 		if strings.Contains(err.Error(), "role not found") {
 			roles = nil
@@ -142,8 +136,6 @@ func (l *LoginUseCasesImpl) LoginByPhone(
 
 	return &profileutils.UserResponse{
 		Profile:               profile,
-		CustomerProfile:       customer,
-		SupplierProfile:       supplier,
 		Auth:                  *auth,
 		CommunicationSettings: comms,
 		NavActions:            utils.NewActionsMapper(ctx, navActions),
@@ -157,7 +149,7 @@ func (l *LoginUseCasesImpl) RefreshToken(ctx context.Context, token string) (*pr
 	ctx, span := tracer.Start(ctx, "RefreshToken")
 	defer span.End()
 
-	return l.onboardingRepository.ExchangeRefreshTokenForIDToken(ctx, token)
+	return l.infrastructure.Database.ExchangeRefreshTokenForIDToken(ctx, token)
 }
 
 // LoginAsAnonymous logs in a user as anonymous. This anonymous user will not have a userProfile
@@ -169,7 +161,7 @@ func (l *LoginUseCasesImpl) LoginAsAnonymous(
 	ctx, span := tracer.Start(ctx, "LoginAsAnonymous")
 	defer span.End()
 
-	return l.onboardingRepository.GenerateAuthCredentialsForAnonymousUser(ctx)
+	return l.infrastructure.Database.GenerateAuthCredentialsForAnonymousUser(ctx)
 }
 
 // ResumeWithPin called by the frontend check whether the currently logged in user is the one trying
@@ -188,7 +180,7 @@ func (l *LoginUseCasesImpl) ResumeWithPin(ctx context.Context, pin string) (bool
 	if profile == nil {
 		return false, exceptions.ProfileNotFoundError(err)
 	}
-	PINData, err := l.onboardingRepository.GetPINByProfileID(ctx, profile.ID)
+	PINData, err := l.infrastructure.Database.GetPINByProfileID(ctx, profile.ID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.PinNotFoundError(err)

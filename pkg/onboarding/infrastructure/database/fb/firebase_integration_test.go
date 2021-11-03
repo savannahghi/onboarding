@@ -2,13 +2,11 @@ package fb_test
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"testing"
 
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 
 	"fmt"
 
@@ -17,7 +15,6 @@ import (
 
 	"time"
 
-	"github.com/brianvoe/gofakeit"
 	"github.com/google/uuid"
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
@@ -28,30 +25,17 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/scalarutils"
-	"github.com/savannahghi/serverutils"
 	"github.com/stretchr/testify/assert"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go/auth"
 
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
-	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
-	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
-	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
-	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
-const (
-	engagementService = "engagement"
-	ediService        = "edi"
+var (
+	firestoreClient *firestore.Client
+	firebaseAuth    *auth.Client
 )
 
 func TestMain(m *testing.M) {
@@ -78,23 +62,17 @@ func TestMain(m *testing.M) {
 		log.Printf("failed to initialize test FireBase client")
 		return
 	}
+	firestoreClient = fsc
+	firebaseAuth = fbc
 
 	purgeRecords := func() {
 		collections := []string{
-			r.GetCustomerProfileCollectionName(),
 			r.GetPINsCollectionName(),
 			r.GetUserProfileCollectionName(),
-			r.GetSupplierProfileCollectionName(),
 			r.GetSurveyCollectionName(),
 			r.GetCommunicationsSettingsCollectionName(),
-			r.GetCustomerProfileCollectionName(),
 			r.GetExperimentParticipantCollectionName(),
-			r.GetKCYProcessCollectionName(),
-			r.GetMarketingDataCollectionName(),
-			r.GetNHIFDetailsCollectionName(),
 			r.GetProfileNudgesCollectionName(),
-			r.GetSMSCollectionName(),
-			r.GetUSSDDataCollectionName(),
 			r.GetRolesCollectionName(),
 		}
 		for _, collection := range collections {
@@ -113,7 +91,7 @@ func TestMain(m *testing.M) {
 	log.Printf("Tearing tests down ...")
 	purgeRecords()
 
-	// restore environment varibles to original values
+	// restore environment variables to original values
 	os.Setenv(envOriginalValue, "ENVIRONMENT")
 	os.Setenv("DEBUG", debugEnvValue)
 	os.Setenv("ROOT_COLLECTION_SUFFIX", collectionEnvValue)
@@ -121,92 +99,22 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		return nil, fmt.Errorf("failed to initialize test FireStore client")
-
-	}
-	if fbc == nil {
-		return nil, fmt.Errorf("failed to initialize test FireBase client")
-
-	}
-
-	projectID, err := serverutils.GetEnvVar(serverutils.GoogleCloudProjectIDEnvVarName)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"can't get projectID from env var `%s`: %w",
-			serverutils.GoogleCloudProjectIDEnvVarName,
-			err,
-		)
-	}
-	pubSubClient, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize pubsub client: %w", err)
-	}
+func InitializeTestService(ctx context.Context) (interactor.Usecases, error) {
+	infrastructure := infrastructure.NewInfrastructureInteractor()
 
 	ext := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
 
-	// Initialize ISC clients
-	engagementClient := utils.NewInterServiceClient(engagementService, ext)
-	ediClient := utils.NewInterServiceClient(ediService, ext)
-
-	chrg := chargemaster.NewChargeMasterUseCasesImpl()
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-	erp := erp.NewAccounting()
-	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, fr)
-	// hubspot usecases
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(ctx, hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
-	ps, err := pubsubmessaging.NewServicePubSubMessaging(
-		pubSubClient,
-		ext,
-		erp,
-		crmExt,
-		edi,
-		fr,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
-	}
-	mes := messaging.NewServiceMessagingImpl(ext)
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(fr, ext, engage, ps, crmExt)
-	supplier := usecases.NewSupplierUseCases(fr, profile, erp, chrg, engage, mes, ext, ps)
-	login := usecases.NewLoginUseCases(fr, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(fr, ext)
-	userpin := usecases.NewUserPinUseCase(fr, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(fr, profile, userpin, supplier, ext, engage, ps, edi)
 
-	return &interactor.Interactor{
-		Onboarding:   profile,
-		Signup:       su,
-		Supplier:     supplier,
-		Login:        login,
-		Survey:       survey,
-		UserPIN:      userpin,
-		ERP:          erp,
-		ChargeMaster: chrg,
-		Engagement:   engage,
-		PubSub:       ps,
-		EDI:          edi,
-		CrmExt:       crmExt,
-	}, nil
+	usecases := interactor.NewUsecasesInteractor(
+		infrastructure, ext, pinExt,
+	)
+	return usecases, nil
 }
 
 func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, error) {
 	ctx := context.Background()
-	s, err := InitializeTestService(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize test service: %v", err)
-	}
+	s := infrastructure.NewInfrastructureInteractor()
 	testAppID := uuid.New().String()
 	return s.Engagement.GenerateAndSendOTP(ctx, phone, &testAppID)
 }
@@ -224,18 +132,18 @@ func CreateOrLoginTestUserByPhone(t *testing.T) (*auth.Token, error) {
 	phone := interserviceclient.TestUserPhoneNumber
 	flavour := feedlib.FlavourConsumer
 	pin := interserviceclient.TestUserPin
-	exists, err := s.Onboarding.CheckPhoneExists(ctx, phone)
+	exists, err := s.CheckPhoneExists(ctx, phone)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check if test phone exists: %v", err)
 	}
 	if !exists {
 		otp, err := generateTestOTP(t, phone)
-		log.Println("The otp is:", otp)
+		log.Println("The otp is:", otp.OTP)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate test OTP: %v", err)
 		}
 
-		u, err := s.Signup.CreateUserByPhone(
+		u, err := s.CreateUserByPhone(
 			ctx,
 			&dto.SignUpInput{
 				PhoneNumber: &phone,
@@ -255,7 +163,7 @@ func CreateOrLoginTestUserByPhone(t *testing.T) (*auth.Token, error) {
 		} // We add the test user UID to the expected auth.Token
 		return authCred, nil
 	}
-	logInCreds, err := s.Login.LoginByPhone(
+	logInCreds, err := s.LoginByPhone(
 		ctx,
 		phone,
 		interserviceclient.TestUserPin,
@@ -305,110 +213,18 @@ func InitializeTestFirebaseClient(ctx context.Context) (*firestore.Client, *auth
 	return fsc, fbc
 }
 
-func TestRemoveKYCProcessingRequest(t *testing.T) {
-	s, err := InitializeTestService(context.Background())
-	assert.Nil(t, err)
-
-	// clean up
-	_ = s.Signup.RemoveUserByPhoneNumber(
-		context.Background(),
-		interserviceclient.TestUserPhoneNumber,
-	)
-
-	ctx, auth, err := GetTestAuthenticatedContext(t)
-	assert.Nil(t, err)
-	assert.NotNil(t, auth)
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	input1 := domain.OrganizationNutrition{
-		OrganizationTypeName: domain.OrganizationTypeLimitedCompany,
-		KRAPIN:               "someKRAPIN",
-		KRAPINUploadID:       "KRAPINUploadID",
-		SupportingDocuments: []domain.SupportingDocument{
-			{
-				SupportingDocumentTitle:       "support-title",
-				SupportingDocumentDescription: "support-description",
-				SupportingDocumentUpload:      "support-upload-id",
-			},
-		},
-		CertificateOfIncorporation:         "CertificateOfIncorporation",
-		CertificateOfInCorporationUploadID: "CertificateOfInCorporationUploadID",
-		DirectorIdentifications: []domain.Identification{
-			{
-				IdentificationDocType:           enumutils.IdentificationDocTypeMilitary,
-				IdentificationDocNumber:         "IdentificationDocNumber",
-				IdentificationDocNumberUploadID: "IdentificationDocNumberUploadID",
-			},
-		},
-		RegistrationNumber:      "RegistrationNumber",
-		PracticeLicenseID:       "PracticeLicenseID",
-		PracticeLicenseUploadID: "PracticeLicenseUploadID",
-	}
-
-	kycJSON, err := json.Marshal(input1)
-	assert.Nil(t, err)
-
-	var kycAsMap map[string]interface{}
-	err = json.Unmarshal(kycJSON, &kycAsMap)
-	assert.Nil(t, err)
-
-	// get the user profile
-	profile, err := fr.GetUserProfileByUID(ctx, auth.UID, false)
-	assert.Nil(t, err)
-	assert.NotNil(t, profile)
-
-	// fetch the supplier profile
-	sup, err := fr.GetSupplierProfileByProfileID(ctx, profile.ID)
-	assert.Nil(t, err)
-	assert.NotNil(t, sup)
-
-	//call remove kyc process request. this should fail since the user has not added a kyc yet
-	err = fr.RemoveKYCProcessingRequest(ctx, sup.ID)
-	assert.NotNil(t, err)
-
-	sup.SupplierKYC = kycAsMap
-
-	// now add the kyc processing request
-	req1 := &domain.KYCRequest{
-		ID:             uuid.New().String(),
-		ReqPartnerType: sup.PartnerType,
-		ReqRaw:         sup.SupplierKYC,
-		Processed:      false,
-		SupplierRecord: sup,
-		Status:         domain.KYCProcessStatusPending,
-	}
-	err = fr.StageKYCProcessingRequest(ctx, req1)
-	assert.Nil(t, err)
-
-	// call remove kypc processing request again. this should pass now since there is and existing processing request added
-	err = fr.RemoveKYCProcessingRequest(ctx, sup.ID)
-	assert.Nil(t, err)
-
-}
-
 func TestPurgeUserByPhoneNumber(t *testing.T) {
 	s, err := InitializeTestService(context.Background())
 	assert.Nil(t, err)
 	// clean up
-	_ = s.Signup.RemoveUserByPhoneNumber(
+	_ = s.RemoveUserByPhoneNumber(
 		context.Background(),
 		interserviceclient.TestUserPhoneNumber,
 	)
 	ctx, auth, err := GetTestAuthenticatedContext(t)
 	assert.Nil(t, err)
 	assert.NotNil(t, auth)
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -417,6 +233,7 @@ func TestPurgeUserByPhoneNumber(t *testing.T) {
 		t.Errorf("failed to initialize test FireBase client")
 		return
 	}
+
 	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
 	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
 	profile, err := fr.GetUserProfileByUID(ctx, auth.UID, false)
@@ -457,19 +274,9 @@ func TestPurgeUserByPhoneNumber(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, pin)
 
-	// fetch the customer profile related to invalidpr1. this should fail since no customer profile has been associated with invalidpr
-	cpr, err := fr.GetCustomerProfileByProfileID(ctx, invalidpr1.ID)
-	assert.NotNil(t, err)
-	assert.Nil(t, cpr)
-
-	// fetch the supplier profile related to invalidpr1. this should fail since no supplier profile has been associated with invalidpr
-	spr, err := fr.GetSupplierProfileByProfileID(ctx, invalidpr1.ID)
-	assert.NotNil(t, err)
-	assert.Nil(t, spr)
-
 	// now set a  pin. this should not fail
 	userpin := "1234"
-	pset, err := s.UserPIN.SetUserPIN(ctx, userpin, invalidpr1.ID)
+	pset, err := s.SetUserPIN(ctx, userpin, invalidpr1.ID)
 	assert.Nil(t, err)
 	assert.NotNil(t, pset)
 	assert.Equal(t, true, pset)
@@ -482,7 +289,7 @@ func TestPurgeUserByPhoneNumber(t *testing.T) {
 	matched := pinExt.ComparePIN(userpin, pin.Salt, pin.PINNumber, nil)
 	assert.Equal(t, true, matched)
 
-	// now remove. this should pass even though customer/supplier profile don't exist. What must be removed is the pins
+	// now remove. What must be removed is the pins
 	err = fr.PurgeUserByPhoneNumber(ctx, interserviceclient.TestUserPhoneNumber)
 	assert.Nil(t, err)
 
@@ -493,283 +300,6 @@ func TestPurgeUserByPhoneNumber(t *testing.T) {
 
 }
 
-func TestCreateEmptyCustomerProfile(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	tests := []struct {
-		name      string
-		profileID string
-		wantErr   bool
-	}{
-		{
-			name:      "valid case",
-			profileID: uuid.New().String(),
-			wantErr:   false,
-		},
-		{
-			name:      "invalid case",
-			profileID: "",
-			wantErr:   true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			customer, err := firestoreDB.CreateEmptyCustomerProfile(ctx, tt.profileID)
-			if tt.wantErr && err != nil {
-				t.Errorf("error expected but returned no error")
-				return
-			}
-
-			if !tt.wantErr && err != nil {
-				t.Errorf("error was not expected but got error: %v", err)
-				return
-			}
-
-			if !tt.wantErr && customer == nil {
-				t.Errorf("returned a nil customer")
-				return
-			}
-		})
-	}
-
-}
-
-func TestGetCustomerProfileByProfileID(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-	tests := []struct {
-		name      string
-		profileID string
-		wantErr   bool
-	}{
-		{
-			name:      "valid case",
-			profileID: uuid.New().String(),
-			wantErr:   false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			customerTest, err := firestoreDB.CreateEmptyCustomerProfile(ctx, tt.profileID)
-			if err != nil {
-				t.Errorf("failed to create a test Empty Customer profile err: %v", err)
-				return
-			}
-			if customerTest.ProfileID == nil {
-				t.Errorf("nil customer profile ID")
-				return
-			}
-			customerProfile, err := firestoreDB.GetCustomerProfileByProfileID(ctx, tt.profileID)
-			if err != nil && !tt.wantErr {
-				t.Errorf("error not expected but got error: %v", err)
-				return
-			}
-			if tt.wantErr && err == nil {
-				t.Errorf("error expected but got no error")
-				return
-			}
-			if !tt.wantErr && customerProfile == nil {
-				t.Errorf("nil customer profile")
-				return
-			}
-
-			if !tt.wantErr {
-				if customerTest.ProfileID == nil {
-					t.Errorf("nil customer profile ID")
-					return
-				}
-
-				if customerTest.ID == "" {
-					t.Errorf("nil customer ID")
-					return
-				}
-			}
-		})
-	}
-}
-
-func TestRepository_GetCustomerOrSupplierProfileByProfileID(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	profileID := uuid.New().String()
-	_, err := fr.CreateEmptySupplierProfile(ctx, profileID)
-	if err != nil {
-		t.Errorf("failed to create an empty supplier: %v", err)
-	}
-
-	_, err = fr.CreateEmptyCustomerProfile(ctx, profileID)
-	if err != nil {
-		t.Errorf("failed to create an empty customer: %v", err)
-	}
-	type args struct {
-		ctx       context.Context
-		flavour   feedlib.Flavour
-		profileID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "success: get the customer profile",
-			args: args{
-				ctx:       ctx,
-				flavour:   feedlib.FlavourConsumer,
-				profileID: profileID,
-			},
-			wantErr: false,
-		},
-		{
-			name: "success: get the supplier profile",
-			args: args{
-				ctx:       ctx,
-				flavour:   feedlib.FlavourPro,
-				profileID: profileID,
-			},
-			wantErr: false,
-		},
-		{
-			name: "failure: bad flavour given",
-			args: args{
-				ctx:       ctx,
-				flavour:   "not-a-flavour-bana",
-				profileID: profileID,
-			},
-			wantErr: true,
-		},
-		{
-			name: "failure: profile ID that does not exist",
-			args: args{
-				ctx:       ctx,
-				flavour:   feedlib.FlavourPro,
-				profileID: "not-a-real-profile-ID",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			customer, supplier, err := fr.GetCustomerOrSupplierProfileByProfileID(
-				tt.args.ctx,
-				tt.args.flavour,
-				tt.args.profileID,
-			)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.GetCustomerOrSupplierProfileByProfileID() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-
-			if serverutils.IsDebug() {
-				log.Printf("Customer....%v", customer)
-				log.Printf("Supplier....%v", supplier)
-			}
-		})
-	}
-}
-
-func TestRepository_GetCustomerProfileByID(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	profileID := uuid.New().String()
-
-	customer, err := fr.CreateEmptyCustomerProfile(ctx, profileID)
-	if err != nil {
-		t.Errorf("failed to create an empty customer: %v", err)
-	}
-	type args struct {
-		ctx context.Context
-		id  string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "success: get a customer profile by ID",
-			args: args{
-				ctx: ctx,
-				id:  customer.ID,
-			},
-			wantErr: false,
-		},
-		{
-			name: "failure: failed to get a customer profile",
-			args: args{
-				ctx: ctx,
-				id:  "not-a-customer-ID",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			customerProfile, err := fr.GetCustomerProfileByID(tt.args.ctx, tt.args.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.GetCustomerProfileByID() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if serverutils.IsDebug() {
-				log.Printf("Customer....%v", customerProfile)
-			}
-		})
-	}
-}
-
 func TestRepository_ExchangeRefreshTokenForIDToken(t *testing.T) {
 	ctx, token, err := GetTestAuthenticatedContext(t)
 	if err != nil {
@@ -777,7 +307,7 @@ func TestRepository_ExchangeRefreshTokenForIDToken(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -879,7 +409,7 @@ func TestRepository_GetUserProfileByPhoneNumber(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -943,7 +473,7 @@ func TestRepository_GetUserProfileByPrimaryPhoneNumber(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -1012,153 +542,6 @@ func TestRepository_GetUserProfileByPrimaryPhoneNumber(t *testing.T) {
 	}
 }
 
-func TestRepository_GetSupplierProfileByProfileID(t *testing.T) {
-	ctx := context.Background()
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	profileID := uuid.New().String()
-
-	sup, err := fr.CreateEmptySupplierProfile(ctx, profileID)
-	if err != nil {
-		t.Errorf("failed to create an empty supplier: %v", err)
-	}
-
-	type args struct {
-		ctx       context.Context
-		profileID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *profileutils.Supplier
-		wantErr bool
-	}{
-		{
-			name: "Happy Case - Get Supplier Profile By Valid profile ID",
-			args: args{
-				ctx:       ctx,
-				profileID: profileID,
-			},
-			want:    sup,
-			wantErr: false,
-		},
-		{
-			name: "Sad Case - Get Supplier Profile By a non-existent profile ID",
-			args: args{
-				ctx:       ctx,
-				profileID: "bogus",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := fr.GetSupplierProfileByProfileID(tt.args.ctx, tt.args.profileID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.GetSupplierProfileByProfileID() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Repository.GetSupplierProfileByProfileID() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRepository_GetSupplierProfileByID(t *testing.T) {
-	ctx, _, err := GetTestAuthenticatedContext(t)
-	if err != nil {
-		t.Errorf("failed to get test authenticated context: %v", err)
-		return
-	}
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	profileID := uuid.New().String()
-	supplier, err := fr.CreateEmptySupplierProfile(ctx, profileID)
-	if err != nil {
-		t.Errorf("failed to create an empty supplier: %v", err)
-	}
-
-	type args struct {
-		ctx context.Context
-		id  string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *profileutils.Supplier
-		wantErr bool
-	}{
-		{
-			name: "Happy Case - Get Supplier by a valid ID",
-			args: args{
-				ctx: ctx,
-				id:  supplier.ID,
-			},
-			want:    supplier,
-			wantErr: false,
-		},
-		{
-			name: "Sad Case - Get Supplier using a non-existent ID",
-			args: args{
-				ctx: ctx,
-				id:  "randomID",
-			},
-			wantErr: true,
-		},
-		{
-			name: "Sad Case - Get Supplier using an empty ID",
-			args: args{
-				ctx: ctx,
-				id:  "",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := fr.GetSupplierProfileByID(tt.args.ctx, tt.args.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.GetSupplierProfileByID() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Repository.GetSupplierProfileByID() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRepository_GetUserProfileByUID(t *testing.T) {
 	ctx, auth, err := GetTestAuthenticatedContext(t)
 	if err != nil {
@@ -1166,7 +549,7 @@ func TestRepository_GetUserProfileByUID(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -1235,7 +618,7 @@ func TestRepository_GetUserProfileByID(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -1310,7 +693,7 @@ func TestRepository_CheckIfPhoneNumberExists(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -1396,7 +779,7 @@ func TestRepository_CheckIfUsernameExists(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -1482,7 +865,7 @@ func TestRepository_GetPINByProfileID(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -1578,7 +961,7 @@ func TestRepository_SavePIN(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -1658,7 +1041,7 @@ func TestRepository_UpdatePIN(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -1735,208 +1118,6 @@ func TestRepository_UpdatePIN(t *testing.T) {
 	}
 }
 
-func TestRepository_ActivateSupplierProfile(t *testing.T) {
-	ctx := context.Background()
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	profileID := uuid.New().String()
-
-	_, err := fr.CreateEmptySupplierProfile(ctx, profileID)
-	if err != nil {
-		t.Errorf("failed to create an empty supplier: %v", err)
-	}
-
-	sup := profileutils.Supplier{
-		Active: true,
-		PayablesAccount: &profileutils.PayablesAccount{
-			ID: uuid.New().String(),
-		},
-	}
-
-	type args struct {
-		ctx       context.Context
-		profileID string
-		supplier  profileutils.Supplier
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Happy Case - Activate Supplier By Valid profile ID",
-			args: args{
-				ctx:       ctx,
-				profileID: profileID,
-				supplier:  sup,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Sad Case - Activate Supplier By a non-existent profile ID",
-			args: args{
-				ctx:       ctx,
-				profileID: "bogus",
-				supplier:  sup,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			supp, err := fr.ActivateSupplierProfile(
-				tt.args.ctx,
-				tt.args.profileID,
-				tt.args.supplier,
-			)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.ActivateSupplierProfile() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if supp != nil {
-				if !supp.Active && supp.SupplierID == "" && supp.PayablesAccount.ID == "" {
-					t.Errorf("expected an active supplier")
-					return
-				}
-			}
-		})
-	}
-}
-
-func TestRepository_AddPartnerType(t *testing.T) {
-	ctx := context.Background()
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	testRiderName := "Test Rider"
-	rider := profileutils.PartnerTypeRider
-	testPractitionerName := "Test Practitioner"
-	practitioner := profileutils.PartnerTypePractitioner
-	testProviderName := "Test Provider"
-	provider := profileutils.PartnerTypeProvider
-
-	profileID := uuid.New().String()
-
-	supplier, err := fr.CreateEmptySupplierProfile(ctx, profileID)
-	if err != nil {
-		t.Errorf("failed to create an empty supplier: %v", err)
-	}
-
-	type args struct {
-		ctx         context.Context
-		profileID   string
-		name        *string
-		partnerType *profileutils.PartnerType
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "Happy Case - Add a valid rider partner type",
-			args: args{
-				ctx:         ctx,
-				profileID:   *supplier.ProfileID,
-				name:        &testRiderName,
-				partnerType: &rider,
-			},
-			want:    true,
-			wantErr: false,
-		},
-		{
-			name: "Happy Case - Add a valid practitioner partner type",
-			args: args{
-				ctx:         ctx,
-				profileID:   *supplier.ProfileID,
-				name:        &testPractitionerName,
-				partnerType: &practitioner,
-			},
-			want:    true,
-			wantErr: false,
-		},
-		{
-			name: "Happy Case - Add a valid provider partner type",
-			args: args{
-				ctx:         ctx,
-				profileID:   *supplier.ProfileID,
-				name:        &testProviderName,
-				partnerType: &provider,
-			},
-			want:    true,
-			wantErr: false,
-		},
-		{
-			name: "Sad Case - Use an invalid ID",
-			args: args{
-				ctx:         ctx,
-				profileID:   "invalidid",
-				name:        &testProviderName,
-				partnerType: &provider,
-			},
-			want:    false,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := fr.AddPartnerType(
-				tt.args.ctx,
-				tt.args.profileID,
-				tt.args.name,
-				tt.args.partnerType,
-			)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Repository.AddPartnerType() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("error expected, got %v", err)
-					return
-				}
-			}
-
-			if !tt.wantErr {
-				if err != nil {
-					t.Errorf("error not expected, got %v", err)
-					return
-				}
-			}
-
-			if got != tt.want {
-				t.Errorf("Repository.AddPartnerType() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRepository_RecordPostVisitSurvey(t *testing.T) {
 	ctx, auth, err := GetTestAuthenticatedContext(t)
 	if err != nil {
@@ -1944,7 +1125,7 @@ func TestRepository_RecordPostVisitSurvey(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -2013,7 +1194,7 @@ func TestRepository_UpdateSuspended(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -2085,7 +1266,7 @@ func TestRepository_UpdateVerifiedUIDS(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -2154,7 +1335,7 @@ func TestRepository_UpdateVerifiedIdentifiers(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -2254,85 +1435,6 @@ func TestRepository_UpdateVerifiedIdentifiers(t *testing.T) {
 	}
 }
 
-func TestRepository_UpdateCovers(t *testing.T) {
-	ctx, auth, err := GetTestAuthenticatedContext(t)
-	if err != nil {
-		t.Errorf("failed to get test authenticated context: %v", err)
-		return
-	}
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	userProfile, err := fr.GetUserProfileByUID(ctx, auth.UID, false)
-	if err != nil {
-		t.Errorf("failed to get a user profile")
-		return
-	}
-
-	newCover := []profileutils.Cover{
-		{
-			PayerName:      "Payer 6",
-			PayerSladeCode: 27,
-			MemberName:     "Jakom",
-			MemberNumber:   "12345",
-		},
-	}
-
-	type args struct {
-		ctx    context.Context
-		id     string
-		covers []profileutils.Cover
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Sad Case - Using an invalid ID",
-			args: args{
-				ctx: ctx,
-				id:  "invalidID",
-				covers: []profileutils.Cover{
-					{
-						PayerName:      "payer1",
-						PayerSladeCode: 1,
-						MemberName:     "name1",
-						MemberNumber:   "mem1",
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "Happy Case - Add a valid new cover",
-			args: args{
-				ctx:    ctx,
-				id:     userProfile.ID,
-				covers: newCover,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := fr.UpdateCovers(tt.args.ctx, tt.args.id, tt.args.covers); (err != nil) != tt.wantErr {
-				t.Errorf("Repository.UpdateCovers() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestRepository_UpdateSecondaryEmailAddresses(t *testing.T) {
 	ctx, auth, err := GetTestAuthenticatedContext(t)
 	if err != nil {
@@ -2340,7 +1442,7 @@ func TestRepository_UpdateSecondaryEmailAddresses(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -2401,151 +1503,6 @@ func TestRepository_UpdateSecondaryEmailAddresses(t *testing.T) {
 	}
 }
 
-func TestRepository_UpdateSupplierProfile(t *testing.T) {
-	ctx := context.Background()
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	profileID := uuid.New().String()
-
-	supplier, err := fr.CreateEmptySupplierProfile(ctx, profileID)
-	if err != nil {
-		t.Errorf("failed to create an empty supplier: %v", err)
-	}
-
-	validPayload := &profileutils.Supplier{
-		ID:        supplier.ID,
-		ProfileID: supplier.ProfileID,
-		Active:    true,
-	}
-	newprofileID := uuid.New().String()
-	invalidPayload := &profileutils.Supplier{
-		ID:        uuid.New().String(),
-		ProfileID: &newprofileID,
-		Active:    true,
-	}
-
-	type args struct {
-		ctx  context.Context
-		data *profileutils.Supplier
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Happy Case - Update Supplier Profile Supplier By Valid payload",
-			args: args{
-				ctx:  ctx,
-				data: validPayload,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Sad Case - Update Supplier Profile By invalid payload",
-			args: args{
-				ctx:  ctx,
-				data: invalidPayload,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := fr.UpdateSupplierProfile(tt.args.ctx, *tt.args.data.ProfileID, tt.args.data)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.UpdateSupplierProfile() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-		})
-	}
-}
-
-func TestRepositoryFetchKYCProcessingRequests(t *testing.T) {
-	ctx := context.Background()
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	reqPartnerType := profileutils.PartnerTypeCoach
-	organizationTypeLimitedCompany := domain.OrganizationTypeLimitedCompany
-	id := uuid.New().String()
-	kycReq := &domain.KYCRequest{
-		ID:                  id,
-		ReqPartnerType:      reqPartnerType,
-		ReqOrganizationType: organizationTypeLimitedCompany,
-		Status:              domain.KYCProcessStatusApproved,
-	}
-
-	err := fr.StageKYCProcessingRequest(ctx, kycReq)
-	if err != nil {
-		t.Errorf("failed to stage kyc: %v", err)
-		return
-	}
-
-	kycRequests := []*domain.KYCRequest{}
-	kycRequests = append(kycRequests, kycReq)
-
-	type args struct {
-		ctx context.Context
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []*domain.KYCRequest
-		wantErr bool
-	}{
-		{
-			name: "Happy Case - Fetch KYC Processing Requests",
-			args: args{
-				ctx: ctx,
-			},
-			want:    kycRequests,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := fr.FetchKYCProcessingRequests(tt.args.ctx)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.FetchKYCProcessingRequests() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Repository.FetchKYCProcessingRequests() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRepository_UpdatePrimaryEmailAddress(t *testing.T) {
 	ctx, auth, err := GetTestAuthenticatedContext(t)
 	if err != nil {
@@ -2553,7 +1510,7 @@ func TestRepository_UpdatePrimaryEmailAddress(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -2629,7 +1586,7 @@ func TestRepository_UpdatePrimaryPhoneNumber(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -2704,7 +1661,7 @@ func TestRepository_UpdateSecondaryPhoneNumbers(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -2780,7 +1737,7 @@ func TestRepository_UpdateBioData(t *testing.T) {
 		return
 	}
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -2906,187 +1863,10 @@ func TestRepository_UpdateBioData(t *testing.T) {
 	}
 }
 
-func TestRepositoryFetchKYCProcessingRequestByID(t *testing.T) {
-	ctx := context.Background()
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	reqPartnerType := profileutils.PartnerTypeCoach
-	organizationTypeLimitedCompany := domain.OrganizationTypeLimitedCompany
-	id := uuid.New().String()
-	kycReq := &domain.KYCRequest{
-		ID:                  id,
-		ReqPartnerType:      reqPartnerType,
-		ReqOrganizationType: organizationTypeLimitedCompany,
-	}
-
-	err := fr.StageKYCProcessingRequest(ctx, kycReq)
-	if err != nil {
-		t.Errorf("failed to stage kyc: %v", err)
-		return
-	}
-
-	kycRequests := []*domain.KYCRequest{}
-	kycRequests = append(kycRequests, kycReq)
-
-	kycRequest := kycRequests[0]
-
-	type args struct {
-		ctx context.Context
-		id  string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *domain.KYCRequest
-		wantErr bool
-	}{
-		{
-			name: "Happy Case - Fetch KYC Processing Requests by ID",
-			args: args{
-				ctx: ctx,
-				id:  kycRequest.ID,
-			},
-			want:    kycRequest,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := fr.FetchKYCProcessingRequestByID(tt.args.ctx, tt.args.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.FetchKYCProcessingRequestByID() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("error expected, got %v", err)
-					return
-				}
-			}
-
-			if !tt.wantErr {
-				if err != nil {
-					t.Errorf("error not expected, got %v", err)
-					return
-				}
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Repository.FetchKYCProcessingRequestByID() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRepositoryUpdateKYCProcessingRequest(t *testing.T) {
-	ctx := context.Background()
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	reqPartnerType := profileutils.PartnerTypeCoach
-	organizationTypeLimitedCompany := domain.OrganizationTypeLimitedCompany
-	id := uuid.New().String()
-	kycReq := &domain.KYCRequest{
-		ID:                  id,
-		ReqPartnerType:      reqPartnerType,
-		ReqOrganizationType: organizationTypeLimitedCompany,
-	}
-
-	err := fr.StageKYCProcessingRequest(ctx, kycReq)
-	if err != nil {
-		t.Errorf("failed to stage kyc: %v", err)
-		return
-	}
-
-	kycRequests := []*domain.KYCRequest{}
-	kycRequests = append(kycRequests, kycReq)
-
-	kycRequest := kycRequests[0]
-
-	kycStatus := domain.KYCProcessStatusApproved
-
-	updatedKYCReq := &domain.KYCRequest{
-		ID:     kycRequest.ID,
-		Status: kycStatus,
-	}
-
-	updatedKYCRequests := []*domain.KYCRequest{}
-	updatedKYCRequests = append(updatedKYCRequests, updatedKYCReq)
-
-	updatedKYCRequest := updatedKYCRequests[0]
-
-	type args struct {
-		ctx        context.Context
-		kycRequest *domain.KYCRequest
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Happy Case - Update KYC Processing Requests",
-			args: args{
-				ctx:        ctx,
-				kycRequest: updatedKYCRequest,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := fr.UpdateKYCProcessingRequest(tt.args.ctx, tt.args.kycRequest); (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.UpdateKYCProcessingRequest() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-			}
-		})
-		if tt.wantErr {
-			if err == nil {
-				t.Errorf("error expected, got %v", err)
-				return
-			}
-		}
-
-		if !tt.wantErr {
-			if err != nil {
-				t.Errorf("error not expected, got %v", err)
-				return
-			}
-		}
-	}
-}
-
 func TestRepositoryGenerateAuthCredentialsForAnonymousUser(t *testing.T) {
 	ctx := context.Background()
 
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
+	fsc, fbc := firestoreClient, firebaseAuth
 	if fsc == nil {
 		t.Errorf("failed to initialize test FireStore client")
 		return
@@ -3451,487 +2231,6 @@ func TestUpdateAddresses(t *testing.T) {
 		})
 	}
 }
-
-func TestAddNHIFDetails(t *testing.T) {
-	ctx, _, err := GetTestAuthenticatedContext(t)
-	if err != nil {
-		t.Errorf("failed to get test authenticated context: %v", err)
-		return
-	}
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	photoID := uuid.New().String()
-	input := dto.NHIFDetailsInput{
-		MembershipNumber: "12345",
-		IDNumber:         "12345",
-		NHIFCardPhotoID:  photoID,
-	}
-
-	type args struct {
-		ctx       context.Context
-		input     dto.NHIFDetailsInput
-		profileID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "happy:) successfully add NHIF details",
-			args: args{
-				ctx:       ctx,
-				input:     input,
-				profileID: uuid.New().String(),
-			},
-			wantErr: false,
-		},
-		{
-			name: "sad:( unsuccessfully add NHIF details since it exists",
-			args: args{
-				ctx:       ctx,
-				input:     input,
-				profileID: uuid.New().String(),
-			},
-			wantErr: true,
-		},
-		{
-			name: "sad:( unsuccessfully add NHIF details",
-			args: args{
-				ctx:       context.Background(),
-				input:     input,
-				profileID: uuid.New().String(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			nhif, err := fr.AddNHIFDetails(tt.args.ctx, tt.args.input, tt.args.profileID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Repository.AddNHIFDetails() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErr && nhif != nil {
-				t.Errorf("the error was not expected")
-				return
-			}
-
-			if !tt.wantErr && nhif == nil {
-				t.Errorf("an error was expected: %v", err)
-				return
-			}
-		})
-	}
-}
-
-func TestGetNHIFDetailsByProfileID(t *testing.T) {
-	ctx, _, err := GetTestAuthenticatedContext(t)
-	if err != nil {
-		t.Errorf("failed to get test authenticated context: %v", err)
-		return
-	}
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	input := dto.NHIFDetailsInput{
-		MembershipNumber: "123456",
-		IDNumber:         "11111111",
-	}
-	profileID := uuid.New().String()
-	_, err = fr.AddNHIFDetails(ctx, input, profileID)
-	if err != nil {
-		t.Errorf("failed to add NHIF details")
-		return
-	}
-	type args struct {
-		ctx       context.Context
-		profileID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "happy:) successfully get NHIF details",
-			args: args{
-				ctx:       ctx,
-				profileID: profileID,
-			},
-			wantErr: false,
-		},
-		{
-			name: "sad:( get NHIF details that don't exist",
-			args: args{
-				ctx:       ctx,
-				profileID: uuid.New().String(),
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			nhif, err := fr.GetNHIFDetailsByProfileID(tt.args.ctx, tt.args.profileID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.GetNHIFDetailsByProfileID() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if tt.wantErr && nhif != nil {
-				t.Errorf("the error was not expected")
-				return
-			}
-		})
-	}
-}
-
-func TestUpdateCustomerProfile(t *testing.T) {
-	ctx := context.Background()
-
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	profileID := uuid.New().String()
-	_, err := fr.CreateEmptyCustomerProfile(ctx, profileID)
-	if err != nil {
-		t.Errorf("failed to create test empty customer profile: %v", err)
-		return
-	}
-
-	customerData := profileutils.Customer{
-		CustomerID: uuid.New().String(),
-		ReceivablesAccount: profileutils.ReceivablesAccount{
-			ID: uuid.New().String(),
-		},
-	}
-	type args struct {
-		ctx       context.Context
-		profileID string
-		cus       profileutils.Customer
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "happy:) update a customer",
-			args: args{
-				ctx:       ctx,
-				profileID: profileID,
-				cus:       customerData,
-			},
-			wantErr: false,
-		},
-		{
-			name: "sad:( failed update a customer",
-			args: args{
-				ctx:       ctx,
-				profileID: uuid.New().String(),
-				cus:       customerData,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			customer, err := fr.UpdateCustomerProfile(tt.args.ctx, tt.args.profileID, tt.args.cus)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.UpdateCustomerProfile() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if customer != nil {
-				if customer.CustomerID == "" && customer.ReceivablesAccount.ID == "" {
-					t.Errorf("expected customer id and receivables account")
-					return
-				}
-			}
-		})
-	}
-}
-
-func TestRepository_PersistIncomingSMSData(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	validLinkId := uuid.New().String()
-	text := "Test Covers"
-	to := "3601"
-	id := "60119"
-	from := "+254705385894"
-	date := "2021-05-17T13:20:04.490Z"
-
-	validData := &dto.AfricasTalkingMessage{
-		LinkID: validLinkId,
-		Text:   text,
-		To:     to,
-		ID:     id,
-		Date:   date,
-		From:   from,
-	}
-
-	invalidData := &dto.AfricasTalkingMessage{
-		LinkID: " ",
-		Text:   text,
-		To:     to,
-		ID:     id,
-		Date:   date,
-		From:   " ",
-	}
-
-	type args struct {
-		ctx   context.Context
-		input dto.AfricasTalkingMessage
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *dto.AfricasTalkingMessage
-		wantErr bool
-	}{
-		{
-			name: "Happy :) Successfully persist sms data",
-			args: args{
-				ctx:   ctx,
-				input: *validData,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Sad :) Unsuccessfully persist sms data",
-			args: args{
-				ctx:   ctx,
-				input: *invalidData,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := firestoreDB.PersistIncomingSMSData(tt.args.ctx, &tt.args.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.PersistIncomingSMSData() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("error was not expected but got error: %v", err)
-				return
-			}
-		})
-	}
-}
-
-func TestRepository_AddAITSessionDetails(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	phoneNumber := "+254700100200"
-	SessionID := "151515"
-	Level := 0
-	Text := ""
-
-	sessionDet := &dto.SessionDetails{
-		SessionID:   SessionID,
-		PhoneNumber: &phoneNumber,
-		Level:       Level,
-		Text:        Text,
-	}
-
-	invalidsessionDet := &dto.SessionDetails{
-		SessionID:   "",
-		PhoneNumber: &phoneNumber,
-		Level:       Level,
-	}
-
-	type args struct {
-		ctx   context.Context
-		input *dto.SessionDetails
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *domain.USSDLeadDetails
-		wantErr bool
-	}{
-		{
-			name: "Happy case",
-			args: args{
-				ctx:   ctx,
-				input: sessionDet,
-			},
-			wantErr: false,
-		},
-
-		{
-			name: "Sad case",
-			args: args{
-				ctx:   ctx,
-				input: invalidsessionDet,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			if tt.name == "Happy case" {
-				_, err := utils.ValidateUSSDDetails(sessionDet)
-				if err != nil {
-					t.Errorf("an error occurred")
-				}
-			}
-
-			if tt.name == "Sad case" {
-				_, err := utils.ValidateUSSDDetails(sessionDet)
-				if err != nil {
-					t.Errorf("an error occurred")
-					return
-				}
-			}
-
-			got, err := firestoreDB.AddAITSessionDetails(tt.args.ctx, tt.args.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.AddAITSessionDetails() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if tt.wantErr && got != nil {
-				t.Errorf("the error was not expected")
-				return
-			}
-		})
-	}
-}
-
-func TestRepository_GetAITSessionDetailss(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	sessionID := "151515"
-
-	type args struct {
-		ctx       context.Context
-		sessionID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *domain.USSDLeadDetails
-		wantErr bool
-	}{
-		{
-			name: "Happy case",
-			args: args{
-				ctx:       ctx,
-				sessionID: sessionID,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Sad case",
-			args: args{
-				ctx:       ctx,
-				sessionID: "",
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := firestoreDB.GetAITSessionDetails(tt.args.ctx, tt.args.sessionID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.GetAITSessionDetails() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("error was not expected but got error: %v", err)
-				return
-			}
-		})
-	}
-}
-
 func TestRepository_UpdatePIN_IntegrationTest(t *testing.T) {
 	ctx := context.Background()
 	fsc, fbc := InitializeTestFirebaseClient(ctx)
@@ -4023,396 +2322,6 @@ func TestRepository_UpdatePIN_IntegrationTest(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("Repository.UpdatePIN() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRepository_UpdateSessionLevel(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	phoneNumber := "+254702215783"
-
-	sessionDet := &dto.SessionDetails{
-		SessionID:   "b9839ed4-ad97-4cff-8b36-7afb0c7bf3ae",
-		PhoneNumber: &phoneNumber,
-		Level:       1,
-		Text:        "Test",
-	}
-
-	sessionDetails, err := firestoreDB.AddAITSessionDetails(ctx, sessionDet)
-	if err != nil {
-		t.Errorf("unable to add data")
-	}
-
-	type args struct {
-		ctx       context.Context
-		sessionID string
-		level     int
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *domain.USSDLeadDetails
-		wantErr bool
-	}{
-		{
-			name: "Happy case",
-			args: args{
-				ctx:       ctx,
-				sessionID: sessionDetails.SessionID,
-				level:     1,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Sad case",
-			args: args{
-				ctx:       ctx,
-				sessionID: "",
-				level:     1,
-			},
-			want:    &domain.USSDLeadDetails{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			got, err := firestoreDB.UpdateSessionLevel(
-				tt.args.ctx,
-				tt.args.sessionID,
-				tt.args.level,
-			)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Repository.UpdateSessionLevel() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && got == nil {
-				t.Errorf("Repository.UpdateSessionLevel() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func TestRepository_SaveUSSDEvent_IntegrationTest(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	currentTime := time.Now()
-
-	type args struct {
-		ctx   context.Context
-		input *dto.USSDEvent
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *dto.USSDEvent
-		wantErr bool
-	}{
-		{
-			name: "Happy case",
-			args: args{
-				ctx: ctx,
-				input: &dto.USSDEvent{
-					SessionID:         "0001000",
-					PhoneNumber:       "+254700000000",
-					USSDEventDateTime: &currentTime,
-					Level:             10,
-					USSDEventName:     "chose to reset PIN",
-				},
-			},
-			wantErr: false,
-		},
-
-		{
-			name: "Sad case",
-			args: args{
-				ctx: ctx,
-				input: &dto.USSDEvent{
-					SessionID:         "",
-					PhoneNumber:       "+254700000000",
-					USSDEventDateTime: &currentTime,
-					Level:             10,
-					USSDEventName:     "chose to reset PIN",
-				},
-			},
-			want:    &dto.USSDEvent{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := firestoreDB.SaveUSSDEvent(tt.args.ctx, tt.args.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Repository.SaveUSSDEvent() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if !tt.wantErr && got == nil {
-				t.Errorf("Repository.SaveUSSDEvent() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func TestRepository_SaveCoverAutolinkingEvents_Integration_Test(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	currentTime := time.Now()
-
-	type args struct {
-		ctx   context.Context
-		input *dto.CoverLinkingEvent
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *dto.CoverLinkingEvent
-		wantErr bool
-	}{
-		{
-			name: "Happy case",
-			args: args{
-				ctx: ctx,
-				input: &dto.CoverLinkingEvent{
-					ID:                    uuid.NewString(),
-					CoverLinkingEventTime: &currentTime,
-					CoverStatus:           "started autolinking",
-					MemberNumber:          "877386",
-					PhoneNumber:           "+254703754685",
-				},
-			},
-			wantErr: false,
-		},
-
-		{
-			name: "Sad case",
-			args: args{
-				ctx: ctx,
-				input: &dto.CoverLinkingEvent{
-					ID:                    uuid.NewString(),
-					CoverLinkingEventTime: &currentTime,
-					CoverStatus:           "cover autolinking started",
-					MemberNumber:          "",
-					PhoneNumber:           "+254703754685",
-				},
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := firestoreDB.SaveCoverAutolinkingEvents(tt.args.ctx, tt.args.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.SaveCoverAutolinkingEvents() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-			if !tt.wantErr && got == nil {
-				t.Errorf(
-					"Repository.SaveCoverAutolinkingEvents() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
-				return
-			}
-		})
-	}
-}
-
-func TestRepository_GetAITDetails_Integration(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	phoneNumber := "+254700100200"
-
-	sessionDet := &dto.SessionDetails{
-		SessionID:   uuid.NewString(),
-		PhoneNumber: &phoneNumber,
-		Level:       0,
-		Text:        "",
-	}
-
-	_, err := firestoreDB.AddAITSessionDetails(ctx, sessionDet)
-	if err != nil {
-		t.Errorf("unable to add session details")
-		return
-	}
-
-	type args struct {
-		ctx         context.Context
-		phoneNumber string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *domain.USSDLeadDetails
-		wantErr bool
-	}{
-		{
-			name: "Happy case",
-			args: args{
-				ctx:         ctx,
-				phoneNumber: phoneNumber,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Sad case",
-			args: args{
-				ctx:         ctx,
-				phoneNumber: "",
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			got, err := firestoreDB.GetAITDetails(tt.args.ctx, tt.args.phoneNumber)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Repository.GetAITDetails() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && got == nil {
-				t.Errorf("Repository.GetAITDetails() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func TestRepository_UpdateAITSessionDetails_Integration(t *testing.T) {
-	ctx := context.Background()
-	fsc, fbc := InitializeTestFirebaseClient(ctx)
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	firestoreDB := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	phoneNumber := "+254700100200"
-
-	contact := &domain.USSDLeadDetails{
-		ID:             uuid.NewString(),
-		Level:          0,
-		PhoneNumber:    phoneNumber,
-		SessionID:      uuid.NewString(),
-		FirstName:      gofakeit.FirstName(),
-		LastName:       gofakeit.LastName(),
-		DateOfBirth:    scalarutils.Date{},
-		IsRegistered:   false,
-		ContactChannel: "USSD",
-		WantCover:      false,
-		PIN:            "1237",
-	}
-
-	sessionDet := &dto.SessionDetails{
-		SessionID:   uuid.NewString(),
-		PhoneNumber: &phoneNumber,
-		Level:       0,
-		Text:        "",
-	}
-
-	_, err := firestoreDB.AddAITSessionDetails(ctx, sessionDet)
-	if err != nil {
-		t.Errorf("unable to add session details")
-		return
-	}
-
-	type args struct {
-		ctx         context.Context
-		phoneNumber string
-		contactLead *domain.USSDLeadDetails
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Happy case",
-			args: args{
-				ctx:         ctx,
-				phoneNumber: phoneNumber,
-				contactLead: contact,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Sad case",
-			args: args{
-				ctx:         ctx,
-				phoneNumber: "",
-				contactLead: contact,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := firestoreDB.UpdateAITSessionDetails(tt.args.ctx, tt.args.phoneNumber, tt.args.contactLead); (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.UpdateAITSessionDetails() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
 			}
 		})
 	}

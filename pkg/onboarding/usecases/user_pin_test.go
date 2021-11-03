@@ -80,7 +80,7 @@ func TestUserPinUseCaseUnitTest_SetUserPIN(t *testing.T) {
 					phone := "+254721123123"
 					return &phone, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
@@ -89,7 +89,7 @@ func TestUserPinUseCaseUnitTest_SetUserPIN(t *testing.T) {
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
 					return "salt", "passw"
 				}
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return true, nil
 				}
 
@@ -100,7 +100,7 @@ func TestUserPinUseCaseUnitTest_SetUserPIN(t *testing.T) {
 					phone := "+254721123123"
 					return &phone, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
@@ -109,12 +109,12 @@ func TestUserPinUseCaseUnitTest_SetUserPIN(t *testing.T) {
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
 					return "salt", "passw"
 				}
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return false, fmt.Errorf("unable to save pin")
 				}
 			}
 
-			isSet, err := i.UserPIN.SetUserPIN(tt.args.ctx, tt.args.pin, tt.args.profileID)
+			isSet, err := i.SetUserPIN(tt.args.ctx, tt.args.pin, tt.args.profileID)
 
 			if tt.wantErr {
 				if err == nil {
@@ -238,19 +238,19 @@ func TestUserPinUseCaseUnitTest_ResetUserPIN(t *testing.T) {
 				fakeEngagementSvs.VerifyOTPFn = func(ctx context.Context, phone, OTP string) (bool, error) {
 					return true, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return &domain.PIN{ID: "123", ProfileID: "456"}, nil
 				}
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
 					return "salt", "passw"
 				}
-				fakeRepo.UpdatePINFn = func(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.UpdatePINFn = func(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
 					return true, nil
 				}
 			}
@@ -263,19 +263,19 @@ func TestUserPinUseCaseUnitTest_ResetUserPIN(t *testing.T) {
 				fakeEngagementSvs.VerifyOTPFn = func(ctx context.Context, phone, OTP string) (bool, error) {
 					return true, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return &domain.PIN{ID: "123", ProfileID: "456"}, nil
 				}
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
 					return "salt", "passw"
 				}
-				fakeRepo.UpdatePINFn = func(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.UpdatePINFn = func(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
 					return false, fmt.Errorf("unable to update pin")
 				}
 			}
@@ -308,7 +308,7 @@ func TestUserPinUseCaseUnitTest_ResetUserPIN(t *testing.T) {
 				fakeEngagementSvs.VerifyOTPFn = func(ctx context.Context, phone, OTP string) (bool, error) {
 					return true, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("unable to get user by phone")
 				}
 			}
@@ -321,19 +321,19 @@ func TestUserPinUseCaseUnitTest_ResetUserPIN(t *testing.T) {
 				fakeEngagementSvs.VerifyOTPFn = func(ctx context.Context, phone, OTP string) (bool, error) {
 					return true, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
 
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return nil, fmt.Errorf("unable to get user pin")
 				}
 			}
 
-			got, err := i.UserPIN.ResetUserPIN(tt.args.ctx, tt.args.phone, tt.args.PIN, tt.args.OTP)
+			got, err := i.ResetUserPIN(tt.args.ctx, tt.args.phone, tt.args.PIN, tt.args.OTP)
 
 			if tt.wantErr {
 				if err == nil {
@@ -437,20 +437,20 @@ func TestUserPinUseCaseImpl_ChangeUserPINUnitTest(t *testing.T) {
 					phone := "+254721123123"
 					return &phone, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
 
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return &domain.PIN{ID: "123", ProfileID: "456"}, nil
 				}
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
 					return "salt", "passw"
 				}
-				fakeRepo.UpdatePINFn = func(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.UpdatePINFn = func(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
 					return true, nil
 				}
 			}
@@ -466,7 +466,7 @@ func TestUserPinUseCaseImpl_ChangeUserPINUnitTest(t *testing.T) {
 					phone := "+254721123123"
 					return &phone, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("unable to get user by phone")
 				}
 			}
@@ -479,14 +479,14 @@ func TestUserPinUseCaseImpl_ChangeUserPINUnitTest(t *testing.T) {
 				fakeEngagementSvs.VerifyOTPFn = func(ctx context.Context, phone, OTP string) (bool, error) {
 					return true, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
 
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return nil, fmt.Errorf("unable to get user pin")
 				}
 			}
@@ -496,25 +496,25 @@ func TestUserPinUseCaseImpl_ChangeUserPINUnitTest(t *testing.T) {
 					phone := "+254721123123"
 					return &phone, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
 
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return &domain.PIN{ID: "123", ProfileID: "456"}, nil
 				}
 				fakePinExt.EncryptPINFn = func(rawPwd string, options *extension.Options) (string, string) {
 					return "salt", "passw"
 				}
-				fakeRepo.UpdatePINFn = func(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.UpdatePINFn = func(ctx context.Context, id string, pin *domain.PIN) (bool, error) {
 					return false, fmt.Errorf("unable to update pin")
 				}
 			}
 
-			got, err := i.UserPIN.ChangeUserPIN(tt.args.ctx, tt.args.phone, tt.args.pin)
+			got, err := i.ChangeUserPIN(tt.args.ctx, tt.args.phone, tt.args.pin)
 
 			if tt.wantErr {
 				if err == nil {
@@ -591,24 +591,24 @@ func TestUserPinUseCaseImpl_CheckHasPIN(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			if tt.name == "valid:_check_has_pin" {
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return &domain.PIN{ID: "123", ProfileID: "456"}, nil
 				}
 			}
 
 			if tt.name == "invalid:_get_pin_by_profile_returns_nil" {
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return nil, nil
 				}
 			}
 
 			if tt.name == "invalid:_get_pin_by_profile_returns_error" {
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return nil, fmt.Errorf("unable to get pin by profile")
 				}
 			}
 
-			got, err := i.UserPIN.CheckHasPIN(tt.args.ctx, tt.args.profileID)
+			got, err := i.CheckHasPIN(tt.args.ctx, tt.args.profileID)
 
 			if tt.wantErr {
 				if err == nil {
@@ -705,13 +705,13 @@ func TestUserPinUseCaseImpl_RequestPINReset(t *testing.T) {
 					phone := "+254721123123"
 					return &phone, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return &domain.PIN{ID: "123", ProfileID: "456"}, nil
 				}
 				fakeEngagementSvs.GenerateAndSendOTPFn = func(ctx context.Context, phone string, appID *string) (*profileutils.OtpResponse, error) {
@@ -731,7 +731,7 @@ func TestUserPinUseCaseImpl_RequestPINReset(t *testing.T) {
 					phone := "+254721123123"
 					return &phone, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return nil, fmt.Errorf("unable to get user profile")
 				}
 			}
@@ -741,13 +741,13 @@ func TestUserPinUseCaseImpl_RequestPINReset(t *testing.T) {
 					phone := "+254721123123"
 					return &phone, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return nil, fmt.Errorf("unable to get user pin")
 				}
 			}
@@ -757,13 +757,13 @@ func TestUserPinUseCaseImpl_RequestPINReset(t *testing.T) {
 					phone := "+254721123123"
 					return &phone, nil
 				}
-				fakeRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
+				fakeInfraRepo.GetUserProfileByPrimaryPhoneNumberFn = func(ctx context.Context, phoneNumber string, suspended bool) (*profileutils.UserProfile, error) {
 					return &profileutils.UserProfile{
 						ID:           "123",
 						PrimaryPhone: &phoneNumber,
 					}, nil
 				}
-				fakeRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
+				fakeInfraRepo.GetPINByProfileIDFn = func(ctx context.Context, profileID string) (*domain.PIN, error) {
 					return &domain.PIN{ID: "123", ProfileID: "456"}, nil
 				}
 				fakeEngagementSvs.GenerateAndSendOTPFn = func(ctx context.Context, phone string, appID *string) (*profileutils.OtpResponse, error) {
@@ -771,7 +771,7 @@ func TestUserPinUseCaseImpl_RequestPINReset(t *testing.T) {
 				}
 			}
 
-			got, err := i.UserPIN.RequestPINReset(tt.args.ctx, tt.args.phone, tt.args.appID)
+			got, err := i.RequestPINReset(tt.args.ctx, tt.args.phone, tt.args.appID)
 
 			if tt.wantErr {
 				if err == nil {
@@ -855,7 +855,7 @@ func TestUserPinUseCaseImpl_SetUserTempPIN(t *testing.T) {
 					return "salt", "passw"
 				}
 
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return true, nil
 				}
 
@@ -870,7 +870,7 @@ func TestUserPinUseCaseImpl_SetUserTempPIN(t *testing.T) {
 					return "salt", "passw"
 				}
 
-				fakeRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
+				fakeInfraRepo.SavePINFn = func(ctx context.Context, pin *domain.PIN) (bool, error) {
 					return false, fmt.Errorf("cannot save pin")
 				}
 			}
@@ -881,7 +881,7 @@ func TestUserPinUseCaseImpl_SetUserTempPIN(t *testing.T) {
 				}
 			}
 
-			got, err := i.UserPIN.SetUserTempPIN(tt.args.ctx, tt.args.profileID)
+			got, err := i.SetUserTempPIN(tt.args.ctx, tt.args.profileID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"UserPinUseCaseImpl.SetUserTempPIN() error = %v, wantErr %v",

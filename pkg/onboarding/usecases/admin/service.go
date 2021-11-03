@@ -9,12 +9,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization/permission"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization"
 
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/firebasetools"
@@ -25,9 +22,9 @@ import (
 var tracer = otel.Tracer("github.com/savannahghi/onboarding/pkg/onboarding/usecases/admin")
 
 const (
-	validURLSchema         = "https"
-	validGrapthEndpoinTail = "/graphql"
-	invalidGraphEndpoint   = "Invalid graph detected. Please add a endpoint that ends with > graphql"
+	validURLSchema        = "https"
+	validGraphEndpoinTail = "/graphql"
+	invalidGraphEndpoint  = "Invalid graph detected. Please add a endpoint that ends with > graphql"
 )
 
 // Usecase ...
@@ -36,7 +33,6 @@ type Usecase interface {
 		ctx context.Context,
 		input domain.Microservice,
 	) (*domain.Microservice, error)
-	CheckHealthEndpoint(ctx context.Context, healthEndpoint string) bool
 	ListMicroservices(ctx context.Context) ([]*domain.Microservice, error)
 	DeregisterMicroservice(ctx context.Context, id string) (bool, error)
 	DeregisterAllMicroservices(ctx context.Context) (bool, error)
@@ -49,7 +45,7 @@ type Service struct {
 	baseExt extension.BaseExtension
 }
 
-// NewService initializes a valid OTP service
+// NewService returns admin service
 func NewService(ext extension.BaseExtension) *Service {
 	return &Service{
 		baseExt: ext,
@@ -72,19 +68,6 @@ func (s *Service) RegisterMicroservice(
 	ctx, span := tracer.Start(ctx, "RegisterMicroservice")
 	defer span.End()
 
-	user, err := s.baseExt.GetLoggedInUser(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, fmt.Errorf("unable to get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.MicroserviceCreate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, err
-	}
-	if !isAuthorized {
-		return nil, fmt.Errorf("user not authorized to access this resource")
-	}
 	//validate endpoint
 
 	parseURL, err := url.Parse(input.URL)
@@ -97,7 +80,7 @@ func (s *Service) RegisterMicroservice(
 		return nil, fmt.Errorf("expected a secure URL, Found %v ", input.URL)
 	}
 
-	if parseURL.Path != validGrapthEndpoinTail {
+	if parseURL.Path != validGraphEndpoinTail {
 		return nil, fmt.Errorf("%v", invalidGraphEndpoint)
 	}
 
@@ -213,19 +196,6 @@ func (s *Service) DeregisterMicroservice(ctx context.Context, id string) (bool, 
 	ctx, span := tracer.Start(ctx, "DeregisterMicroservice")
 	defer span.End()
 
-	user, err := s.baseExt.GetLoggedInUser(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, fmt.Errorf("unable to get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.MicroserviceDelete)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
-	if !isAuthorized {
-		return false, fmt.Errorf("user not authorized to access this resource")
-	}
 	return firebasetools.DeleteNode(ctx, id, &domain.Microservice{})
 }
 
@@ -235,19 +205,6 @@ func (s *Service) DeregisterAllMicroservices(ctx context.Context) (bool, error) 
 	ctx, span := tracer.Start(ctx, "DeregisterAllMicroservices")
 	defer span.End()
 
-	user, err := s.baseExt.GetLoggedInUser(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, fmt.Errorf("unable to get user: %w", err)
-	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.MicroserviceDelete)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
-	if !isAuthorized {
-		return false, fmt.Errorf("user not authorized to access this resource")
-	}
 	services, err := s.ListMicroservices(ctx)
 	if err != nil {
 		utils.RecordSpanError(span, err)
@@ -271,7 +228,7 @@ func (s *Service) DeregisterAllMicroservices(ctx context.Context) (bool, error) 
 	}
 
 	// not fatal. Recreation will happen in the next step of CLI mode
-	return false, fmt.Errorf("unable to deregiseter all services")
+	return false, fmt.Errorf("unable to deregister all services")
 }
 
 // FindMicroserviceByID retrieves a micro-service by it's ID

@@ -9,10 +9,8 @@ import (
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
-	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/pubsubtools"
 	"github.com/savannahghi/serverutils"
-	"gitlab.slade360emr.com/go/apiclient"
 
 	"cloud.google.com/go/pubsub"
 )
@@ -25,24 +23,9 @@ type BaseExtension interface {
 	GetLoggedInUser(ctx context.Context) (*dto.UserInfo, error)
 	GetLoggedInUserUID(ctx context.Context) (string, error)
 	NormalizeMSISDN(msisdn string) (*string, error)
-	FetchDefaultCurrency(c apiclient.Client,
-	) (*apiclient.FinancialYearAndCurrency, error)
-	LoginClient(username string, password string) (apiclient.Client, error)
-	FetchUserProfile(authClient apiclient.Client) (*profileutils.EDIUserProfile, error)
 	LoadDepsFromYAML() (*interserviceclient.DepsConfig, error)
 	SetupISCclient(config interserviceclient.DepsConfig, serviceName string) (*interserviceclient.InterServiceClient, error)
 	GetEnvVar(envName string) (string, error)
-	NewServerClient(
-		clientID string,
-		clientSecret string,
-		apiTokenURL string,
-		apiHost string,
-		apiScheme string,
-		grantType string,
-		username string,
-		password string,
-		extraHeaders map[string]string,
-	) (*apiclient.ServerClient, error)
 
 	// PubSub
 	EnsureTopicsExist(
@@ -86,12 +69,6 @@ type BaseExtension interface {
 		source interface{},
 		status int,
 	)
-
-	// Login
-	GetLoginFunc(ctx context.Context) http.HandlerFunc
-	GetLogoutFunc(ctx context.Context) http.HandlerFunc
-	GetRefreshFunc() http.HandlerFunc
-	GetVerifyTokenFunc(ctx context.Context) http.HandlerFunc
 }
 
 // BaseExtensionImpl ...
@@ -135,29 +112,12 @@ func (b *BaseExtensionImpl) GetLoggedInUser(ctx context.Context) (*dto.UserInfo,
 
 // GetLoggedInUserUID get the logged in user uid
 func (b *BaseExtensionImpl) GetLoggedInUserUID(ctx context.Context) (string, error) {
-	return apiclient.GetLoggedInUserUID(ctx)
+	return firebasetools.GetLoggedInUserUID(ctx)
 }
 
 // NormalizeMSISDN validates the input phone number.
 func (b *BaseExtensionImpl) NormalizeMSISDN(msisdn string) (*string, error) {
 	return converterandformatter.NormalizeMSISDN(msisdn)
-}
-
-// FetchDefaultCurrency fetched an ERP's organization's default
-// current currency
-func (b *BaseExtensionImpl) FetchDefaultCurrency(c apiclient.Client,
-) (*apiclient.FinancialYearAndCurrency, error) {
-	return apiclient.FetchDefaultCurrency(c)
-}
-
-// LoginClient returns a logged in client with the supplied username and password
-func (b *BaseExtensionImpl) LoginClient(username, password string) (apiclient.Client, error) {
-	return apiclient.LoginClient(username, password)
-}
-
-// FetchUserProfile ...
-func (b *BaseExtensionImpl) FetchUserProfile(authClient apiclient.Client) (*profileutils.EDIUserProfile, error) {
-	return apiclient.FetchUserProfile(authClient)
 }
 
 // LoadDepsFromYAML ...
@@ -173,43 +133,6 @@ func (b *BaseExtensionImpl) SetupISCclient(config interserviceclient.DepsConfig,
 // GetEnvVar ...
 func (b *BaseExtensionImpl) GetEnvVar(envName string) (string, error) {
 	return serverutils.GetEnvVar(envName)
-}
-
-// GetLoginFunc returns a function that can authenticate against both Slade 360 and Firebase
-func (b *BaseExtensionImpl) GetLoginFunc(ctx context.Context) http.HandlerFunc {
-	return apiclient.GetLoginFunc(ctx, b.fc)
-}
-
-// GetLogoutFunc logs the user out of Firebase
-func (b *BaseExtensionImpl) GetLogoutFunc(ctx context.Context) http.HandlerFunc {
-	return apiclient.GetLogoutFunc(ctx, b.fc)
-}
-
-// GetRefreshFunc is used to refresh OAuth tokens
-func (b *BaseExtensionImpl) GetRefreshFunc() http.HandlerFunc {
-	return apiclient.GetRefreshFunc()
-}
-
-// GetVerifyTokenFunc confirms that an EDI access token (supplied) is valid.
-// If it is valid, it exchanges it for a Firebase ID token.
-func (b *BaseExtensionImpl) GetVerifyTokenFunc(ctx context.Context) http.HandlerFunc {
-	return apiclient.GetVerifyTokenFunc(ctx, b.fc)
-}
-
-// NewServerClient ...
-func (b *BaseExtensionImpl) NewServerClient(
-	clientID string,
-	clientSecret string,
-	apiTokenURL string,
-	apiHost string,
-	apiScheme string,
-	grantType string,
-	username string,
-	password string,
-	extraHeaders map[string]string,
-) (*apiclient.ServerClient, error) {
-	return apiclient.NewServerClient(
-		clientID, clientSecret, apiTokenURL, apiHost, apiScheme, grantType, username, password, extraHeaders)
 }
 
 // EnsureTopicsExist creates the topic(s) in the suppplied list if they do not

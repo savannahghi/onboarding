@@ -6,63 +6,23 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/scalarutils"
 )
-
-type Beneficiary struct {
-	Name         string                         `json:"name"`
-	Msisdns      []string                       `json:"msisdns"`
-	Emails       []string                       `json:"emails"`
-	Relationship domain.BeneficiaryRelationship `json:"relationship"`
-	DateOfBirth  scalarutils.Date               `json:"dateOfBirth"`
-}
-
-type BeneficiaryInput struct {
-	Name         string                         `json:"name"`
-	Msisdns      []string                       `json:"msisdns"`
-	Emails       []string                       `json:"emails"`
-	Relationship domain.BeneficiaryRelationship `json:"relationship"`
-	DateOfBirth  scalarutils.Date               `json:"dateOfBirth"`
-}
-
-type LocationInput struct {
-	ID              string  `json:"id"`
-	Name            string  `json:"name"`
-	BranchSladeCode *string `json:"branchSladeCode"`
-}
-
-type OtherPractitionerServiceInput struct {
-	OtherServices []string `json:"otherServices"`
-}
-
-type PractitionerServiceInput struct {
-	Services []domain.PractitionerService `json:"services"`
-}
-
-type ServicesOffered struct {
-	Services      []domain.PractitionerService `json:"services"`
-	OtherServices []string                     `json:"otherServices"`
-}
 
 type ChannelOfContact string
 
 const (
 	ChannelOfContactApp       ChannelOfContact = "APP"
-	ChannelOfContactUssd      ChannelOfContact = "USSD"
 	ChannelOfContactShortcode ChannelOfContact = "SHORTCODE"
 )
 
 var AllChannelOfContact = []ChannelOfContact{
 	ChannelOfContactApp,
-	ChannelOfContactUssd,
 	ChannelOfContactShortcode,
 }
 
 func (e ChannelOfContact) IsValid() bool {
 	switch e {
-	case ChannelOfContactApp, ChannelOfContactUssd, ChannelOfContactShortcode:
+	case ChannelOfContactApp, ChannelOfContactShortcode:
 		return true
 	}
 	return false
@@ -186,100 +146,6 @@ func (e *GeneralOptionType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e GeneralOptionType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type Payor string
-
-const (
-	PayorApa        Payor = "APA"
-	PayorJubilee    Payor = "JUBILEE"
-	PayorResolution Payor = "RESOLUTION"
-	PayorBritam     Payor = "BRITAM"
-	PayorMinet      Payor = "MINET"
-	PayorMadison    Payor = "MADISON"
-)
-
-var AllPayor = []Payor{
-	PayorApa,
-	PayorJubilee,
-	PayorResolution,
-	PayorBritam,
-	PayorMinet,
-	PayorMadison,
-}
-
-func (e Payor) IsValid() bool {
-	switch e {
-	case PayorApa, PayorJubilee, PayorResolution, PayorBritam, PayorMinet, PayorMadison:
-		return true
-	}
-	return false
-}
-
-func (e Payor) String() string {
-	return string(e)
-}
-
-func (e *Payor) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Payor(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Payor", str)
-	}
-	return nil
-}
-
-func (e Payor) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type Persona string
-
-const (
-	PersonaAlice  Persona = "ALICE"
-	PersonaJuma   Persona = "JUMA"
-	PersonaBob    Persona = "BOB"
-	PersonaAndrew Persona = "ANDREW"
-)
-
-var AllPersona = []Persona{
-	PersonaAlice,
-	PersonaJuma,
-	PersonaBob,
-	PersonaAndrew,
-}
-
-func (e Persona) IsValid() bool {
-	switch e {
-	case PersonaAlice, PersonaJuma, PersonaBob, PersonaAndrew:
-		return true
-	}
-	return false
-}
-
-func (e Persona) String() string {
-	return string(e)
-}
-
-func (e *Persona) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Persona(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Persona", str)
-	}
-	return nil
-}
-
-func (e Persona) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

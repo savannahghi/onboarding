@@ -102,36 +102,6 @@ const (
 	// InvalidFlavourDefinedErrMsg for invalid flavour definitions
 	InvalidFlavourDefinedErrMsg = "invalid flavour defined"
 
-	// AddPartnerTypeErrMsg is an error message displayed when there is a
-	// failure to create a partner type
-	AddPartnerTypeErrMsg = "error occurred while adding partner type"
-
-	// InvalidPartnerTypeErrMsg is an error message displayed when an
-	// invalid partner type is provided
-	InvalidPartnerTypeErrMsg = "invalid `partnerType` provided"
-
-	// FetchDefaultCurrencyErrMsg is an error message displayed when
-	// the default currency is not found
-	FetchDefaultCurrencyErrMsg = "unable to fetch orgs default currency"
-
-	// SupplierNotFoundErrMsg is an error message displayed when a supplier
-	// profile is not found
-	SupplierNotFoundErrMsg = "unable to get the user supplier profile"
-
-	// CustomerNotFoundErrMsg  is an error message displayed when a customer
-	// profile is not found
-	CustomerNotFoundErrMsg = "unable to get the user customer profile"
-
-	// SupplierKYCAlreadySubmittedErrMsg thrown when another kyc is been submitted whne an old exists
-	// A supplier should have only one kyc
-	SupplierKYCAlreadySubmittedErrMsg = "kyc already exists for supplier"
-
-	// FindProviderErrMsg is displayed if a provider is not found
-	FindProviderErrMsg = "unable to fetch provider from chargemaster"
-
-	// PublishKYCNudgeErrMsg is displayed if we are unable to publish a kyc nudge
-	PublishKYCNudgeErrMsg = "unable to publish kyc nudge"
-
 	// InvalidCredentialsErrMsg is displayed when wrong credentials are provided
 	InvalidCredentialsErrMsg = "invalid credentials, expected a username AND password"
 
@@ -146,9 +116,6 @@ const (
 
 	// ResourceUpdateErrMsg is throw when trying to update a resource with empty arguments
 	ResourceUpdateErrMsg = "can't update resource with empty arguments"
-
-	// InvalidSladeCodeErrMsg is displayed when slade code the edi user profile doesn't match with selected provider
-	InvalidSladeCodeErrMsg = "invalid slade code, doesn't match with selected provider"
 
 	// ResolveNudgeErrMsg is displayed when a nudge fails to be resolved
 	// It takes the `flavour` and a `name` of the nudge to be more specific
@@ -166,18 +133,10 @@ const (
 	// the database
 	RecordDoesNotExistErrMsg = "the record cannot be found in the database"
 
-	//SessionIDErrMsg is an error message displayed when a sessionId is not provided in
-	// in the USSD details
-	SessionIDErrMsg = "sessionID not provided"
-
 	//RoleNotValidMsg is an error message displayed when the provided role is not valid
 	// and the user doesn't have permissions to perform an action
 	RoleNotValidMsg = "user role is not valid"
 
 	//NavActionsError is an error message displayed when the system cannot update navigation actions
 	NavActionsError = "navigation actions not updated"
-
-	// AgentNotFoundErrMsg is an error message displayed when a supplier
-	// profile is not found
-	AgentNotFoundErrMsg = "user with agent role not found"
 )

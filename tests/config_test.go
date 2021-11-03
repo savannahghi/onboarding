@@ -9,13 +9,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 	"testing"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go/auth"
 	"github.com/google/uuid"
 	"github.com/imroc/req"
@@ -24,27 +21,15 @@ import (
 	"github.com/savannahghi/interserviceclient"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/database/fb"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/chargemaster"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/serverutils"
 	"github.com/sirupsen/logrus"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/services/hubspot"
 
-	crmExt "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/messaging"
-	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
-	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
-	erp "gitlab.slade360emr.com/go/commontools/accounting/pkg/usecases"
-	hubspotRepo "gitlab.slade360emr.com/go/commontools/crm/pkg/infrastructure/database/fs"
-	hubspotUsecases "gitlab.slade360emr.com/go/commontools/crm/pkg/usecases"
 )
 
 const (
@@ -52,11 +37,10 @@ const (
 )
 
 const (
-	testChargeMasterBranchID = "94294577-6b27-4091-9802-1ce0f2ce4153"
-	engagementService        = "engagement"
-	ediService               = "edi"
-	testRoleName             = "Test Role"
-	testPIN                  = "2030"
+	engagementService = "engagement"
+	ediService        = "edi"
+	testRoleName      = "Test Role"
+	testPIN           = "2030"
 )
 
 /// these are set up once in TestMain and used by all the acceptance tests in
@@ -65,7 +49,8 @@ var (
 	srv            *http.Server
 	baseURL        string
 	serverErr      error
-	testInteractor *interactor.Interactor
+	testInteractor interactor.Usecases
+	testInfra      infrastructure.Infrastructure
 )
 
 func mapToJSONReader(m map[string]interface{}) (io.Reader, error) {
@@ -97,84 +82,20 @@ func initializeAcceptanceTestFirebaseClient(ctx context.Context) (*firestore.Cli
 	return fsc, fbc
 }
 
-func InitializeTestService(ctx context.Context) (*interactor.Interactor, error) {
-	var repo repository.OnboardingRepository
-
-	if serverutils.MustGetEnvVar(domain.Repo) == domain.FirebaseRepository {
-		fsc, fbc := initializeAcceptanceTestFirebaseClient(ctx)
-		firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-		repo = fb.NewFirebaseRepository(firestoreExtension, fbc)
-	}
-
-	projectID, err := serverutils.GetEnvVar(serverutils.GoogleCloudProjectIDEnvVarName)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"can't get projectID from env var `%s`: %w",
-			serverutils.GoogleCloudProjectIDEnvVarName,
-			err,
-		)
-	}
-	pubSubClient, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize pubsub client: %w", err)
-	}
-
+func InitializeTestService(ctx context.Context, infra infrastructure.Infrastructure) (interactor.Usecases, error) {
 	ext := extension.NewBaseExtensionImpl(&firebasetools.FirebaseClient{})
 
-	// Initialize ISC clients
-	engagementClient := utils.NewInterServiceClient(engagementService, ext)
-	ediClient := utils.NewInterServiceClient(ediService, ext)
-
-	erp := erp.NewAccounting()
-	chrg := chargemaster.NewChargeMasterUseCasesImpl()
-	hubspotService := hubspot.NewHubSpotService()
-	hubspotfr, err := hubspotRepo.NewHubSpotFirebaseRepository(context.Background(), hubspotService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize hubspot crm repository: %w", err)
-	}
-	hubspotUsecases := hubspotUsecases.NewHubSpotUsecases(hubspotfr)
-	crmExt := crmExt.NewCrmService(hubspotUsecases)
-	engage := engagement.NewServiceEngagementImpl(engagementClient, ext)
-	edi := edi.NewEdiService(ediClient, repo)
-	ps, err := pubsubmessaging.NewServicePubSubMessaging(
-		pubSubClient,
-		ext,
-		erp,
-		crmExt,
-		edi,
-		repo,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize new pubsub messaging service: %w", err)
-	}
-	mes := messaging.NewServiceMessagingImpl(ext)
 	pinExt := extension.NewPINExtensionImpl()
-	profile := usecases.NewProfileUseCase(repo, ext, engage, ps, crmExt)
 
-	supplier := usecases.NewSupplierUseCases(repo, profile, erp, chrg, engage, mes, ext, ps)
-	login := usecases.NewLoginUseCases(repo, profile, ext, pinExt)
-	survey := usecases.NewSurveyUseCases(repo, ext)
-	userpin := usecases.NewUserPinUseCase(repo, profile, ext, pinExt, engage)
-	su := usecases.NewSignUpUseCases(repo, profile, userpin, supplier, ext, engage, ps, edi)
-	nhif := usecases.NewNHIFUseCases(repo, profile, ext, engage)
-	sms := usecases.NewSMSUsecase(repo, ext)
-	role := usecases.NewRoleUseCases(repo, ext)
+	usecases := interactor.NewUsecasesInteractor(
+		infra, ext, pinExt,
+	)
+	return usecases, nil
+}
 
-	return &interactor.Interactor{
-		Onboarding:   profile,
-		Signup:       su,
-		Supplier:     supplier,
-		Login:        login,
-		Survey:       survey,
-		UserPIN:      userpin,
-		ERP:          erp,
-		ChargeMaster: chrg,
-		Engagement:   engage,
-		NHIF:         nhif,
-		PubSub:       ps,
-		SMS:          sms,
-		Role:         role,
-	}, nil
+func InitializeTestInfrastructure(ctx context.Context) (infrastructure.Infrastructure, error) {
+
+	return infrastructure.NewInfrastructureInteractor(), nil
 }
 
 func composeInValidUserPayload(t *testing.T) *dto.SignUpInput {
@@ -221,32 +142,6 @@ func composeValidRolePayload(t *testing.T, roleName string) *dto.RoleInput {
 	}
 
 	return &role
-}
-
-func composeSMSMessageDataPayload(
-	t *testing.T,
-	payload *dto.AfricasTalkingMessage,
-) *strings.Reader {
-	data := url.Values{}
-	data.Set("date", payload.Date)
-	data.Set("from", payload.From)
-	data.Set("id", payload.ID)
-	data.Set("linkId", payload.LinkID)
-	data.Set("text", payload.Text)
-	data.Set("to", payload.To)
-
-	smspayload := strings.NewReader(data.Encode())
-	return smspayload
-}
-
-func composeUSSDPayload(t *testing.T, payload *dto.SessionDetails) *strings.Reader {
-	data := url.Values{}
-	data.Set("sessionId", payload.SessionID)
-	data.Set("phoneNumber", *payload.PhoneNumber)
-	data.Set("text", payload.Text)
-
-	smspayload := strings.NewReader(data.Encode())
-	return smspayload
 }
 
 func CreateTestUserByPhone(t *testing.T, phone string) (*profileutils.UserResponse, error) {
@@ -308,7 +203,7 @@ func CreateTestRole(t *testing.T, roleName string) (*dto.RoleOutput, error) {
 
 	validPayload := composeValidRolePayload(t, roleName)
 
-	role, err := testInteractor.Role.CreateUnauthorizedRole(ctx, *validPayload)
+	role, err := testInteractor.CreateUnauthorizedRole(ctx, *validPayload)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +214,7 @@ func CreateTestRole(t *testing.T, roleName string) (*dto.RoleOutput, error) {
 func AssignTestRole(t *testing.T, profileID, roleID string) (bool, error) {
 	ctx := getTestAuthenticatedContext(t)
 
-	_, err := testInteractor.Role.AssignRole(ctx, profileID, roleID)
+	_, err := testInteractor.AssignRole(ctx, profileID, roleID)
 	if err != nil {
 		return false, err
 	}
@@ -330,12 +225,12 @@ func AssignTestRole(t *testing.T, profileID, roleID string) (bool, error) {
 func RemoveTestRole(t *testing.T, name string) (bool, error) {
 	ctx := getTestAuthenticatedContext(t)
 
-	role, err := testInteractor.Role.GetRoleByName(ctx, testRoleName)
+	role, err := testInteractor.GetRoleByName(ctx, testRoleName)
 	if err != nil {
 		return false, err
 	}
 
-	_, err = testInteractor.Role.DeleteRole(ctx, role.ID)
+	_, err = testInteractor.DeleteRole(ctx, role.ID)
 	if err != nil {
 		return false, err
 	}
@@ -458,29 +353,10 @@ func TestRemoveTestUserByPhone(t *testing.T) {
 }
 
 func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, error) {
+	infrastructure := infrastructure.NewInfrastructureInteractor()
 	ctx := context.Background()
 	testAppID := uuid.New().String()
-	return testInteractor.Engagement.GenerateAndSendOTP(ctx, phone, &testAppID)
-}
-
-func setPrimaryEmailAddress(ctx context.Context, t *testing.T, emailAddress string) error {
-
-	return testInteractor.Onboarding.UpdatePrimaryEmailAddress(ctx, emailAddress)
-}
-
-func updateBioData(ctx context.Context, t *testing.T, data profileutils.BioData) error {
-
-	return testInteractor.Onboarding.UpdateBioData(ctx, data)
-}
-
-func addPartnerType(
-	ctx context.Context,
-	t *testing.T,
-	name *string,
-	partnerType profileutils.PartnerType,
-) (bool, error) {
-
-	return testInteractor.Supplier.AddPartnerType(ctx, name, &partnerType)
+	return infrastructure.Engagement.GenerateAndSendOTP(ctx, phone, &testAppID)
 }
 
 func getTestUserCredentials(t *testing.T) (*profileutils.UserResponse, error) {
@@ -489,9 +365,9 @@ func getTestUserCredentials(t *testing.T) (*profileutils.UserResponse, error) {
 	phone := interserviceclient.TestUserPhoneNumber
 	pin := testPIN
 	flavour := feedlib.FlavourPro
-	userResponse, err := testInteractor.Login.LoginByPhone(ctx, phone, pin, flavour)
+	userResponse, err := testInteractor.LoginByPhone(ctx, phone, pin, flavour)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get role by name: %v", err)
+		return nil, fmt.Errorf("unable to get test user credentials: %v", err)
 	}
 
 	return userResponse, nil
@@ -503,7 +379,7 @@ func getRoleByName(t *testing.T, name string) (*dto.RoleOutput, error) {
 	phone := interserviceclient.TestUserPhoneNumber
 	pin := testPIN
 	flavour := feedlib.FlavourPro
-	userResponse, err := testInteractor.Login.LoginByPhone(ctx, phone, pin, flavour)
+	userResponse, err := testInteractor.LoginByPhone(ctx, phone, pin, flavour)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get role by name: %v", err)
 	}
@@ -515,21 +391,12 @@ func getRoleByName(t *testing.T, name string) (*dto.RoleOutput, error) {
 		authCred,
 	)
 
-	role, err := testInteractor.Role.GetRoleByName(authenticatedContext, name)
+	role, err := testInteractor.GetRoleByName(authenticatedContext, name)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get role by name: %v", err)
 	}
 
 	return role, nil
-}
-
-func setUpSupplier(
-	ctx context.Context,
-	t *testing.T,
-	accountType profileutils.AccountType,
-) (*profileutils.Supplier, error) {
-
-	return testInteractor.Supplier.SetUpSupplier(ctx, accountType)
 }
 
 func setUpLoggedInTestUserGraphHeaders(t *testing.T) map[string]string {
@@ -617,7 +484,15 @@ func TestMain(m *testing.M) {
 
 	fsc, _ := initializeAcceptanceTestFirebaseClient(ctx)
 
-	i, err := InitializeTestService(ctx)
+	infra, err := InitializeTestInfrastructure(ctx)
+	if err != nil {
+		log.Printf("unable to initialize test infrastructure: %v", err)
+		return
+	}
+
+	testInfra = infra
+
+	i, err := InitializeTestService(ctx, infra)
 	if err != nil {
 		log.Printf("unable to initialize test service: %v", err)
 		return
@@ -629,20 +504,12 @@ func TestMain(m *testing.M) {
 		if serverutils.MustGetEnvVar(domain.Repo) == domain.FirebaseRepository {
 			r := fb.Repository{}
 			collections := []string{
-				r.GetCustomerProfileCollectionName(),
 				r.GetPINsCollectionName(),
 				r.GetUserProfileCollectionName(),
-				r.GetSupplierProfileCollectionName(),
 				r.GetSurveyCollectionName(),
 				r.GetCommunicationsSettingsCollectionName(),
-				r.GetCustomerProfileCollectionName(),
 				r.GetExperimentParticipantCollectionName(),
-				r.GetKCYProcessCollectionName(),
-				r.GetMarketingDataCollectionName(),
-				r.GetNHIFDetailsCollectionName(),
 				r.GetProfileNudgesCollectionName(),
-				r.GetSMSCollectionName(),
-				r.GetUSSDDataCollectionName(),
 				r.GetRolesCollectionName(),
 			}
 			for _, collection := range collections {

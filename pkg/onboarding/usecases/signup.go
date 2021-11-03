@@ -3,31 +3,19 @@ package usecases
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	profileDomain "github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/edi"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
 	"github.com/savannahghi/pubsubtools"
 	"github.com/savannahghi/scalarutils"
-	"github.com/sirupsen/logrus"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
-)
-
-const (
-	// CoverLinkingStatusStarted ...
-	CoverLinkingStatusStarted = "coverlinking started"
 )
 
 // SignUpUseCases represents all the business logic involved in setting up a user
@@ -48,9 +36,6 @@ type SignUpUseCases interface {
 	// adds a new push token in the users profile if the push token does not exist
 	RegisterPushToken(ctx context.Context, token string) (bool, error)
 
-	// called to create a customer account in the ERP. This API is only valid for `BEWELL CONSUMER`
-	// it should be the last call after updating the users bio data. Its should not return an error
-	// when it fails due to unreachable errors, rather it should retry
 	CompleteSignup(ctx context.Context, flavour feedlib.Flavour) (bool, error)
 
 	// removes a push token from the users profile
@@ -70,43 +55,29 @@ type SignUpUseCases interface {
 
 	RemoveUserByPhoneNumber(ctx context.Context, phone string) error
 
-	RegisterUser(ctx context.Context, input dto.RegisterUserInput) (*dto.RegisteredUserResponse, error)
+	RegisterUser(ctx context.Context, input dto.RegisterUserInput) (*profileutils.UserProfile, error)
 }
 
 // SignUpUseCasesImpl represents usecase implementation object
 type SignUpUseCasesImpl struct {
-	onboardingRepository repository.OnboardingRepository
-	profileUsecase       ProfileUseCase
-	pinUsecase           UserPINUseCases
-	supplierUsecase      SupplierUseCases
-	baseExt              extension.BaseExtension
-	engagement           engagement.ServiceEngagement
-	pubsub               pubsubmessaging.ServicePubSub
-	edi                  edi.ServiceEdi
-	repo                 repository.OnboardingRepository
+	infrastructure infrastructure.Infrastructure
+	profileUsecase ProfileUseCase
+	pinUsecase     UserPINUseCases
+	baseExt        extension.BaseExtension
 }
 
 // NewSignUpUseCases returns a new a onboarding usecase
 func NewSignUpUseCases(
-	r repository.OnboardingRepository,
+	infrastructure infrastructure.Infrastructure,
 	profile ProfileUseCase,
 	pin UserPINUseCases,
-	supplier SupplierUseCases,
 	ext extension.BaseExtension,
-	eng engagement.ServiceEngagement,
-	pubsub pubsubmessaging.ServicePubSub,
-	edi edi.ServiceEdi,
 ) SignUpUseCases {
 	return &SignUpUseCasesImpl{
-		onboardingRepository: r,
-		profileUsecase:       profile,
-		pinUsecase:           pin,
-		supplierUsecase:      supplier,
-		baseExt:              ext,
-		engagement:           eng,
-		pubsub:               pubsub,
-		edi:                  edi,
-		repo:                 r,
+		infrastructure: infrastructure,
+		profileUsecase: profile,
+		pinUsecase:     pin,
+		baseExt:        ext,
 	}
 }
 
@@ -135,7 +106,7 @@ func (s *SignUpUseCasesImpl) VerifyPhoneNumber(
 		return nil, exceptions.CheckPhoneNumberExistError()
 	}
 	// generate and send otp to the phone number
-	otpResp, err := s.engagement.GenerateAndSendOTP(ctx, *phoneNumber, appID)
+	otpResp, err := s.infrastructure.Engagement.GenerateAndSendOTP(ctx, *phoneNumber, appID)
 
 	if err != nil {
 		utils.RecordSpanError(span, err)
@@ -159,7 +130,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
-	verified, err := s.engagement.VerifyOTP(
+	verified, err := s.infrastructure.Engagement.VerifyOTP(
 		ctx,
 		*userData.PhoneNumber,
 		*userData.OTP,
@@ -174,14 +145,14 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 	}
 
 	// get or create user via their phone number
-	user, err := s.repo.GetOrCreatePhoneNumberUser(ctx, *userData.PhoneNumber)
+	user, err := s.infrastructure.Database.GetOrCreatePhoneNumberUser(ctx, *userData.PhoneNumber)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
 	// create a user profile
-	profile, err := s.repo.CreateUserProfile(
+	profile, err := s.infrastructure.Database.CreateUserProfile(
 		ctx,
 		*userData.PhoneNumber,
 		user.UID,
@@ -191,7 +162,7 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		return nil, exceptions.InternalServerError(err)
 	}
 	// generate auth credentials
-	auth, err := s.repo.GenerateAuthCredentials(
+	auth, err := s.infrastructure.Database.GenerateAuthCredentials(
 		ctx,
 		*userData.PhoneNumber,
 		profile,
@@ -210,23 +181,9 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
-
-	var supplier *profileutils.Supplier
-	var customer *profileutils.Customer
-	supplier, err = s.repo.CreateEmptySupplierProfile(ctx, profile.ID)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, exceptions.InternalServerError(err)
-	}
-
-	customer, err = s.repo.CreateEmptyCustomerProfile(ctx, profile.ID)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, exceptions.InternalServerError(err)
-	}
 	// set the user default communications settings
 	defaultCommunicationSetting := true
-	comms, err := s.repo.SetUserCommunicationsSettings(
+	comms, err := s.infrastructure.Database.SetUserCommunicationsSettings(
 		ctx,
 		profile.ID,
 		&defaultCommunicationSetting,
@@ -239,22 +196,8 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 		return nil, err
 	}
 
-	contact := domain.CRMContact{
-		Properties: domain.ContactProperties{
-			Phone:                 *profile.PrimaryPhone,
-			FirstChannelOfContact: domain.ChannelOfContactApp,
-			BeWellEnrolled:        domain.GeneralOptionTypeYes,
-			BeWellAware:           domain.GeneralOptionTypeYes,
-		},
-	}
-
-	if err = s.pubsub.NotifyCreateContact(ctx, contact); err != nil {
-		utils.RecordSpanError(span, err)
-		log.Printf("failed to publish to crm.contact.create topic: %v", err)
-	}
-
 	// get navigation actions
-	roles, err := s.repo.GetRolesByIDs(ctx, profile.Roles)
+	roles, err := s.infrastructure.Database.GetRolesByIDs(ctx, profile.Roles)
 	if err != nil {
 		return nil, err
 	}
@@ -266,8 +209,6 @@ func (s *SignUpUseCasesImpl) CreateUserByPhone(
 
 	return &profileutils.UserResponse{
 		Profile:               profile,
-		SupplierProfile:       supplier,
-		CustomerProfile:       customer,
 		CommunicationSettings: comms,
 		Auth:                  *auth,
 		NavActions:            utils.NewActionsMapper(ctx, navActions),
@@ -344,75 +285,14 @@ func (s *SignUpUseCasesImpl) RegisterPushToken(ctx context.Context, token string
 	return true, nil
 }
 
-// CompleteSignup called to create a customer account in the ERP. This API is only valid for `BEWELL
-// CONSUMER`
+// CompleteSignup is not implemented but maintains backward compatibility
+//  This API is only valid for `BEWELL CONSUMER`
 func (s *SignUpUseCasesImpl) CompleteSignup(
 	ctx context.Context,
 	flavour feedlib.Flavour,
 ) (bool, error) {
-	ctx, span := tracer.Start(ctx, "CompleteSignup")
+	_, span := tracer.Start(ctx, "CompleteSignup")
 	defer span.End()
-
-	if flavour != feedlib.FlavourConsumer {
-		return false, exceptions.InvalidFlavourDefinedError()
-	}
-
-	profile, err := s.profileUsecase.UserProfile(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return false, err
-	}
-
-	uid, err := s.baseExt.GetLoggedInUserUID(ctx)
-	if err != nil {
-		return false, err
-	}
-	if len(profile.PushTokens) > 0 {
-		logrus.Printf("This piece of code was called")
-		coverLinkingDetails := dto.LinkCoverPubSubMessage{
-			PhoneNumber: *profile.PrimaryPhone,
-			UID:         uid,
-			PushToken:   profile.PushTokens,
-		}
-
-		logrus.Printf("Publishing to covers.link topic")
-		if err := s.pubsub.NotifyCoverLinking(ctx, coverLinkingDetails); err != nil {
-			utils.RecordSpanError(span, err)
-			log.Printf("failed to publish to covers.link topic: %v", err)
-		}
-
-		currentTime := time.Now()
-		coverLinkingEvent := &dto.CoverLinkingEvent{
-			ID:                    uuid.NewString(),
-			CoverLinkingEventTime: &currentTime,
-			CoverStatus:           CoverLinkingStatusStarted,
-			PhoneNumber:           *profile.PrimaryPhone,
-		}
-
-		if _, err := s.onboardingRepository.SaveCoverAutolinkingEvents(ctx, coverLinkingEvent); err != nil {
-			utils.RecordSpanError(span, err)
-			log.Printf("failed to save coverlinking `started` event: %v", err)
-		}
-
-	}
-
-	if profile.UserBioData.FirstName == nil || profile.UserBioData.LastName == nil {
-		return false, exceptions.CompleteSignUpError(nil)
-	}
-	fullName := fmt.Sprintf("%v %v",
-		*profile.UserBioData.FirstName,
-		*profile.UserBioData.LastName,
-	)
-
-	err = s.supplierUsecase.CreateCustomerAccount(
-		ctx,
-		fullName,
-		profileutils.PartnerTypeConsumer,
-	)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		logrus.Printf("failed to create customer account with error: %v", err)
-	}
 
 	return true, nil
 }
@@ -447,7 +327,7 @@ func (s *SignUpUseCasesImpl) GetUserRecoveryPhoneNumbers(
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	pr, err := s.repo.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
+	pr, err := s.infrastructure.Database.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
@@ -504,11 +384,11 @@ func (s *SignUpUseCasesImpl) RemoveUserByPhoneNumber(ctx context.Context, phone 
 		utils.RecordSpanError(span, err)
 		return exceptions.NormalizeMSISDNError(err)
 	}
-	return s.repo.PurgeUserByPhoneNumber(ctx, *phoneNumber)
+	return s.infrastructure.Database.PurgeUserByPhoneNumber(ctx, *phoneNumber)
 }
 
 // RegisterUser creates a new userprofile
-func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.RegisterUserInput) (*dto.RegisteredUserResponse, error) {
+func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.RegisterUserInput) (*profileutils.UserProfile, error) {
 	ctx, span := tracer.Start(ctx, "RegisterUser")
 	defer span.End()
 
@@ -520,7 +400,7 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 
 	// create a user profile
 	//make createdByID optional only if the profile of the creating user is found
-	profile, err := s.repo.GetUserProfileByUID(ctx, uid, false)
+	profile, err := s.infrastructure.Database.GetUserProfileByUID(ctx, uid, false)
 	var profileID string
 	if err == nil {
 		profileID = profile.ID
@@ -547,25 +427,15 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 		Roles:       input.RoleIDs,
 	}
 
-	createdProfile, err := s.repo.CreateDetailedUserProfile(ctx, *phoneNumber, userProfile)
+	createdProfile, err := s.infrastructure.Database.CreateDetailedUserProfile(ctx, *phoneNumber, userProfile)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
 
-	_, err = s.repo.CreateEmptySupplierProfile(ctx, createdProfile.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = s.repo.CreateEmptyCustomerProfile(ctx, createdProfile.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	// set the user default communications settings
 	defaultCommunicationSetting := true
-	_, err = s.repo.SetUserCommunicationsSettings(
+	_, err = s.infrastructure.Database.SetUserCommunicationsSettings(
 		ctx,
 		createdProfile.ID,
 		&defaultCommunicationSetting,
@@ -586,20 +456,14 @@ func (s *SignUpUseCasesImpl) RegisterUser(ctx context.Context, input dto.Registe
 
 	message := input.WelcomeMessage
 	if message == nil {
-		message = &profileDomain.WelcomeMessage
+		message = &domain.WelcomeMessage
 	}
 
 	formartedMessage := fmt.Sprintf(*message, *input.FirstName, otp)
 
-	if err := s.engagement.SendSMS(ctx, []string{*phoneNumber}, formartedMessage); err != nil {
+	if err := s.infrastructure.Engagement.SendSMS(ctx, []string{*phoneNumber}, formartedMessage); err != nil {
 		return nil, fmt.Errorf("unable to send consumer registration message: %w", err)
 	}
 
-	response := dto.RegisteredUserResponse{
-		ID:          createdProfile.ID,
-		DisplayName: *createdProfile.UserBioData.FirstName,
-		PhoneNumber: *createdProfile.PrimaryPhone,
-	}
-
-	return &response, nil
+	return createdProfile, nil
 }

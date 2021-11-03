@@ -3,14 +3,12 @@ package usecases
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	"firebase.google.com/go/auth"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization"
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/authorization/permission"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
@@ -26,10 +24,6 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/crm"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-	pubsubmessaging "github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/pubsub"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
 )
 
 const (
@@ -69,7 +63,6 @@ type ProfileUseCase interface {
 	UpdateVerifiedUIDS(ctx context.Context, uids []string) error
 	UpdateSuspended(ctx context.Context, status bool, phoneNumber string, useContext bool) error
 	UpdatePhotoUploadID(ctx context.Context, uploadID string) error
-	UpdateCovers(ctx context.Context, covers []profileutils.Cover) error
 	UpdatePushTokens(ctx context.Context, pushToken string, retire bool) error
 	UpdatePermissions(ctx context.Context, perms []profileutils.PermissionType) error
 	AddAdminPermsToUser(ctx context.Context, phone string) error
@@ -176,31 +169,24 @@ type ProfileUseCase interface {
 	SwitchUserFlaggedFeatures(ctx context.Context, phoneNumber string) (*dto.OKResp, error)
 
 	FindUserByPhone(ctx context.Context, phoneNumber string) (*profileutils.UserProfile, error)
+
+	FindUsersByPhone(ctx context.Context, phoneNumber string) ([]*profileutils.UserProfile, error)
 }
 
 // ProfileUseCaseImpl represents usecase implementation object
 type ProfileUseCaseImpl struct {
-	onboardingRepository repository.OnboardingRepository
-	baseExt              extension.BaseExtension
-	engagement           engagement.ServiceEngagement
-	pubsub               pubsubmessaging.ServicePubSub
-	crm                  crm.ServiceCrm
+	infrastructure infrastructure.Infrastructure
+	baseExt        extension.BaseExtension
 }
 
 // NewProfileUseCase returns a new a onboarding usecase
 func NewProfileUseCase(
-	r repository.OnboardingRepository,
+	infrastructure infrastructure.Infrastructure,
 	ext extension.BaseExtension,
-	eng engagement.ServiceEngagement,
-	pubsub pubsubmessaging.ServicePubSub,
-	crm crm.ServiceCrm,
 ) ProfileUseCase {
 	return &ProfileUseCaseImpl{
-		onboardingRepository: r,
-		baseExt:              ext,
-		engagement:           eng,
-		pubsub:               pubsub,
-		crm:                  crm,
+		infrastructure: infrastructure,
+		baseExt:        ext,
 	}
 }
 
@@ -214,16 +200,8 @@ func (p *ProfileUseCaseImpl) UserProfile(ctx context.Context) (*profileutils.Use
 		utils.RecordSpanError(span, err)
 		return nil, fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.UserProfileView)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, err
-	}
-	if !isAuthorized {
-		return nil, fmt.Errorf("user not authorized to access this resource")
-	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -239,7 +217,7 @@ func (p *ProfileUseCaseImpl) GetProfileByID(
 	ctx, span := tracer.Start(ctx, "GetProfileByID")
 	defer span.End()
 
-	profile, err := p.onboardingRepository.GetUserProfileByID(ctx, *id, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByID(ctx, *id, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -257,7 +235,7 @@ func (p *ProfileUseCaseImpl) UpdateUserName(ctx context.Context, userName string
 		utils.RecordSpanError(span, err)
 		return err
 	}
-	return p.onboardingRepository.UpdateUserName(ctx, profile.ID, userName)
+	return p.infrastructure.Database.UpdateUserName(ctx, profile.ID, userName)
 }
 
 // UpdatePrimaryPhoneNumber updates the primary phone number of a specific user profile
@@ -290,24 +268,14 @@ func (p *ProfileUseCaseImpl) UpdatePrimaryPhoneNumber(
 			return fmt.Errorf("can't get user: %w", err)
 		}
 
-		isAuthorized, err := authorization.IsAuthorized(user, permission.PrimaryPhoneUpdate)
-		if err != nil {
-			utils.RecordSpanError(span, err)
-			return err
-		}
-
-		if !isAuthorized {
-			return fmt.Errorf("user not authorized to access this resource")
-		}
-
-		profile, err = p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+		profile, err = p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			return err
 		}
 
 	} else {
-		profile, err = p.onboardingRepository.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
+		profile, err = p.infrastructure.Database.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			return err
@@ -317,24 +285,9 @@ func (p *ProfileUseCaseImpl) UpdatePrimaryPhoneNumber(
 
 	previousPrimaryPhone := profile.PrimaryPhone
 	secondaryPhones := profile.SecondaryPhoneNumbers
-	if err := p.onboardingRepository.UpdatePrimaryPhoneNumber(ctx, profile.ID, phone); err != nil {
+	if err := p.infrastructure.Database.UpdatePrimaryPhoneNumber(ctx, profile.ID, phone); err != nil {
 		utils.RecordSpanError(span, err)
 		return err
-	}
-
-	contact, err := p.crm.GetContactByPhone(ctx, *profile.PrimaryPhone)
-	if err != nil {
-		return fmt.Errorf("failed to get contact %s: %w", *profile.PrimaryPhone, err)
-	}
-	if contact == nil {
-		return nil
-	}
-
-	contact.Properties.Phone = phone
-
-	if err = p.pubsub.NotifyUpdateContact(ctx, *contact); err != nil {
-		utils.RecordSpanError(span, err)
-		log.Printf("failed to publish to crm.contact.update topic: %v", err)
 	}
 
 	// check if number to be set as primary exists in the list of secondary phones
@@ -347,7 +300,7 @@ func (p *ProfileUseCaseImpl) UpdatePrimaryPhoneNumber(
 	secondaryPhones = append(secondaryPhones, *previousPrimaryPhone)
 
 	if len(secondaryPhones) >= 1 {
-		if err := p.onboardingRepository.UpdateSecondaryPhoneNumbers(ctx, profile.ID, secondaryPhones); err != nil {
+		if err := p.infrastructure.Database.UpdateSecondaryPhoneNumbers(ctx, profile.ID, secondaryPhones); err != nil {
 			utils.RecordSpanError(span, err)
 			return err
 		}
@@ -370,41 +323,17 @@ func (p *ProfileUseCaseImpl) UpdatePrimaryEmailAddress(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.PrimaryEmailUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
 		return err
 	}
-	err = p.onboardingRepository.UpdatePrimaryEmailAddress(ctx, profile.ID, emailAddress)
+	err = p.infrastructure.Database.UpdatePrimaryEmailAddress(ctx, profile.ID, emailAddress)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return err
-	}
-
-	// After updating the primary email, update it on the CRM too
-	contact, err := p.crm.GetContactByPhone(ctx, *profile.PrimaryPhone)
-	if err != nil {
-		return fmt.Errorf("failed to get contact %s: %w", *profile.PrimaryPhone, err)
-	}
-	if contact == nil {
-		return nil
-	}
-
-	contact.Properties.Email = emailAddress
-
-	if err = p.pubsub.NotifyUpdateContact(ctx, *contact); err != nil {
-		utils.RecordSpanError(span, err)
-		log.Printf("failed to publish to crm.contact.update topic: %v", err)
 	}
 
 	previousPrimaryEmail := profile.PrimaryEmailAddress
@@ -421,7 +350,7 @@ func (p *ProfileUseCaseImpl) UpdatePrimaryEmailAddress(
 		secondaryEmails = append(secondaryEmails, *previousPrimaryEmail)
 
 		if len(secondaryEmails) >= 1 {
-			if err := p.onboardingRepository.UpdateSecondaryEmailAddresses(ctx, profile.ID, secondaryEmails); err != nil {
+			if err := p.infrastructure.Database.UpdateSecondaryEmailAddresses(ctx, profile.ID, secondaryEmails); err != nil {
 				return err
 			}
 		}
@@ -445,14 +374,6 @@ func (p *ProfileUseCaseImpl) UpdateSecondaryPhoneNumbers(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.SecondaryPhoneNumberUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
 	// assert that the phone numbers are unique
 	uniquePhones := []string{}
@@ -470,14 +391,14 @@ func (p *ProfileUseCaseImpl) UpdateSecondaryPhoneNumbers(
 	}
 
 	if len(uniquePhones) >= 1 {
-		profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+		profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			// this is a wrapped error. No need to wrap it again
 			return err
 		}
 
-		return p.onboardingRepository.UpdateSecondaryPhoneNumbers(ctx, profile.ID, phoneNumbers)
+		return p.infrastructure.Database.UpdateSecondaryPhoneNumbers(ctx, profile.ID, phoneNumbers)
 	}
 
 	// throw an error indicating the phone number(s) is/are already in the use
@@ -498,14 +419,6 @@ func (p *ProfileUseCaseImpl) UpdateSecondaryEmailAddresses(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.SecondaryEmailAddressUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
 	uniqueEmails := []string{}
 	for _, email := range emailAddresses {
@@ -521,14 +434,14 @@ func (p *ProfileUseCaseImpl) UpdateSecondaryEmailAddresses(
 	}
 
 	if len(uniqueEmails) >= 1 {
-		profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+		profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			return err
 		}
 
 		if profile.PrimaryEmailAddress != nil {
-			return p.onboardingRepository.UpdateSecondaryEmailAddresses(
+			return p.infrastructure.Database.UpdateSecondaryEmailAddresses(
 				ctx,
 				profile.ID,
 				uniqueEmails,
@@ -559,21 +472,14 @@ func (p *ProfileUseCaseImpl) UpdateVerifiedUIDS(ctx context.Context, uids []stri
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.VerifiedUIDUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+
+	profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
 		return err
 	}
-	return p.onboardingRepository.UpdateVerifiedUIDS(ctx, profile.ID, uids)
+	return p.infrastructure.Database.UpdateVerifiedUIDS(ctx, profile.ID, uids)
 }
 
 // UpdateVerifiedIdentifiers updates the profile's verified identifiers
@@ -589,23 +495,15 @@ func (p *ProfileUseCaseImpl) UpdateVerifiedIdentifiers(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.VerifiedIdentifiersUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
 		return err
 	}
 
-	return p.onboardingRepository.UpdateVerifiedIdentifiers(ctx, profile.ID, identifiers)
+	return p.infrastructure.Database.UpdateVerifiedIdentifiers(ctx, profile.ID, identifiers)
 }
 
 // UpdateSuspended updates primary suspend attribute of a specific user profile
@@ -631,24 +529,17 @@ func (p *ProfileUseCaseImpl) UpdateSuspended(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.VerifiedIdentifiersUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
+
 	// fetch the user profile
 	if useContext {
-		profile, err = p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+		profile, err = p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			// this is a wrapped error. No need to wrap it again
 			return err
 		}
 	} else {
-		profile, err = p.onboardingRepository.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
+		profile, err = p.infrastructure.Database.GetUserProfileByPhoneNumber(ctx, *phoneNumber, false)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			// this is a wrapped error. No need to wrap it again
@@ -656,7 +547,7 @@ func (p *ProfileUseCaseImpl) UpdateSuspended(
 		}
 
 	}
-	return p.onboardingRepository.UpdateSuspended(ctx, profile.ID, status)
+	return p.infrastructure.Database.UpdateSuspended(ctx, profile.ID, status)
 }
 
 // UpdatePhotoUploadID updates photouploadid attribute of a specific user profile
@@ -669,51 +560,16 @@ func (p *ProfileUseCaseImpl) UpdatePhotoUploadID(ctx context.Context, uploadID s
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.PhotoUploadIDUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
 		return err
 	}
 
-	return p.onboardingRepository.UpdatePhotoUploadID(ctx, profile.ID, uploadID)
+	return p.infrastructure.Database.UpdatePhotoUploadID(ctx, profile.ID, uploadID)
 
-}
-
-// UpdateCovers updates primary covers of a specific user profile
-func (p *ProfileUseCaseImpl) UpdateCovers(ctx context.Context, covers []profileutils.Cover) error {
-	ctx, span := tracer.Start(ctx, "UpdateCovers")
-	defer span.End()
-
-	if len(covers) == 0 {
-		return fmt.Errorf("no covers to update found")
-	}
-
-	uid, err := p.baseExt.GetLoggedInUserUID(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return exceptions.UserNotFoundError(err)
-	}
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, uid, false)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-
-	return p.onboardingRepository.UpdateCovers(
-		ctx,
-		profile.ID,
-		utils.AddHashToCovers(covers),
-	)
 }
 
 // UpdatePushTokens updates primary push tokens of a specific user profile.
@@ -730,16 +586,8 @@ func (p *ProfileUseCaseImpl) UpdatePushTokens(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.PushTokensUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
@@ -754,13 +602,13 @@ func (p *ProfileUseCaseImpl) UpdatePushTokens(
 			profile.PushTokens = append(profile.PushTokens[:index], profile.PushTokens[index+1:]...)
 		}
 
-		return p.onboardingRepository.UpdatePushTokens(ctx, profile.ID, profile.PushTokens)
+		return p.infrastructure.Database.UpdatePushTokens(ctx, profile.ID, profile.PushTokens)
 
 	}
 	newToken := []string{}
 	newTokens := append(newToken, pushToken)
 
-	return p.onboardingRepository.UpdatePushTokens(ctx, profile.ID, newTokens)
+	return p.infrastructure.Database.UpdatePushTokens(ctx, profile.ID, newTokens)
 }
 
 // UpdatePermissions updates the profiles permissions
@@ -776,22 +624,14 @@ func (p *ProfileUseCaseImpl) UpdatePermissions(
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.PermissionsUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
 		return err
 	}
-	return p.onboardingRepository.UpdatePermissions(ctx, profile.ID, perms)
+	return p.infrastructure.Database.UpdatePermissions(ctx, profile.ID, perms)
 }
 
 // AddAdminPermsToUser updates the profiles permissions
@@ -805,7 +645,7 @@ func (p *ProfileUseCaseImpl) AddAdminPermsToUser(ctx context.Context, phone stri
 		return exceptions.NormalizeMSISDNError(err)
 	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := p.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -815,7 +655,7 @@ func (p *ProfileUseCaseImpl) AddAdminPermsToUser(ctx context.Context, phone stri
 		return err
 	}
 	perms := profileutils.DefaultSuperAdminPermissions
-	return p.onboardingRepository.UpdatePermissions(ctx, profile.ID, perms)
+	return p.infrastructure.Database.UpdatePermissions(ctx, profile.ID, perms)
 }
 
 // RemoveAdminPermsToUser updates the profiles permissions by removing the admin permissions
@@ -830,7 +670,7 @@ func (p *ProfileUseCaseImpl) RemoveAdminPermsToUser(ctx context.Context, phone s
 		return exceptions.NormalizeMSISDNError(err)
 	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := p.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -843,7 +683,7 @@ func (p *ProfileUseCaseImpl) RemoveAdminPermsToUser(ctx context.Context, phone s
 	if len(permissions) >= 1 {
 		permissions = nil
 	}
-	return p.onboardingRepository.UpdatePermissions(ctx, profile.ID, permissions)
+	return p.infrastructure.Database.UpdatePermissions(ctx, profile.ID, permissions)
 }
 
 // AddRoleToUser updates the profiles role and permissions
@@ -861,7 +701,7 @@ func (p *ProfileUseCaseImpl) AddRoleToUser(
 		return exceptions.NormalizeMSISDNError(err)
 	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := p.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -875,7 +715,7 @@ func (p *ProfileUseCaseImpl) AddRoleToUser(
 			Message: fmt.Sprintf("Invalid role `%v` not available", role),
 		}
 	}
-	return p.onboardingRepository.UpdateRole(ctx, profile.ID, role)
+	return p.infrastructure.Database.UpdateRole(ctx, profile.ID, role)
 }
 
 // RemoveRoleToUser updates the profiles role and permissions by setting roles to default
@@ -889,7 +729,7 @@ func (p *ProfileUseCaseImpl) RemoveRoleToUser(ctx context.Context, phone string)
 		return exceptions.NormalizeMSISDNError(err)
 	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := p.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -898,7 +738,7 @@ func (p *ProfileUseCaseImpl) RemoveRoleToUser(ctx context.Context, phone string)
 		utils.RecordSpanError(span, err)
 		return err
 	}
-	return p.onboardingRepository.UpdateRole(ctx, profile.ID, "")
+	return p.infrastructure.Database.UpdateRole(ctx, profile.ID, "")
 }
 
 // UpdateBioData updates primary biodata of a specific user profile
@@ -911,54 +751,16 @@ func (p *ProfileUseCaseImpl) UpdateBioData(ctx context.Context, data profileutil
 		utils.RecordSpanError(span, err)
 		return fmt.Errorf("can't get user: %w", err)
 	}
-	isAuthorized, err := authorization.IsAuthorized(user, permission.BioDataUpdate)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-	if !isAuthorized {
-		return fmt.Errorf("user not authorized to access this resource")
-	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
 		return err
 	}
-	if err = p.onboardingRepository.UpdateBioData(ctx, profile.ID, data); err != nil {
+	if err = p.infrastructure.Database.UpdateBioData(ctx, profile.ID, data); err != nil {
 		utils.RecordSpanError(span, err)
 		return err
-	}
-
-	contact, err := p.crm.GetContactByPhone(ctx, *profile.PrimaryPhone)
-	if err != nil {
-		return fmt.Errorf("failed to get contact %s: %w", *profile.PrimaryPhone, err)
-	}
-	if contact == nil {
-		return nil
-	}
-
-	if data.FirstName != nil {
-		contact.Properties.FirstName = *data.FirstName
-	}
-
-	if data.LastName != nil {
-		contact.Properties.LastName = *data.LastName
-	}
-
-	if data.DateOfBirth != nil {
-		dob := data.DateOfBirth.AsTime()
-		contact.Properties.DateOfBirth = dob
-	}
-
-	if data.Gender != "" {
-		contact.Properties.Gender = data.Gender.String()
-	}
-
-	if err = p.pubsub.NotifyUpdateContact(ctx, *contact); err != nil {
-		utils.RecordSpanError(span, err)
-		log.Printf("failed to publish to crm.contact.update topic: %v", err)
 	}
 
 	return nil
@@ -990,7 +792,7 @@ func (p *ProfileUseCaseImpl) GetUserProfileByUID(
 	ctx, span := tracer.Start(ctx, "GetUserProfileByUID")
 	defer span.End()
 
-	return p.onboardingRepository.GetUserProfileByUID(ctx, UID, false)
+	return p.infrastructure.Database.GetUserProfileByUID(ctx, UID, false)
 }
 
 // GetUserProfileByPhoneOrEmail retrieves user profie by email address is they have one
@@ -998,9 +800,7 @@ func (p *ProfileUseCaseImpl) GetUserProfileByPhoneOrEmail(ctx context.Context, p
 	ctx, span := tracer.Start(ctx, "GetUserProfileByPhoneOrEmail")
 	defer span.End()
 
-	logrus.Println("getting user profile")
-
-	return p.onboardingRepository.GetUserProfileByPhoneOrEmail(ctx, payload)
+	return p.infrastructure.Database.GetUserProfileByPhoneOrEmail(ctx, payload)
 }
 
 // SetPrimaryPhoneNumber set the primary phone number of the user after verifying the otp code
@@ -1014,7 +814,7 @@ func (p *ProfileUseCaseImpl) SetPrimaryPhoneNumber(
 	defer span.End()
 
 	// verify otp code
-	verified, err := p.engagement.VerifyOTP(
+	verified, err := p.infrastructure.Engagement.VerifyOTP(
 		ctx,
 		phoneNumber,
 		otp,
@@ -1053,7 +853,7 @@ func (p *ProfileUseCaseImpl) SetPrimaryEmailAddress(
 	}
 
 	// verify otp code
-	verified, err := p.engagement.VerifyEmailOTP(
+	verified, err := p.infrastructure.Engagement.VerifyEmailOTP(
 		ctx,
 		emailAddress,
 		otp,
@@ -1069,26 +869,6 @@ func (p *ProfileUseCaseImpl) SetPrimaryEmailAddress(
 	if err := p.UpdatePrimaryEmailAddress(ctx, emailAddress); err != nil {
 		utils.RecordSpanError(span, err)
 		return err
-	}
-
-	profile, err := p.UserProfile(ctx)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return err
-	}
-
-	contact, err := p.crm.GetContactByPhone(ctx, *profile.PrimaryPhone)
-	if err != nil {
-		return fmt.Errorf("failed to get contact %s: %w", *profile.PrimaryPhone, err)
-	}
-	if contact == nil {
-		return nil
-	}
-	contact.Properties.Email = *profile.PrimaryPhone
-
-	if err = p.pubsub.NotifyUpdateContact(ctx, *contact); err != nil {
-		utils.RecordSpanError(span, err)
-		log.Printf("failed to publish to crm.contact.update topic: %v", err)
 	}
 
 	// The `VerifyEmail` nudge is by default created for both flavours, `PRO`
@@ -1107,7 +887,7 @@ func (p *ProfileUseCaseImpl) SetPrimaryEmailAddress(
 
 		b := backoff.WithContext(backoff.NewExponentialBackOff(), newctx)
 		cons := func() error {
-			return p.engagement.ResolveDefaultNudgeByTitle(
+			return p.infrastructure.Engagement.ResolveDefaultNudgeByTitle(
 				newctx,
 				UID,
 				feedlib.FlavourConsumer,
@@ -1135,7 +915,7 @@ func (p *ProfileUseCaseImpl) SetPrimaryEmailAddress(
 
 		b := backoff.WithContext(backoff.NewExponentialBackOff(), newctx)
 		pro := func() error {
-			return p.engagement.ResolveDefaultNudgeByTitle(
+			return p.infrastructure.Engagement.ResolveDefaultNudgeByTitle(
 				newctx,
 				UID,
 				feedlib.FlavourPro,
@@ -1165,7 +945,7 @@ func (p *ProfileUseCaseImpl) CheckPhoneExists(ctx context.Context, phone string)
 		utils.RecordSpanError(span, err)
 		return false, exceptions.NormalizeMSISDNError(err)
 	}
-	exists, err := p.onboardingRepository.CheckIfPhoneNumberExists(ctx, *phoneNumber)
+	exists, err := p.infrastructure.Database.CheckIfPhoneNumberExists(ctx, *phoneNumber)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
@@ -1179,7 +959,7 @@ func (p *ProfileUseCaseImpl) CheckEmailExists(ctx context.Context, email string)
 	ctx, span := tracer.Start(ctx, "CheckEmailExists")
 	defer span.End()
 
-	exists, err := p.onboardingRepository.CheckIfEmailExists(ctx, email)
+	exists, err := p.infrastructure.Database.CheckIfEmailExists(ctx, email)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.CheckEmailExistError()
@@ -1220,7 +1000,7 @@ func (p *ProfileUseCaseImpl) RetireSecondaryPhoneNumbers(
 		}
 	}
 
-	if err := p.onboardingRepository.HardResetSecondaryPhoneNumbers(
+	if err := p.infrastructure.Database.HardResetSecondaryPhoneNumbers(
 		ctx,
 		profile,
 		secondaryPhoneNumbers,
@@ -1262,7 +1042,7 @@ func (p *ProfileUseCaseImpl) RetireSecondaryEmailAddress(
 		}
 	}
 
-	if err := p.onboardingRepository.HardResetSecondaryEmailAddress(
+	if err := p.infrastructure.Database.HardResetSecondaryEmailAddress(
 		ctx,
 		profile,
 		secondaryEmails,
@@ -1289,7 +1069,7 @@ func (p *ProfileUseCaseImpl) GetUserProfileAttributes(
 	values := []string{}
 
 	for _, UID := range UIDs {
-		profile, err := p.onboardingRepository.GetUserProfileByUID(
+		profile, err := p.infrastructure.Database.GetUserProfileByUID(
 			ctx,
 			UID,
 			false,
@@ -1461,11 +1241,11 @@ func (p *ProfileUseCaseImpl) SetupAsExperimentParticipant(
 
 	if *participate {
 		// add the user to the list of experiment participants
-		return p.onboardingRepository.AddUserAsExperimentParticipant(ctx, pr)
+		return p.infrastructure.Database.AddUserAsExperimentParticipant(ctx, pr)
 	}
 
 	// remove the user to the list of experiment participants
-	return p.onboardingRepository.RemoveUserAsExperimentParticipant(ctx, pr)
+	return p.infrastructure.Database.RemoveUserAsExperimentParticipant(ctx, pr)
 }
 
 // AddAddress adds a user's home or work address to their user's profile
@@ -1494,7 +1274,7 @@ func (p *ProfileUseCaseImpl) AddAddress(
 		PlaceID:          input.PlaceID,
 		FormattedAddress: input.FormattedAddress,
 	}
-	err = p.onboardingRepository.UpdateAddresses(
+	err = p.infrastructure.Database.UpdateAddresses(
 		ctx,
 		profile.ID,
 		*address,
@@ -1591,7 +1371,7 @@ func (p *ProfileUseCaseImpl) GetUserCommunicationsSettings(
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
-	return p.onboardingRepository.GetUserCommunicationsSettings(ctx, pr.ID)
+	return p.infrastructure.Database.GetUserCommunicationsSettings(ctx, pr.ID)
 }
 
 // SetUserCommunicationsSettings sets the user communication settings
@@ -1610,7 +1390,7 @@ func (p *ProfileUseCaseImpl) SetUserCommunicationsSettings(
 		utils.RecordSpanError(span, err)
 		return nil, err
 	}
-	return p.onboardingRepository.SetUserCommunicationsSettings(
+	return p.infrastructure.Database.SetUserCommunicationsSettings(
 		ctx,
 		pr.ID,
 		allowWhatsApp,
@@ -1631,7 +1411,7 @@ func (p *ProfileUseCaseImpl) SaveFavoriteNavActions(
 		return false, exceptions.ProfileNotFoundError(err)
 	}
 
-	user, err := p.onboardingRepository.GetUserProfileByUID(ctx, userinfo.UID, false)
+	user, err := p.infrastructure.Database.GetUserProfileByUID(ctx, userinfo.UID, false)
 	if err != nil {
 		return false, exceptions.ProfileNotFoundError(err)
 	}
@@ -1648,7 +1428,7 @@ func (p *ProfileUseCaseImpl) SaveFavoriteNavActions(
 		)
 	}
 
-	err = p.onboardingRepository.UpdateFavNavActions(ctx, user.ID, favActions)
+	err = p.infrastructure.Database.UpdateFavNavActions(ctx, user.ID, favActions)
 	if err != nil {
 		return false, err
 	}
@@ -1665,7 +1445,7 @@ func (p *ProfileUseCaseImpl) DeleteFavoriteNavActions(
 		return false, exceptions.ProfileNotFoundError(err)
 	}
 
-	user, err := p.onboardingRepository.GetUserProfileByUID(ctx, userinfo.UID, false)
+	user, err := p.infrastructure.Database.GetUserProfileByUID(ctx, userinfo.UID, false)
 	if err != nil {
 		return false, exceptions.ProfileNotFoundError(err)
 	}
@@ -1683,7 +1463,7 @@ func (p *ProfileUseCaseImpl) DeleteFavoriteNavActions(
 		)
 	}
 
-	err = p.onboardingRepository.UpdateFavNavActions(ctx, user.ID, favActions)
+	err = p.infrastructure.Database.UpdateFavNavActions(ctx, user.ID, favActions)
 	if err != nil {
 		return false, err
 	}
@@ -1699,13 +1479,13 @@ func (p *ProfileUseCaseImpl) RefreshNavigationActions(
 		return nil, exceptions.UserNotFoundError(err)
 	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		return nil, exceptions.ProfileNotFoundError(err)
 	}
 
 	// get navigation actions
-	roles, err := p.onboardingRepository.GetRolesByIDs(ctx, profile.Roles)
+	roles, err := p.infrastructure.Database.GetRolesByIDs(ctx, profile.Roles)
 	if err != nil {
 		return nil, err
 	}
@@ -1727,7 +1507,7 @@ func (p *ProfileUseCaseImpl) SwitchUserFlaggedFeatures(
 	ctx, span := tracer.Start(ctx, "SwitchUserFlaggedFeatures")
 	defer span.End()
 
-	profile, err := p.onboardingRepository.GetUserProfileByPhoneNumber(ctx, phoneNumber, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByPhoneNumber(ctx, phoneNumber, false)
 	if err != nil {
 		return nil, exceptions.InternalServerError(
 			fmt.Errorf("failed to get user with provider phone number"),
@@ -1742,7 +1522,7 @@ func (p *ProfileUseCaseImpl) SwitchUserFlaggedFeatures(
 		},
 	)
 
-	canExperiment, err := p.onboardingRepository.CheckIfExperimentParticipant(ctx, profile.ID)
+	canExperiment, err := p.infrastructure.Database.CheckIfExperimentParticipant(ctx, profile.ID)
 	if err != nil {
 		return nil, exceptions.InternalServerError(
 			fmt.Errorf("failed to get user with provider phone number"),
@@ -1775,12 +1555,30 @@ func (p *ProfileUseCaseImpl) FindUserByPhone(ctx context.Context, phoneNumber st
 		return nil, err
 	}
 
-	profile, err := p.onboardingRepository.GetUserProfileByPhoneNumber(ctx, *normalized, false)
+	profile, err := p.infrastructure.Database.GetUserProfileByPhoneNumber(ctx, *normalized, false)
 	if err != nil {
 		return nil, err
 	}
 
 	return profile, nil
+}
+
+// FindUsersByPhone searches for a user using a phone number
+func (p *ProfileUseCaseImpl) FindUsersByPhone(ctx context.Context, phoneNumber string) ([]*profileutils.UserProfile, error) {
+	ctx, span := tracer.Start(ctx, "FindUsersByPhone")
+	defer span.End()
+
+	users := []*profileutils.UserProfile{}
+
+	user, err := p.FindUserByPhone(ctx, phoneNumber)
+	if err != nil {
+		span.RecordError(err)
+		return users, nil
+	}
+
+	users = append(users, user)
+
+	return users, nil
 }
 
 //GetNavigationActions is the new method to get navigation actions based on user roles and permissions
@@ -1795,12 +1593,12 @@ func (p *ProfileUseCaseImpl) GetNavigationActions(
 		return nil, err
 	}
 
-	userProfile, err := p.onboardingRepository.GetUserProfileByUID(ctx, user.UID, false)
+	userProfile, err := p.infrastructure.Database.GetUserProfileByUID(ctx, user.UID, false)
 	if err != nil {
 		return nil, err
 	}
 
-	roles, err := p.onboardingRepository.GetRolesByIDs(ctx, userProfile.Roles)
+	roles, err := p.infrastructure.Database.GetRolesByIDs(ctx, userProfile.Roles)
 	if err != nil {
 		return nil, err
 	}

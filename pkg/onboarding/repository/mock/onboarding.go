@@ -12,46 +12,13 @@ import (
 
 // FakeOnboardingRepository is a mock onboarding repository.
 type FakeOnboardingRepository struct {
-	GetSupplierProfileByIDFn        func(ctx context.Context, id string) (*profileutils.Supplier, error)
-	GetSupplierProfileByUIDFn       func(ctx context.Context, uid string) (*profileutils.Supplier, error)
-	GetSupplierProfileByProfileIDFn func(ctx context.Context, profileID string) (*profileutils.Supplier, error)
-	AddPartnerTypeFn                func(ctx context.Context, profileID string, name *string, partnerType *profileutils.PartnerType) (bool, error)
-
-	UpdateSupplierProfileFn  func(ctx context.Context, profileID string, data *profileutils.Supplier) error
-	AddRoleToUserfn          func(ctx context.Context, phone string, role profileutils.RoleType) error
-	AddSupplierAccountTypeFn func(ctx context.Context, profileID string, accountType profileutils.AccountType) (*profileutils.Supplier, error)
+	AddRoleToUserfn func(ctx context.Context, phone string, role profileutils.RoleType) error
 
 	StageProfileNudgeFn func(ctx context.Context, nudge *feedlib.Nudge) error
-
-	StageKYCProcessingRequestFn func(ctx context.Context, data *domain.KYCRequest) error
-
-	RemoveKYCProcessingRequestFn func(ctx context.Context, supplierProfileID string) error
-
-	// sets the active attribute of supplier profile to true
-	ActivateSupplierProfileFn func(ctx context.Context, profileID string, supplier profileutils.Supplier) (*profileutils.Supplier, error)
-
-	SetUpSupplierFn func(ctx context.Context, accountType profileutils.AccountType) (*profileutils.Supplier, error)
-
-	FetchKYCProcessingRequestsFn func(ctx context.Context) ([]*domain.KYCRequest, error)
-
-	FetchKYCProcessingRequestByIDFn func(ctx context.Context, id string) (*domain.KYCRequest, error)
-
-	UpdateKYCProcessingRequestFn func(ctx context.Context, sup *domain.KYCRequest) error
-	GetCustomerProfileByIDFn     func(ctx context.Context, id string) (*profileutils.Customer, error)
-
-	GetCustomerProfileByProfileIDFn func(ctx context.Context, profileID string) (*profileutils.Customer, error)
 
 	CreateUserProfileFn func(ctx context.Context, phoneNumber, uid string) (*profileutils.UserProfile, error)
 
 	CreateDetailedUserProfileFn func(ctx context.Context, phoneNumber string, profile profileutils.UserProfile) (*profileutils.UserProfile, error)
-
-	// creates an empty supplier profile
-	CreateEmptySupplierProfileFn func(ctx context.Context, profileID string) (*profileutils.Supplier, error)
-
-	CreateDetailedSupplierProfileFn func(ctx context.Context, profileID string, supplier profileutils.Supplier) (*profileutils.Supplier, error)
-
-	// creates an empty customer profile
-	CreateEmptyCustomerProfileFn func(ctx context.Context, profileID string) (*profileutils.Customer, error)
 
 	// fetches a user profile by uid
 	GetUserProfileByUIDFn func(ctx context.Context, uid string, suspended bool) (*profileutils.UserProfile, error)
@@ -105,12 +72,6 @@ type FakeOnboardingRepository struct {
 		token string,
 	) (*profileutils.AuthCredentialResponse, error)
 
-	GetCustomerOrSupplierProfileByProfileIDFn func(
-		ctx context.Context,
-		flavour feedlib.Flavour,
-		profileID string,
-	) (*profileutils.Customer, *profileutils.Supplier, error)
-
 	GetOrCreatePhoneNumberUserFn func(
 		ctx context.Context,
 		phone string,
@@ -128,34 +89,10 @@ type FakeOnboardingRepository struct {
 
 	RemoveUserAsExperimentParticipantFn func(ctx context.Context, profile *profileutils.UserProfile) (bool, error)
 
-	AddNHIFDetailsFn func(
-		ctx context.Context,
-		input dto.NHIFDetailsInput,
-		profileID string,
-	) (*domain.NHIFDetails, error)
-
-	GetNHIFDetailsByProfileIDFn func(
-		ctx context.Context,
-		profileID string,
-	) (*domain.NHIFDetails, error)
-
 	GetUserCommunicationsSettingsFn func(ctx context.Context, profileID string) (*profileutils.UserCommunicationsSetting, error)
 
 	SetUserCommunicationsSettingsFn func(ctx context.Context, profileID string,
 		allowWhatsApp *bool, allowTextSms *bool, allowPush *bool, allowEmail *bool) (*profileutils.UserCommunicationsSetting, error)
-
-	PersistIncomingSMSDataFn func(ctx context.Context, input *dto.AfricasTalkingMessage) error
-
-	AddAITSessionDetailsFn func(ctx context.Context, input *dto.SessionDetails) (*domain.USSDLeadDetails, error)
-	GetAITSessionDetailsFn func(ctx context.Context, sessionID string) (*domain.USSDLeadDetails, error)
-	UpdateSessionLevelFn   func(ctx context.Context, sessionID string, level int) (*domain.USSDLeadDetails, error)
-	UpdateSessionPINFn     func(ctx context.Context, sessionID string, pin string) (*domain.USSDLeadDetails, error)
-
-	UpdateCustomerProfileFn func(
-		ctx context.Context,
-		profileID string,
-		customer profileutils.Customer,
-	) (*profileutils.Customer, error)
 
 	// Userprofile
 	UpdateUserNameFn                func(ctx context.Context, id string, phoneNumber string) error
@@ -166,7 +103,6 @@ type FakeOnboardingRepository struct {
 	UpdateUserRoleIDsFn             func(ctx context.Context, id string, roleIDs []string) error
 	UpdateSuspendedFn               func(ctx context.Context, id string, status bool) error
 	UpdatePhotoUploadIDFn           func(ctx context.Context, id string, uploadID string) error
-	UpdateCoversFn                  func(ctx context.Context, id string, covers []profileutils.Cover) error
 	UpdatePushTokensFn              func(ctx context.Context, id string, pushToken []string) error
 	UpdatePermissionsFn             func(ctx context.Context, id string, perms []profileutils.PermissionType) error
 	UpdateRoleFn                    func(ctx context.Context, id string, role profileutils.RoleType) error
@@ -176,84 +112,24 @@ type FakeOnboardingRepository struct {
 	UpdateAddressesFn               func(ctx context.Context, id string, address profileutils.Address, addressType enumutils.AddressType) error
 	ListUserProfilesFn              func(ctx context.Context, role profileutils.RoleType) ([]*profileutils.UserProfile, error)
 	UpdateOptOutFn                  func(ctx context.Context, option string, phoneNumber string) error
-	UpdateAITSessionDetailsFn       func(ctx context.Context, phoneNumber string, contactLead *domain.USSDLeadDetails) error
-	UpdateFavNavActionsFn           func(ctx context.Context, id string, favActions []string) error
-	GetUserMarketingDataFn          func(ctx context.Context, phoneNumber string) (*dto.Segment, error)
-	HandleResponseFromUSSDGatewayFn func(context context.Context, input *dto.SessionDetails) string
-	SetUSSDUserPinFn                func(ctx context.Context, phoneNumber string, PIN string) error
-	SaveUSSDEventFn                 func(ctx context.Context, input *dto.USSDEvent) (*dto.USSDEvent, error)
-	SaveCoverAutolinkingEventsFn    func(ctx context.Context, input *dto.CoverLinkingEvent) (*dto.CoverLinkingEvent, error)
-	GetAITDetailsFn                 func(ctx context.Context, phoneNumber string) (*domain.USSDLeadDetails, error)
-
-	//roles
-	CreateRoleFn               func(ctx context.Context, profileID string, role dto.RoleInput) (*profileutils.Role, error)
-	GetAllRolesFn              func(ctx context.Context) (*[]profileutils.Role, error)
-	UpdateRoleDetailsFn        func(ctx context.Context, profileID string, role profileutils.Role) (*profileutils.Role, error)
-	GetRolesByIDsFn            func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error)
-	GetRoleByIDFn              func(ctx context.Context, roleID string) (*profileutils.Role, error)
-	GetRoleByNameFn            func(ctx context.Context, roleName string) (*profileutils.Role, error)
-	CheckIfRoleNameExistsFn    func(ctx context.Context, name string) (bool, error)
-	DeleteRoleFn               func(ctx context.Context, roleID string) (bool, error)
-	CheckIfUserHasPermissionFn func(ctx context.Context, UID string, requiredPermission profileutils.Permission) (bool, error)
-	UpdateUserProfileEmailFn   func(ctx context.Context, phone string, email string) error
-	GetUserProfilesByRoleIDFn  func(ctx context.Context, role string) ([]*profileutils.UserProfile, error)
-	SaveRoleRevocationFn       func(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error
-
-	//admins
-	CreateAdminProfileFn        func(ctx context.Context, adminProfile domain.AdminProfile) error
-	CheckIfAdminProfileExistsFn func(ctx context.Context, profileID string) (bool, error)
-
-	//agents
-	CreateAgentProfileFn        func(ctx context.Context, agentProfile domain.AgentProfile) error
-	CheckIfAgentProfileExistsFn func(ctx context.Context, profileID string) (bool, error)
-}
-
-// GetSupplierProfileByID ...
-func (f *FakeOnboardingRepository) GetSupplierProfileByID(
-	ctx context.Context,
-	id string,
-) (*profileutils.Supplier, error) {
-	return f.GetSupplierProfileByIDFn(ctx, id)
+	UpdateFavNavActionsFn           func(ctx context.Context, id string, favActions []string) error //roles
+	CreateRoleFn                    func(ctx context.Context, profileID string, role dto.RoleInput) (*profileutils.Role, error)
+	GetAllRolesFn                   func(ctx context.Context) (*[]profileutils.Role, error)
+	UpdateRoleDetailsFn             func(ctx context.Context, profileID string, role profileutils.Role) (*profileutils.Role, error)
+	GetRolesByIDsFn                 func(ctx context.Context, roleIDs []string) (*[]profileutils.Role, error)
+	GetRoleByIDFn                   func(ctx context.Context, roleID string) (*profileutils.Role, error)
+	GetRoleByNameFn                 func(ctx context.Context, roleName string) (*profileutils.Role, error)
+	CheckIfRoleNameExistsFn         func(ctx context.Context, name string) (bool, error)
+	DeleteRoleFn                    func(ctx context.Context, roleID string) (bool, error)
+	CheckIfUserHasPermissionFn      func(ctx context.Context, UID string, requiredPermission profileutils.Permission) (bool, error)
+	UpdateUserProfileEmailFn        func(ctx context.Context, phone string, email string) error
+	GetUserProfilesByRoleIDFn       func(ctx context.Context, role string) ([]*profileutils.UserProfile, error)
+	SaveRoleRevocationFn            func(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error
 }
 
 // CheckIfAdmin ...
 func (f *FakeOnboardingRepository) CheckIfAdmin(profile *profileutils.UserProfile) bool {
 	return f.CheckIfAdminFn(profile)
-}
-
-// GetSupplierProfileByUID ...
-func (f *FakeOnboardingRepository) GetSupplierProfileByUID(
-	ctx context.Context,
-	uid string,
-) (*profileutils.Supplier, error) {
-	return f.GetSupplierProfileByUIDFn(ctx, uid)
-}
-
-// GetSupplierProfileByProfileID ...
-func (f *FakeOnboardingRepository) GetSupplierProfileByProfileID(
-	ctx context.Context,
-	profileID string,
-) (*profileutils.Supplier, error) {
-	return f.GetSupplierProfileByProfileIDFn(ctx, profileID)
-}
-
-// AddPartnerType ...
-func (f *FakeOnboardingRepository) AddPartnerType(
-	ctx context.Context,
-	profileID string,
-	name *string,
-	partnerType *profileutils.PartnerType,
-) (bool, error) {
-	return f.AddPartnerTypeFn(ctx, profileID, name, partnerType)
-}
-
-// UpdateSupplierProfile ...
-func (f *FakeOnboardingRepository) UpdateSupplierProfile(
-	ctx context.Context,
-	profileID string,
-	data *profileutils.Supplier,
-) error {
-	return f.UpdateSupplierProfileFn(ctx, profileID, data)
 }
 
 // AddRoleToUser ...
@@ -265,93 +141,12 @@ func (f *FakeOnboardingRepository) AddRoleToUser(
 	return f.AddRoleToUserfn(ctx, phone, role)
 }
 
-// AddSupplierAccountType ...
-func (f *FakeOnboardingRepository) AddSupplierAccountType(
-	ctx context.Context,
-	profileID string,
-	accountType profileutils.AccountType,
-) (*profileutils.Supplier, error) {
-	return f.AddSupplierAccountTypeFn(ctx, profileID, accountType)
-}
-
 // StageProfileNudge ...
 func (f *FakeOnboardingRepository) StageProfileNudge(
 	ctx context.Context,
 	nudge *feedlib.Nudge,
 ) error {
 	return f.StageProfileNudgeFn(ctx, nudge)
-}
-
-// StageKYCProcessingRequest ...
-func (f *FakeOnboardingRepository) StageKYCProcessingRequest(
-	ctx context.Context,
-	data *domain.KYCRequest,
-) error {
-	return f.StageKYCProcessingRequestFn(ctx, data)
-}
-
-// RemoveKYCProcessingRequest ...
-func (f *FakeOnboardingRepository) RemoveKYCProcessingRequest(
-	ctx context.Context,
-	supplierProfileID string,
-) error {
-	return f.RemoveKYCProcessingRequestFn(ctx, supplierProfileID)
-}
-
-// ActivateSupplierProfile ...
-func (f *FakeOnboardingRepository) ActivateSupplierProfile(
-	ctx context.Context,
-	profileID string,
-	supplier profileutils.Supplier,
-) (*profileutils.Supplier, error) {
-	return f.ActivateSupplierProfileFn(ctx, profileID, supplier)
-}
-
-// FetchKYCProcessingRequests ...
-func (f *FakeOnboardingRepository) FetchKYCProcessingRequests(
-	ctx context.Context,
-) ([]*domain.KYCRequest, error) {
-	return f.FetchKYCProcessingRequestsFn(ctx)
-}
-
-// SetUpSupplier ...
-func (f *FakeOnboardingRepository) SetUpSupplier(
-	ctx context.Context,
-	accountType profileutils.AccountType,
-) (*profileutils.Supplier, error) {
-	return f.SetUpSupplierFn(ctx, accountType)
-}
-
-// FetchKYCProcessingRequestByID ...
-func (f *FakeOnboardingRepository) FetchKYCProcessingRequestByID(
-	ctx context.Context,
-	id string,
-) (*domain.KYCRequest, error) {
-	return f.FetchKYCProcessingRequestByIDFn(ctx, id)
-}
-
-// UpdateKYCProcessingRequest ...
-func (f *FakeOnboardingRepository) UpdateKYCProcessingRequest(
-	ctx context.Context,
-	sup *domain.KYCRequest,
-) error {
-	return f.UpdateKYCProcessingRequestFn(ctx, sup)
-}
-
-// GetCustomerProfileByID ...
-func (f *FakeOnboardingRepository) GetCustomerProfileByID(
-	ctx context.Context,
-	id string,
-) (*profileutils.Customer, error) {
-	return f.GetCustomerProfileByIDFn(ctx, id)
-}
-
-// GetCustomerProfileByProfileID ...
-func (f *FakeOnboardingRepository) GetCustomerProfileByProfileID(
-	ctx context.Context,
-	profileID string,
-) (*profileutils.Customer, error) {
-	return f.GetCustomerProfileByProfileIDFn(ctx, profileID)
 }
 
 // CreateUserProfile ...
@@ -362,23 +157,7 @@ func (f *FakeOnboardingRepository) CreateUserProfile(
 	return f.CreateUserProfileFn(ctx, phoneNumber, uid)
 }
 
-// CreateEmptySupplierProfile ...
-func (f *FakeOnboardingRepository) CreateEmptySupplierProfile(
-	ctx context.Context,
-	profileID string,
-) (*profileutils.Supplier, error) {
-	return f.CreateEmptySupplierProfileFn(ctx, profileID)
-}
-
-// CreateEmptyCustomerProfile creates an empty customer profile
-func (f *FakeOnboardingRepository) CreateEmptyCustomerProfile(
-	ctx context.Context,
-	profileID string,
-) (*profileutils.Customer, error) {
-	return f.CreateEmptyCustomerProfileFn(ctx, profileID)
-}
-
-// GetUserProfileByUID fetches a user profile by uidActivateSupplierProfile
+// GetUserProfileByUID fetches a user profile by uid
 func (f *FakeOnboardingRepository) GetUserProfileByUID(
 	ctx context.Context,
 	uid string,
@@ -511,15 +290,6 @@ func (f *FakeOnboardingRepository) ExchangeRefreshTokenForIDToken(
 	return f.ExchangeRefreshTokenForIDTokenFn(ctx, token)
 }
 
-// GetCustomerOrSupplierProfileByProfileID ...
-func (f *FakeOnboardingRepository) GetCustomerOrSupplierProfileByProfileID(
-	ctx context.Context,
-	flavour feedlib.Flavour,
-	profileID string,
-) (*profileutils.Customer, *profileutils.Supplier, error) {
-	return f.GetCustomerOrSupplierProfileByProfileIDFn(ctx, flavour, profileID)
-}
-
 // UpdateUserName ...
 func (f *FakeOnboardingRepository) UpdateUserName(
 	ctx context.Context,
@@ -581,15 +351,6 @@ func (f *FakeOnboardingRepository) UpdatePhotoUploadID(
 	uploadID string,
 ) error {
 	return f.UpdatePhotoUploadIDFn(ctx, id, uploadID)
-}
-
-// UpdateCovers ...
-func (f *FakeOnboardingRepository) UpdateCovers(
-	ctx context.Context,
-	id string,
-	covers []profileutils.Cover,
-) error {
-	return f.UpdateCoversFn(ctx, id, covers)
 }
 
 // UpdatePushTokens ...
@@ -718,23 +479,6 @@ func (f *FakeOnboardingRepository) UpdateAddresses(
 	return f.UpdateAddressesFn(ctx, id, address, addressType)
 }
 
-// AddNHIFDetails ...
-func (f *FakeOnboardingRepository) AddNHIFDetails(
-	ctx context.Context,
-	input dto.NHIFDetailsInput,
-	profileID string,
-) (*domain.NHIFDetails, error) {
-	return f.AddNHIFDetailsFn(ctx, input, profileID)
-}
-
-// GetNHIFDetailsByProfileID ...
-func (f *FakeOnboardingRepository) GetNHIFDetailsByProfileID(
-	ctx context.Context,
-	profileID string,
-) (*domain.NHIFDetails, error) {
-	return f.GetNHIFDetailsByProfileIDFn(ctx, profileID)
-}
-
 // GetUserCommunicationsSettings ...
 func (f *FakeOnboardingRepository) GetUserCommunicationsSettings(
 	ctx context.Context,
@@ -762,57 +506,6 @@ func (f *FakeOnboardingRepository) SetUserCommunicationsSettings(
 	)
 }
 
-// UpdateCustomerProfile ...
-func (f *FakeOnboardingRepository) UpdateCustomerProfile(
-	ctx context.Context,
-	profileID string,
-	customer profileutils.Customer,
-) (*profileutils.Customer, error) {
-	return f.UpdateCustomerProfileFn(ctx, profileID, customer)
-}
-
-// PersistIncomingSMSData ensures Africa's Talking SMS data is persisted in the database
-func (f *FakeOnboardingRepository) PersistIncomingSMSData(
-	ctx context.Context,
-	input *dto.AfricasTalkingMessage,
-) error {
-	return f.PersistIncomingSMSDataFn(ctx, input)
-}
-
-//AddAITSessionDetails ...
-func (f *FakeOnboardingRepository) AddAITSessionDetails(
-	ctx context.Context,
-	input *dto.SessionDetails,
-) (*domain.USSDLeadDetails, error) {
-	return f.AddAITSessionDetailsFn(ctx, input)
-}
-
-//GetAITSessionDetails ...
-func (f *FakeOnboardingRepository) GetAITSessionDetails(
-	ctx context.Context,
-	sessionID string,
-) (*domain.USSDLeadDetails, error) {
-	return f.GetAITSessionDetailsFn(ctx, sessionID)
-}
-
-//UpdateSessionLevel ...
-func (f *FakeOnboardingRepository) UpdateSessionLevel(
-	ctx context.Context,
-	sessionID string,
-	level int,
-) (*domain.USSDLeadDetails, error) {
-	return f.UpdateSessionLevelFn(ctx, sessionID, level)
-}
-
-//UpdateSessionPIN ...
-func (f *FakeOnboardingRepository) UpdateSessionPIN(
-	ctx context.Context,
-	sessionID string,
-	pin string,
-) (*domain.USSDLeadDetails, error) {
-	return f.UpdateSessionPINFn(ctx, sessionID, pin)
-}
-
 // ListUserProfiles ...
 func (f *FakeOnboardingRepository) ListUserProfiles(
 	ctx context.Context,
@@ -830,32 +523,6 @@ func (f *FakeOnboardingRepository) CreateDetailedUserProfile(
 	return f.CreateDetailedUserProfileFn(ctx, phoneNumber, profile)
 }
 
-// CreateDetailedSupplierProfile ...
-func (f *FakeOnboardingRepository) CreateDetailedSupplierProfile(
-	ctx context.Context,
-	profileID string,
-	supplier profileutils.Supplier,
-) (*profileutils.Supplier, error) {
-	return f.CreateDetailedSupplierProfileFn(ctx, profileID, supplier)
-}
-
-// UpdateAITSessionDetails ...
-func (f *FakeOnboardingRepository) UpdateAITSessionDetails(
-	ctx context.Context,
-	phoneNumber string,
-	contactLead *domain.USSDLeadDetails,
-) error {
-	return f.UpdateAITSessionDetailsFn(ctx, phoneNumber, contactLead)
-}
-
-// GetAITDetails ...
-func (f *FakeOnboardingRepository) GetAITDetails(
-	ctx context.Context,
-	phoneNumber string,
-) (*domain.USSDLeadDetails, error) {
-	return f.GetAITDetailsFn(ctx, phoneNumber)
-}
-
 // UpdateFavNavActions ...
 func (f *FakeOnboardingRepository) UpdateFavNavActions(
 	ctx context.Context,
@@ -863,47 +530,6 @@ func (f *FakeOnboardingRepository) UpdateFavNavActions(
 	favActions []string,
 ) error {
 	return f.UpdateFavNavActionsFn(ctx, id, favActions)
-}
-
-// GetUserMarketingData ...
-func (f *FakeOnboardingRepository) GetUserMarketingData(
-	ctx context.Context,
-	phoneNumber string,
-) (*dto.Segment, error) {
-	return f.GetUserMarketingDataFn(ctx, phoneNumber)
-}
-
-// HandleResponseFromUSSDGateway ...
-func (f *FakeOnboardingRepository) HandleResponseFromUSSDGateway(
-	context context.Context,
-	input *dto.SessionDetails,
-) string {
-	return f.HandleResponseFromUSSDGatewayFn(context, input)
-}
-
-// SetUSSDUserPin ...
-func (f *FakeOnboardingRepository) SetUSSDUserPin(
-	ctx context.Context,
-	phoneNumber string,
-	PIN string,
-) error {
-	return f.SetUSSDUserPinFn(ctx, phoneNumber, PIN)
-}
-
-// SaveUSSDEvent ...
-func (f *FakeOnboardingRepository) SaveUSSDEvent(
-	ctx context.Context,
-	input *dto.USSDEvent,
-) (*dto.USSDEvent, error) {
-	return f.SaveUSSDEventFn(ctx, input)
-}
-
-// SaveCoverAutolinkingEvents ...
-func (f *FakeOnboardingRepository) SaveCoverAutolinkingEvents(
-	ctx context.Context,
-	input *dto.CoverLinkingEvent,
-) (*dto.CoverLinkingEvent, error) {
-	return f.SaveCoverAutolinkingEventsFn(ctx, input)
 }
 
 //CreateRole ...
@@ -996,24 +622,4 @@ func (f *FakeOnboardingRepository) GetUserProfilesByRoleID(ctx context.Context, 
 // SaveRoleRevocation ...
 func (f *FakeOnboardingRepository) SaveRoleRevocation(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error {
 	return f.SaveRoleRevocationFn(ctx, userID, revocation)
-}
-
-//CreateAdminProfile ...
-func (f *FakeOnboardingRepository) CreateAdminProfile(ctx context.Context, adminProfile domain.AdminProfile) error {
-	return f.CreateAdminProfileFn(ctx, adminProfile)
-}
-
-//CheckIfAdminProfileExists ...
-func (f *FakeOnboardingRepository) CheckIfAdminProfileExists(ctx context.Context, profileID string) (bool, error) {
-	return f.CheckIfAdminProfileExistsFn(ctx, profileID)
-}
-
-//CreateAgentProfile ...
-func (f *FakeOnboardingRepository) CreateAgentProfile(ctx context.Context, agentProfile domain.AgentProfile) error {
-	return f.CreateAgentProfileFn(ctx, agentProfile)
-}
-
-//CheckIfAgentProfileExists ...
-func (f *FakeOnboardingRepository) CheckIfAgentProfileExists(ctx context.Context, profileID string) (bool, error) {
-	return f.CheckIfAgentProfileExistsFn(ctx, profileID)
 }

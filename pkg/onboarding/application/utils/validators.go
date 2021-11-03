@@ -71,120 +71,6 @@ func ValidateSignUpInput(input *dto.SignUpInput) (*dto.SignUpInput, error) {
 	}, nil
 }
 
-// ValidateAficasTalkingSMSData returns AIT validated SMS data
-func ValidateAficasTalkingSMSData(input *dto.AfricasTalkingMessage) (*dto.AfricasTalkingMessage, error) {
-	if input.LinkID == " " {
-		return nil, fmt.Errorf("message `linkID` cannot be empty")
-	}
-
-	if input.Text == " " {
-		return nil, fmt.Errorf("`text` message cannot be empty")
-	}
-
-	if input.To == " " {
-		return nil, fmt.Errorf("`to` cannot be empty")
-	}
-
-	if input.ID == " " {
-		return nil, fmt.Errorf("message `ID` cannot be empty")
-	}
-
-	if input.Date == " " {
-		return nil, fmt.Errorf("`date` of sending cannot be empty")
-	}
-
-	if input.From == " " {
-		return nil, fmt.Errorf("`phone` number cannot be empty")
-	}
-
-	_, err := converterandformatter.NormalizeMSISDN(input.From)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dto.AfricasTalkingMessage{
-		Date:   input.Date,
-		From:   input.From,
-		ID:     input.ID,
-		LinkID: input.LinkID,
-		Text:   input.Text,
-		To:     input.To,
-	}, nil
-}
-
-//ValidateUSSDEvent validates a USSD event
-func ValidateUSSDEvent(input *dto.USSDEvent) (*dto.USSDEvent, error) {
-	if input.SessionID == "" {
-		return nil, fmt.Errorf("ussd event's session id cannot be empty")
-	}
-
-	if input.PhoneNumber == "" {
-		return nil, fmt.Errorf("ussd event's phone number cannot be empty")
-	}
-
-	if input.USSDEventDateTime == nil {
-		return nil, fmt.Errorf("ussd event's date and time cannot be empty")
-	}
-
-	if input.USSDEventName == "" {
-		return nil, fmt.Errorf("ussd event's name cannot be empty")
-	}
-
-	return &dto.USSDEvent{
-		SessionID:         input.SessionID,
-		PhoneNumber:       input.PhoneNumber,
-		USSDEventDateTime: input.USSDEventDateTime,
-		Level:             input.Level,
-		USSDEventName:     input.USSDEventName,
-	}, nil
-}
-
-//ValidateCoverLinkingEvent validates a coverlinking event
-func ValidateCoverLinkingEvent(input *dto.CoverLinkingEvent) (*dto.CoverLinkingEvent, error) {
-	if input.MemberNumber == "" {
-		return nil, fmt.Errorf("events member cannot be empty")
-	}
-
-	if input.PhoneNumber == "" {
-		return nil, fmt.Errorf("event's phone number cannot be empty")
-	}
-
-	if input.CoverLinkingEventTime == nil {
-		return nil, fmt.Errorf("event's date and time cannot be empty")
-	}
-
-	if input.CoverStatus == "" {
-		return nil, fmt.Errorf("event's status cannot be empty")
-	}
-
-	return &dto.CoverLinkingEvent{
-		ID:                    input.ID,
-		CoverLinkingEventTime: input.CoverLinkingEventTime,
-		CoverStatus:           input.CoverStatus,
-		MemberNumber:          input.MemberNumber,
-		PhoneNumber:           input.PhoneNumber,
-	}, nil
-}
-
-//ValidateUSSDDetails checks if the phonenumber supplied is valid , that a session ID is provided
-// and returns valid USSD session details.
-func ValidateUSSDDetails(payload *dto.SessionDetails) (*dto.SessionDetails, error) {
-	phone, err := converterandformatter.NormalizeMSISDN(*payload.PhoneNumber)
-	if err != nil {
-		return nil, exceptions.NormalizeMSISDNError(err)
-	}
-	if payload.SessionID == "" {
-		err := fmt.Errorf("expected sessionid to be defined")
-		return nil, exceptions.SessionIDError(err)
-	}
-	return &dto.SessionDetails{
-		PhoneNumber: phone,
-		SessionID:   payload.SessionID,
-		Level:       payload.Level,
-		Text:        payload.Text,
-	}, nil
-}
-
 // ValidatePIN ...
 func ValidatePIN(pin string) error {
 	validatePINErr := ValidatePINLength(pin)
@@ -205,15 +91,6 @@ func ValidatePINLength(pin string) error {
 	if len(pin) < minPINLength || len(pin) > maxPINLength {
 		return exceptions.ValidatePINLengthError(fmt.Errorf("PIN should be of 4 digits"))
 	}
-	return nil
-}
-
-// ValidateUSSDInput ...
-func ValidateUSSDInput(text string) error {
-	if text == "" {
-		return fmt.Errorf("invalid input")
-	}
-
 	return nil
 }
 

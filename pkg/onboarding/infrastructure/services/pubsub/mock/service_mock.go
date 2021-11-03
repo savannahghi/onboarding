@@ -3,9 +3,6 @@ package mock
 import (
 	"context"
 	"net/http"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
-	"gitlab.slade360emr.com/go/commontools/crm/pkg/domain"
 )
 
 // FakeServicePubSub ...
@@ -30,12 +27,6 @@ type FakeServicePubSub struct {
 		r *http.Request,
 	)
 	AddEngagementPubsubNameSpaceFn func(topic string) string
-	NotifyCreateContactFn          func(ctx context.Context, contact domain.CRMContact) error
-	NotifyUpdateContactFn          func(ctx context.Context, contact domain.CRMContact) error
-	NotifyCreateCustomerFn         func(ctx context.Context, data dto.CustomerPubSubMessage) error
-	NotifyCreateSupplierFn         func(ctx context.Context, data dto.SupplierPubSubMessage) error
-	NotifyCoverLinkingFn           func(ctx context.Context, data dto.LinkCoverPubSubMessage) error
-	EDIMemberCoverLinkingFn        func(ctx context.Context, data dto.LinkCoverPubSubMessage) error
 }
 
 // AddPubSubNamespace ...
@@ -92,34 +83,4 @@ func (m *FakeServicePubSub) ReceivePubSubPushMessages(
 // AddEngagementPubsubNameSpace ...
 func (m *FakeServicePubSub) AddEngagementPubsubNameSpace(topic string) string {
 	return m.AddEngagementPubsubNameSpaceFn(topic)
-}
-
-// NotifyCreateContact ..
-func (m *FakeServicePubSub) NotifyCreateContact(ctx context.Context, contact domain.CRMContact) error {
-	return m.NotifyCreateContactFn(ctx, contact)
-}
-
-// NotifyUpdateContact ..
-func (m *FakeServicePubSub) NotifyUpdateContact(ctx context.Context, contact domain.CRMContact) error {
-	return m.NotifyUpdateContactFn(ctx, contact)
-}
-
-// NotifyCreateCustomer ..
-func (m *FakeServicePubSub) NotifyCreateCustomer(ctx context.Context, data dto.CustomerPubSubMessage) error {
-	return m.NotifyCreateCustomerFn(ctx, data)
-}
-
-// NotifyCreateSupplier ..
-func (m *FakeServicePubSub) NotifyCreateSupplier(ctx context.Context, data dto.SupplierPubSubMessage) error {
-	return m.NotifyCreateSupplierFn(ctx, data)
-}
-
-// NotifyCoverLinking ..
-func (m *FakeServicePubSub) NotifyCoverLinking(ctx context.Context, data dto.LinkCoverPubSubMessage) error {
-	return m.NotifyCoverLinkingFn(ctx, data)
-}
-
-// EDIMemberCoverLinking represents a mock of the EDIMemberCoverLinking
-func (m *FakeServicePubSub) EDIMemberCoverLinking(ctx context.Context, data dto.LinkCoverPubSubMessage) error {
-	return m.EDIMemberCoverLinkingFn(ctx, data)
 }

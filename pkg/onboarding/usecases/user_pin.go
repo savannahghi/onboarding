@@ -10,8 +10,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
 	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
-	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure/services/engagement"
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 	"github.com/savannahghi/profileutils"
 )
 
@@ -33,27 +32,24 @@ type UserPINUseCases interface {
 
 // UserPinUseCaseImpl represents usecase implementation object
 type UserPinUseCaseImpl struct {
-	onboardingRepository repository.OnboardingRepository
-	profileUseCases      ProfileUseCase
-	baseExt              extension.BaseExtension
-	pinExt               extension.PINExtension
-	engagement           engagement.ServiceEngagement
+	infrastructure  infrastructure.Infrastructure
+	profileUseCases ProfileUseCase
+	baseExt         extension.BaseExtension
+	pinExt          extension.PINExtension
 }
 
 // NewUserPinUseCase returns a new UserPin usecase
 func NewUserPinUseCase(
-	r repository.OnboardingRepository,
+	infrastructure infrastructure.Infrastructure,
 	p ProfileUseCase,
 	ext extension.BaseExtension,
 	pin extension.PINExtension,
-	eng engagement.ServiceEngagement,
 ) UserPINUseCases {
 	return &UserPinUseCaseImpl{
-		onboardingRepository: r,
-		profileUseCases:      p,
-		baseExt:              ext,
-		pinExt:               pin,
-		engagement:           eng,
+		infrastructure:  infrastructure,
+		profileUseCases: p,
+		baseExt:         ext,
+		pinExt:          pin,
 	}
 }
 
@@ -85,7 +81,7 @@ func (u *UserPinUseCaseImpl) SetUserPIN(
 		PINNumber: encryptedPin,
 		Salt:      salt,
 	}
-	if _, err := u.onboardingRepository.SavePIN(ctx, pinPayload); err != nil {
+	if _, err := u.infrastructure.Database.SavePIN(ctx, pinPayload); err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.SaveUserPinError(err)
 	}
@@ -110,7 +106,7 @@ func (u *UserPinUseCaseImpl) RequestPINReset(
 		return nil, exceptions.NormalizeMSISDNError(err)
 	}
 
-	pr, err := u.onboardingRepository.GetUserProfileByPrimaryPhoneNumber(ctx, *phoneNumber, false)
+	pr, err := u.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(ctx, *phoneNumber, false)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		// this is a wrapped error. No need to wrap it again
@@ -122,7 +118,7 @@ func (u *UserPinUseCaseImpl) RequestPINReset(
 		return nil, exceptions.ExistingPINError(err)
 	}
 	// generate and send otp to the phone number
-	otpResp, err := u.engagement.GenerateAndSendOTP(ctx, phone, appID)
+	otpResp, err := u.infrastructure.Engagement.GenerateAndSendOTP(ctx, phone, appID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, exceptions.GenerateAndSendOTPError(err)
@@ -147,7 +143,7 @@ func (u *UserPinUseCaseImpl) ResetUserPIN(
 		return false, exceptions.NormalizeMSISDNError(err)
 	}
 
-	verified, err := u.engagement.VerifyOTP(ctx, phone, OTP)
+	verified, err := u.infrastructure.Engagement.VerifyOTP(ctx, phone, OTP)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.VerifyOTPError(err)
@@ -157,7 +153,7 @@ func (u *UserPinUseCaseImpl) ResetUserPIN(
 		return false, exceptions.VerifyOTPError(nil)
 	}
 
-	profile, err := u.onboardingRepository.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := u.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -183,7 +179,7 @@ func (u *UserPinUseCaseImpl) ResetUserPIN(
 		PINNumber: encryptedPin,
 		Salt:      salt,
 	}
-	_, err = u.onboardingRepository.UpdatePIN(ctx, profile.ID, pinPayload)
+	_, err = u.infrastructure.Database.UpdatePIN(ctx, profile.ID, pinPayload)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.InternalServerError(err)
@@ -206,7 +202,7 @@ func (u *UserPinUseCaseImpl) ChangeUserPIN(
 		return false, exceptions.NormalizeMSISDNError(err)
 	}
 
-	profile, err := u.onboardingRepository.GetUserProfileByPrimaryPhoneNumber(
+	profile, err := u.infrastructure.Database.GetUserProfileByPrimaryPhoneNumber(
 		ctx,
 		*phoneNumber,
 		false,
@@ -231,7 +227,7 @@ func (u *UserPinUseCaseImpl) ChangeUserPIN(
 		PINNumber: encryptedPin,
 		Salt:      salt,
 	}
-	_, err = u.onboardingRepository.UpdatePIN(ctx, profile.ID, pinPayload)
+	_, err = u.infrastructure.Database.UpdatePIN(ctx, profile.ID, pinPayload)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.InternalServerError(err)
@@ -245,7 +241,7 @@ func (u *UserPinUseCaseImpl) CheckHasPIN(ctx context.Context, profileID string) 
 	ctx, span := tracer.Start(ctx, "CheckHasPIN")
 	defer span.End()
 
-	pinData, err := u.onboardingRepository.GetPINByProfileID(ctx, profileID)
+	pinData, err := u.infrastructure.Database.GetPINByProfileID(ctx, profileID)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return false, err
@@ -280,7 +276,7 @@ func (u *UserPinUseCaseImpl) SetUserTempPIN(ctx context.Context, profileID strin
 		Salt:      salt,
 		IsOTP:     true,
 	}
-	if _, err := u.onboardingRepository.SavePIN(ctx, pinPayload); err != nil {
+	if _, err := u.infrastructure.Database.SavePIN(ctx, pinPayload); err != nil {
 		utils.RecordSpanError(span, err)
 		return "", exceptions.SaveUserPinError(err)
 	}

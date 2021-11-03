@@ -112,9 +112,9 @@ func GroupNested(
 				parent.Nested = append(parent.Nested, action)
 			}
 		}
-		//remove all actions that do not have onTapRoute and has no nested children
-		//this removes unnecessary parents
-		if len(parent.OnTapRoute) > 0 || len(parent.Nested) > 0 {
+
+		//add only the navigation actions that either has onTapRoute or has nested children
+		if len(parent.Nested) > 0 || len(parent.OnTapRoute) > 0 {
 			grouped = append(grouped, parent)
 		}
 	}

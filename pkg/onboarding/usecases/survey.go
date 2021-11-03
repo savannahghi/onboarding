@@ -8,8 +8,7 @@ import (
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/exceptions"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/extension"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-
-	"github.com/savannahghi/onboarding/pkg/onboarding/repository"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 )
 
 // SurveyUseCases represents all the business logic involved in user post visit surveys.
@@ -19,16 +18,16 @@ type SurveyUseCases interface {
 
 // SurveyUseCasesImpl represents the usecase implementation object
 type SurveyUseCasesImpl struct {
-	onboardingRepository repository.OnboardingRepository
-	baseExt              extension.BaseExtension
+	infrastructure infrastructure.Infrastructure
+	baseExt        extension.BaseExtension
 }
 
 // NewSurveyUseCases initializes a new sign up usecase
 func NewSurveyUseCases(
-	r repository.OnboardingRepository,
+	infrastructure infrastructure.Infrastructure,
 	ext extension.BaseExtension,
 ) *SurveyUseCasesImpl {
-	return &SurveyUseCasesImpl{r, ext}
+	return &SurveyUseCasesImpl{infrastructure, ext}
 }
 
 // RecordPostVisitSurvey records the survey input supplied by the user
@@ -51,7 +50,7 @@ func (rs *SurveyUseCasesImpl) RecordPostVisitSurvey(
 		return false, exceptions.UserNotFoundError(err)
 	}
 
-	if err := rs.onboardingRepository.RecordPostVisitSurvey(ctx, input, UID); err != nil {
+	if err := rs.infrastructure.Database.RecordPostVisitSurvey(ctx, input, UID); err != nil {
 		utils.RecordSpanError(span, err)
 		return false, exceptions.InternalServerError(fmt.Errorf(exceptions.InternalServerErrorMsg))
 	}

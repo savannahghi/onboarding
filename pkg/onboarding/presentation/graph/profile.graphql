@@ -4,40 +4,11 @@ extend type Query {
 
   userProfile: UserProfile!
 
-  supplierProfile: Supplier!
-
   resumeWithPIN(pin: String!): Boolean!
-
-  findProvider(
-    pagination: PaginationInput
-    filter: [BusinessPartnerFilterInput]
-    sort: [BusinessPartnerSortInput]
-  ): BusinessPartnerConnection!
-
-  findBranch(
-    pagination: PaginationInput
-    filter: [BranchFilterInput]
-    sort: [BranchSortInput]
-  ): BranchConnection!
-
-  fetchSupplierAllowedLocations: BranchConnection!
-
-  fetchKYCProcessingRequests: [KYCRequest]
 
   getAddresses: UserAddresses!
 
-  NHIFDetails: NHIFDetails
-
   getUserCommunicationsSettings: UserCommunicationsSetting!
-  checkSupplierKYCSubmitted: Boolean!
-
-  fetchAdmins: [Admin]
-
-  fetchAgents: [Agent]
-
-  findAgentbyPhone(phoneNumber: String): Agent
-
-  findAdminByNameOrPhone(nameOrPhone: String): [Admin]
 
   fetchUserNavigationActions: NavigationActions
 
@@ -50,6 +21,8 @@ extend type Query {
   getAllPermissions: [Permission!]!
 
   findUserByPhone(phoneNumber: String!): UserProfile!
+
+  findUsersByPhone(phoneNumber: String!): [UserProfile]
 
   getNavigationActions: GroupedNavigationActions
 }
@@ -77,68 +50,9 @@ extend type Mutation {
 
   registerPushToken(token: String!): Boolean!
 
-  addPartnerType(name: String!, partnerType: PartnerType!): Boolean!
-
-  suspendSupplier(suspensionReason: String): Boolean!
-
-  setUpSupplier(accountType: AccountType!): Supplier
-  supplierEDILogin(
-    username: String!
-    password: String!
-    sladeCode: String!
-  ): SupplierLogin!
-
-  supplierSetDefaultLocation(locationID: String!): Supplier!
-
-  addIndividualRiderKYC(input: IndividualRiderInput!): IndividualRider!
-
-  addOrganizationRiderKYC(input: OrganizationRiderInput!): OrganizationRider!
-
-  addIndividualPractitionerKYC(
-    input: IndividualPractitionerInput!
-  ): IndividualPractitioner!
-
-  addOrganizationPractitionerKYC(
-    input: OrganizationPractitionerInput!
-  ): OrganizationPractitioner!
-
-  addOrganizationProviderKYC(
-    input: OrganizationProviderInput!
-  ): OrganizationProvider!
-
-  addIndividualPharmaceuticalKYC(
-    input: IndividualPharmaceuticalInput!
-  ): IndividualPharmaceutical!
-
-  addOrganizationPharmaceuticalKYC(
-    input: OrganizationPharmaceuticalInput!
-  ): OrganizationPharmaceutical!
-
-  addIndividualCoachKYC(input: IndividualCoachInput!): IndividualCoach!
-
-  addOrganizationCoachKYC(input: OrganizationCoachInput!): OrganizationCoach!
-
-  addIndividualNutritionKYC(
-    input: IndividualNutritionInput!
-  ): IndividualNutrition!
-
-  addOrganizationNutritionKYC(
-    input: OrganizationNutritionInput!
-  ): OrganizationNutrition!
-
-  processKYCRequest(
-    id: String!
-    status: KYCProcessStatus!
-    rejectionReason: String
-  ): Boolean!
-
   recordPostVisitSurvey(input: PostVisitSurveyInput!): Boolean!
 
-  retireKYCProcessingRequest: Boolean!
-
   setupAsExperimentParticipant(participate: Boolean): Boolean!
-
-  addNHIFDetails(input: NHIFDetailsInput!): NHIFDetails!
 
   addAddress(input: UserAddressInput!, addressType: AddressType!): Address!
 
@@ -148,18 +62,6 @@ extend type Mutation {
     allowPush: Boolean
     allowEmail: Boolean
   ): UserCommunicationsSetting!
-
-  registerAdmin(input: RegisterAdminInput!): UserProfile!
-
-  registerAgent(input: RegisterAgentInput!): UserProfile!
-
-  activateEmployeeAccount(input: ProfileSuspensionInput): Boolean!
-
-  deactivateEmployeeAccount(input: ProfileSuspensionInput): Boolean!
-
-  activateAgent(input: ProfileSuspensionInput): Boolean!
-
-  deactivateAgent(input: ProfileSuspensionInput): Boolean!
 
   saveFavoriteNavAction(title: String!): Boolean!
 

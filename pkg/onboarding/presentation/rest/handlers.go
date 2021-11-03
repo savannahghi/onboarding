@@ -3,7 +3,6 @@ package rest
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -16,9 +15,10 @@ import (
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/utils"
-	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/interactor"
-	"github.com/savannahghi/profileutils"
+	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
+	"github.com/savannahghi/onboarding/pkg/onboarding/usecases"
 	"github.com/savannahghi/serverutils"
+	"github.com/sirupsen/logrus"
 )
 
 // HandlersInterfaces represents all the REST API logic
@@ -27,7 +27,6 @@ type HandlersInterfaces interface {
 	CreateUserWithPhoneNumber() http.HandlerFunc
 	UserRecoveryPhoneNumbers() http.HandlerFunc
 	SetPrimaryPhoneNumber() http.HandlerFunc
-	OptOut() http.HandlerFunc
 	LoginByPhone() http.HandlerFunc
 	LoginAnonymous() http.HandlerFunc
 	RequestPINReset() http.HandlerFunc
@@ -35,11 +34,9 @@ type HandlersInterfaces interface {
 	SendOTP() http.HandlerFunc
 	SendRetryOTP() http.HandlerFunc
 	RefreshToken() http.HandlerFunc
-	FindSupplierByUID() http.HandlerFunc
 	RemoveUserByPhoneNumber() http.HandlerFunc
 	GetUserProfileByUID() http.HandlerFunc
 	GetUserProfileByPhoneOrEmail() http.HandlerFunc
-	UpdateCovers() http.HandlerFunc
 	ProfileAttributes() http.HandlerFunc
 	RegisterPushToken() http.HandlerFunc
 	AddAdminPermsToUser() http.HandlerFunc
@@ -47,10 +44,7 @@ type HandlersInterfaces interface {
 	AddRoleToUser() http.HandlerFunc
 	RemoveRoleToUser() http.HandlerFunc
 	UpdateUserProfile() http.HandlerFunc
-	IncomingATSMS() http.HandlerFunc
-	IncomingUSSDHandler() http.HandlerFunc
 	SwitchFlaggedFeaturesHandler() http.HandlerFunc
-	// USSDEndNotificationHandler() http.HandlerFunc
 	PollServices() http.HandlerFunc
 	CheckHasPermission() http.HandlerFunc
 
@@ -63,12 +57,13 @@ type HandlersInterfaces interface {
 
 // HandlersInterfacesImpl represents the usecase implementation object
 type HandlersInterfacesImpl struct {
-	interactor *interactor.Interactor
+	infrastructure infrastructure.Infrastructure
+	usecases       usecases.Interactor
 }
 
 // NewHandlersInterfaces initializes a new rest handlers usecase
-func NewHandlersInterfaces(i *interactor.Interactor) HandlersInterfaces {
-	return &HandlersInterfacesImpl{i}
+func NewHandlersInterfaces(infrastructure infrastructure.Infrastructure, usecases usecases.Interactor) HandlersInterfaces {
+	return &HandlersInterfacesImpl{infrastructure, usecases}
 }
 
 // VerifySignUpPhoneNumber is an unauthenticated endpoint that does a
@@ -90,7 +85,7 @@ func (h *HandlersInterfacesImpl) VerifySignUpPhoneNumber() http.HandlerFunc {
 			return
 		}
 
-		otpResp, err := h.interactor.Signup.VerifyPhoneNumber(
+		otpResp, err := h.usecases.VerifyPhoneNumber(
 			ctx,
 			*p.PhoneNumber,
 			p.AppID,
@@ -122,7 +117,7 @@ func (h *HandlersInterfacesImpl) CreateUserWithPhoneNumber() http.HandlerFunc {
 			attribute.Any("payload", p),
 		))
 
-		response, err := h.interactor.Signup.CreateUserByPhone(ctx, p)
+		response, err := h.usecases.CreateUserByPhone(ctx, p)
 		if err != nil {
 			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
 			return
@@ -153,7 +148,7 @@ func (h *HandlersInterfacesImpl) UserRecoveryPhoneNumbers() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.interactor.Signup.GetUserRecoveryPhoneNumbers(
+		response, err := h.usecases.GetUserRecoveryPhoneNumbers(
 			ctx,
 			*p.PhoneNumber,
 		)
@@ -171,35 +166,6 @@ func (h *HandlersInterfacesImpl) UserRecoveryPhoneNumbers() http.HandlerFunc {
 		)
 
 		serverutils.WriteJSONResponse(w, response, http.StatusOK)
-	}
-}
-
-//OptOut marks a person as opted out of our promotional/marketing messages
-func (h *HandlersInterfacesImpl) OptOut() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		p := &dto.PhoneNumberPayload{}
-		serverutils.DecodeJSONToTargetStruct(w, r, p)
-		if p.PhoneNumber == nil {
-			err := fmt.Errorf(
-				"expected a phone number to be provided",
-			)
-			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
-			return
-		}
-
-		_, err := h.interactor.CrmExt.OptOut(ctx, *p.PhoneNumber)
-		if err != nil {
-			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
-			return
-		}
-
-		serverutils.WriteJSONResponse(
-			w,
-			dto.NewOKResp(fmt.Sprintf("%s has successfully been opted out", *p.PhoneNumber)),
-			http.StatusOK,
-		)
 	}
 }
 
@@ -226,7 +192,7 @@ func (h *HandlersInterfacesImpl) SetPrimaryPhoneNumber() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.interactor.Signup.SetPhoneAsPrimary(
+		response, err := h.usecases.SetPhoneAsPrimary(
 			ctx,
 			*p.PhoneNumber,
 			*p.OTP,
@@ -284,13 +250,14 @@ func (h *HandlersInterfacesImpl) LoginByPhone() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.interactor.Login.LoginByPhone(
+		response, err := h.usecases.LoginByPhone(
 			ctx,
 			*p.PhoneNumber,
 			*p.PIN,
 			p.Flavour,
 		)
 		if err != nil {
+			logrus.Println(err)
 			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
 			return
 		}
@@ -334,7 +301,7 @@ func (h *HandlersInterfacesImpl) LoginAnonymous() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.interactor.Login.LoginAsAnonymous(ctx)
+		response, err := h.usecases.LoginAsAnonymous(ctx)
 		if err != nil {
 			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
 			return
@@ -365,7 +332,7 @@ func (h *HandlersInterfacesImpl) RequestPINReset() http.HandlerFunc {
 			return
 		}
 
-		otpResp, err := h.interactor.UserPIN.RequestPINReset(
+		otpResp, err := h.usecases.RequestPINReset(
 			ctx,
 			*p.PhoneNumber,
 			p.AppID,
@@ -412,7 +379,7 @@ func (h *HandlersInterfacesImpl) ResetPin() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.interactor.UserPIN.ResetUserPIN(
+		response, err := h.usecases.ResetUserPIN(
 			ctx,
 			pin.PhoneNumber,
 			pin.PIN,
@@ -449,7 +416,7 @@ func (h *HandlersInterfacesImpl) SendOTP() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.interactor.Engagement.GenerateAndSendOTP(
+		response, err := h.infrastructure.Engagement.GenerateAndSendOTP(
 			ctx,
 			*payload.PhoneNumber,
 			payload.AppID,
@@ -494,7 +461,7 @@ func (h *HandlersInterfacesImpl) SendRetryOTP() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.interactor.Engagement.SendRetryOTP(
+		response, err := h.infrastructure.Engagement.SendRetryOTP(
 			ctx,
 			*retryPayload.Phone,
 			*retryPayload.RetryStep,
@@ -539,7 +506,7 @@ func (h *HandlersInterfacesImpl) RefreshToken() http.HandlerFunc {
 			return
 		}
 
-		response, err := h.interactor.Login.RefreshToken(ctx, *p.RefreshToken)
+		response, err := h.usecases.RefreshToken(ctx, *p.RefreshToken)
 		if err != nil {
 			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
 			return
@@ -550,49 +517,6 @@ func (h *HandlersInterfacesImpl) RefreshToken() http.HandlerFunc {
 		))
 
 		serverutils.WriteJSONResponse(w, response, http.StatusOK)
-	}
-}
-
-// FindSupplierByUID fetch supplier profile via REST
-func (h *HandlersInterfacesImpl) FindSupplierByUID() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		s, err := utils.ValidateUID(w, r)
-		if err != nil {
-			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
-				Err:     err,
-				Message: err.Error(),
-			}, http.StatusBadRequest)
-			return
-		}
-
-		if s.UID == nil {
-			err := fmt.Errorf("expected `uid` to be defined")
-			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
-				Err:     err,
-				Message: err.Error(),
-			}, http.StatusBadRequest)
-			return
-		}
-
-		var supplier *profileutils.Supplier
-		authCred := &auth.Token{UID: *s.UID}
-		newContext := context.WithValue(
-			ctx,
-			firebasetools.AuthTokenContextKey,
-			authCred,
-		)
-		supplier, err = h.interactor.Supplier.FindSupplierByUID(newContext)
-		log.Printf("the supplier is %v", supplier)
-		log.Printf("the err is %v", err)
-		if supplier == nil || err != nil {
-			err := fmt.Errorf("supplier profile not found")
-			serverutils.WriteJSONResponse(w, err, http.StatusNotFound)
-			return
-		}
-
-		serverutils.WriteJSONResponse(w, supplier, http.StatusOK)
 	}
 }
 
@@ -614,7 +538,7 @@ func (h *HandlersInterfacesImpl) RemoveUserByPhoneNumber() http.HandlerFunc {
 			return
 		}
 
-		v, err := h.interactor.Onboarding.CheckPhoneExists(ctx, *p.PhoneNumber)
+		v, err := h.usecases.CheckPhoneExists(ctx, *p.PhoneNumber)
 		if err != nil {
 			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
 				Err:     err,
@@ -624,7 +548,7 @@ func (h *HandlersInterfacesImpl) RemoveUserByPhoneNumber() http.HandlerFunc {
 		}
 
 		if v {
-			if err := h.interactor.Signup.RemoveUserByPhoneNumber(ctx, *p.PhoneNumber); err != nil {
+			if err := h.usecases.RemoveUserByPhoneNumber(ctx, *p.PhoneNumber); err != nil {
 				serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
 					Err:     err,
 					Message: err.Error(),
@@ -662,7 +586,7 @@ func (h *HandlersInterfacesImpl) GetUserProfileByUID() http.HandlerFunc {
 			return
 		}
 
-		profile, err := h.interactor.Onboarding.GetUserProfileByUID(
+		profile, err := h.usecases.GetUserProfileByUID(
 			ctx,
 			*p.UID,
 		)
@@ -697,7 +621,7 @@ func (h *HandlersInterfacesImpl) GetUserProfileByPhoneOrEmail() http.HandlerFunc
 			return
 		}
 
-		profile, err := h.interactor.Onboarding.GetUserProfileByPhoneOrEmail(
+		profile, err := h.usecases.GetUserProfileByPhoneOrEmail(
 			ctx,
 			payload,
 		)
@@ -732,7 +656,7 @@ func (h *HandlersInterfacesImpl) RegisterPushToken() http.HandlerFunc {
 			authCred,
 		)
 
-		profile, err := h.interactor.Signup.RegisterPushToken(
+		profile, err := h.usecases.RegisterPushToken(
 			ctx,
 			t.PushToken,
 		)
@@ -742,75 +666,6 @@ func (h *HandlersInterfacesImpl) RegisterPushToken() http.HandlerFunc {
 		}
 
 		serverutils.WriteJSONResponse(w, profile, http.StatusOK)
-	}
-}
-
-// UpdateCovers is an unauthenticated ISC endpoint that updates the cover of
-// a given user given their UID and cover details
-func (h *HandlersInterfacesImpl) UpdateCovers() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		p := &dto.UpdateCoversPayload{}
-		serverutils.DecodeJSONToTargetStruct(w, r, p)
-		if p.UID == nil {
-			err := fmt.Errorf("expected `UID` to be defined")
-			errorcodeutil.ReportErr(w, err, http.StatusBadRequest)
-			return
-		}
-
-		if p.BeneficiaryID == nil {
-			err := fmt.Errorf("expected `BeneficiaryID` to be defined")
-			errorcodeutil.ReportErr(w, err, http.StatusBadRequest)
-			return
-		}
-
-		if p.EffectivePolicyNumber == nil {
-			err := fmt.Errorf("expected `EffectivePolicyNumber` to be defined")
-			errorcodeutil.ReportErr(w, err, http.StatusBadRequest)
-			return
-		}
-
-		if p.ValidFrom == nil {
-			err := fmt.Errorf("expected `ValidFrom` to be defined")
-			errorcodeutil.ReportErr(w, err, http.StatusBadRequest)
-			return
-		}
-
-		if p.ValidTo == nil {
-			err := fmt.Errorf("expected `ValidTo` to be defined")
-			errorcodeutil.ReportErr(w, err, http.StatusBadRequest)
-			return
-		}
-
-		auth := &auth.Token{UID: *p.UID}
-		ctx = context.WithValue(ctx, firebasetools.AuthTokenContextKey, auth)
-		cover := profileutils.Cover{
-			PayerName:             *p.PayerName,
-			MemberNumber:          *p.MemberNumber,
-			MemberName:            *p.MemberName,
-			PayerSladeCode:        *p.PayerSladeCode,
-			BeneficiaryID:         *p.BeneficiaryID,
-			EffectivePolicyNumber: *p.EffectivePolicyNumber,
-			ValidFrom:             *p.ValidFrom,
-			ValidTo:               *p.ValidTo,
-		}
-		var covers []profileutils.Cover
-		covers = append(covers, cover)
-
-		err := h.interactor.Onboarding.UpdateCovers(ctx, covers)
-		if err != nil {
-			errorcodeutil.ReportErr(w, err, http.StatusBadRequest)
-			return
-		}
-
-		serverutils.WriteJSONResponse(
-			w,
-			dto.OKResp{
-				Status: "Covers successfully updated",
-			},
-			http.StatusOK,
-		)
 	}
 }
 
@@ -839,7 +694,7 @@ func (h *HandlersInterfacesImpl) ProfileAttributes() http.HandlerFunc {
 			return
 		}
 
-		output, err := h.interactor.Onboarding.ProfileAttributes(
+		output, err := h.usecases.ProfileAttributes(
 			ctx,
 			p.UIDs,
 			attribute,
@@ -870,7 +725,7 @@ func (h *HandlersInterfacesImpl) AddAdminPermsToUser() http.HandlerFunc {
 			return
 		}
 
-		v, err := h.interactor.Onboarding.CheckPhoneExists(ctx, *p.PhoneNumber)
+		v, err := h.usecases.CheckPhoneExists(ctx, *p.PhoneNumber)
 		if err != nil {
 			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
 				Err:     err,
@@ -880,7 +735,7 @@ func (h *HandlersInterfacesImpl) AddAdminPermsToUser() http.HandlerFunc {
 		}
 
 		if v {
-			if err := h.interactor.Onboarding.AddAdminPermsToUser(ctx, *p.PhoneNumber); err != nil {
+			if err := h.usecases.AddAdminPermsToUser(ctx, *p.PhoneNumber); err != nil {
 				serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
 					Err:     err,
 					Message: err.Error(),
@@ -921,7 +776,7 @@ func (h *HandlersInterfacesImpl) RemoveAdminPermsToUser() http.HandlerFunc {
 			}, http.StatusBadRequest)
 			return
 		}
-		v, err := h.interactor.Onboarding.CheckPhoneExists(ctx, *p.PhoneNumber)
+		v, err := h.usecases.CheckPhoneExists(ctx, *p.PhoneNumber)
 		if err != nil {
 			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
 				Err:     err,
@@ -931,7 +786,7 @@ func (h *HandlersInterfacesImpl) RemoveAdminPermsToUser() http.HandlerFunc {
 		}
 
 		if v {
-			if err := h.interactor.Onboarding.RemoveAdminPermsToUser(ctx, *p.PhoneNumber); err != nil {
+			if err := h.usecases.RemoveAdminPermsToUser(ctx, *p.PhoneNumber); err != nil {
 				serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
 					Err:     err,
 					Message: err.Error(),
@@ -979,7 +834,7 @@ func (h *HandlersInterfacesImpl) AddRoleToUser() http.HandlerFunc {
 			}, http.StatusBadRequest)
 			return
 		}
-		err := h.interactor.Onboarding.AddRoleToUser(
+		err := h.usecases.AddRoleToUser(
 			ctx,
 			*p.PhoneNumber,
 			*p.Role,
@@ -1015,7 +870,7 @@ func (h *HandlersInterfacesImpl) RemoveRoleToUser() http.HandlerFunc {
 			return
 		}
 
-		err = h.interactor.Onboarding.RemoveRoleToUser(ctx, *p.PhoneNumber)
+		err = h.usecases.RemoveRoleToUser(ctx, *p.PhoneNumber)
 		if err != nil {
 			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
 				Err:     err,
@@ -1054,7 +909,7 @@ func (h *HandlersInterfacesImpl) UpdateUserProfile() http.HandlerFunc {
 			authCred,
 		)
 
-		userProfile, err := h.interactor.Signup.UpdateUserProfile(
+		userProfile, err := h.usecases.UpdateUserProfile(
 			ctx,
 			&dto.UserProfileInput{
 				PhotoUploadID: payload.PhotoUploadID,
@@ -1073,82 +928,6 @@ func (h *HandlersInterfacesImpl) UpdateUserProfile() http.HandlerFunc {
 	}
 }
 
-// IncomingATSMS is an authenticated REST endpoint acting as a callback url for Africa's Talking incoming SMS
-func (h *HandlersInterfacesImpl) IncomingATSMS() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		payload := &dto.AfricasTalkingMessage{}
-
-		err := r.ParseForm()
-		if err != nil {
-			errorcodeutil.ReportErr(w, err, http.StatusUnsupportedMediaType)
-		}
-
-		payload.Date = r.PostForm.Get("date")
-		payload.From = r.PostForm.Get("from")
-		payload.ID = r.PostForm.Get("id")
-		payload.LinkID = r.PostForm.Get("linkId")
-		payload.Text = r.PostForm.Get("text")
-		payload.To = r.PostForm.Get("to")
-
-		validatedPayload, err := utils.ValidateAficasTalkingSMSData(payload)
-		if err != nil {
-			err := fmt.Errorf("input validation error occurred")
-			serverutils.WriteJSONResponse(w, errorcodeutil.CustomError{
-				Err:     err,
-				Message: err.Error(),
-			}, http.StatusBadRequest)
-			return
-		}
-
-		err = h.interactor.SMS.CreateSMSData(ctx, validatedPayload)
-		if err != nil {
-			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
-			return
-		}
-
-		serverutils.WriteJSONResponse(w,
-			dto.OKResp{
-				Status: "Africa's Talking SMS data successfully created"},
-			http.StatusOK)
-	}
-}
-
-//IncomingUSSDHandler is a REST endpoint that is ussd create USSD
-//The Content-Type from AIT is x-www-form-urlencoded
-//To get the x-www-form-urlencoded request body we need to first call the below function on the request object
-//It parses the query string present in the URL and populates the Form field of the request object
-//https://golangbyexample.com/url-encoded-body-golang/
-func (h *HandlersInterfacesImpl) IncomingUSSDHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		p := &dto.SessionDetails{}
-
-		err := r.ParseForm()
-		if err != nil {
-			errorcodeutil.ReportErr(w, err, http.StatusBadRequest)
-			return
-		}
-
-		p.SessionID = r.PostForm.Get("sessionId")
-		phone := r.PostForm.Get("phoneNumber")
-		p.PhoneNumber = &phone
-		p.Text = r.PostForm.Get("text")
-		sessionDetails, err := utils.ValidateUSSDDetails(p)
-		if err != nil {
-			errorcodeutil.ReportErr(w, err, http.StatusBadRequest)
-			return
-		}
-		resp := h.interactor.AITUSSD.HandleResponseFromUSSDGateway(
-			ctx,
-			sessionDetails,
-		)
-		fmt.Fprintf(w, "%s", resp)
-	}
-}
-
 // SwitchFlaggedFeaturesHandler flips the user as opt-in or opt-out to flagged features
 func (h *HandlersInterfacesImpl) SwitchFlaggedFeaturesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -1164,7 +943,7 @@ func (h *HandlersInterfacesImpl) SwitchFlaggedFeaturesHandler() http.HandlerFunc
 			return
 		}
 
-		okRes, err := h.interactor.Onboarding.SwitchUserFlaggedFeatures(
+		okRes, err := h.usecases.SwitchUserFlaggedFeatures(
 			ctx,
 			*p.PhoneNumber,
 		)
@@ -1185,7 +964,7 @@ func (h *HandlersInterfacesImpl) PollServices() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		services, err := h.interactor.AdminSrv.PollMicroservicesStatus(ctx)
+		services, err := h.usecases.PollMicroservicesStatus(ctx)
 		if err != nil {
 			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
 			return
@@ -1208,7 +987,7 @@ func (h *HandlersInterfacesImpl) CheckHasPermission() http.HandlerFunc {
 			return
 		}
 
-		authorized, err := h.interactor.Role.CheckPermission(ctx, *p.UID, *p.Permission)
+		authorized, err := h.usecases.CheckPermission(ctx, *p.UID, *p.Permission)
 		if err != nil {
 			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
 			return
@@ -1236,7 +1015,7 @@ func (h *HandlersInterfacesImpl) CreateRole() http.HandlerFunc {
 			return
 		}
 
-		role, err := h.interactor.Role.CreateUnauthorizedRole(ctx, *input)
+		role, err := h.usecases.CreateUnauthorizedRole(ctx, *input)
 		if err != nil {
 			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
 			return
@@ -1259,7 +1038,7 @@ func (h *HandlersInterfacesImpl) AssignRole() http.HandlerFunc {
 			return
 		}
 
-		_, err := h.interactor.Role.AssignRole(ctx, input.UserID, input.RoleID)
+		_, err := h.usecases.AssignRole(ctx, input.UserID, input.RoleID)
 		if err != nil {
 			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
 			return
@@ -1282,13 +1061,13 @@ func (h *HandlersInterfacesImpl) RemoveRoleByName() http.HandlerFunc {
 			return
 		}
 
-		role, err := h.interactor.Role.GetRoleByName(ctx, input.Name)
+		role, err := h.usecases.GetRoleByName(ctx, input.Name)
 		if err != nil {
 			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
 			return
 		}
 
-		_, err = h.interactor.Role.UnauthorizedDeleteRole(ctx, role.ID)
+		_, err = h.usecases.UnauthorizedDeleteRole(ctx, role.ID)
 		if err != nil {
 			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
 			return
@@ -1313,7 +1092,7 @@ func (h *HandlersInterfacesImpl) RegisterUser() http.HandlerFunc {
 		}
 		context := addUIDToContext(ctx, *input.UID)
 
-		profile, err := h.interactor.Signup.RegisterUser(context, *input)
+		profile, err := h.usecases.RegisterUser(context, *input)
 		if err != nil {
 			serverutils.WriteJSONResponse(rw, err, http.StatusInternalServerError)
 			return

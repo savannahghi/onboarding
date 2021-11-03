@@ -3,46 +3,9 @@ package domain
 import (
 	"time"
 
-	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/profileutils"
-	"github.com/savannahghi/scalarutils"
 )
-
-// Branch represents a Slade 360 Charge Master branch
-type Branch struct {
-	ID                    string `json:"id"                    firestore:"id"`
-	Name                  string `json:"name"                  firestore:"name"`
-	OrganizationSladeCode string `json:"organizationSladeCode" firestore:"organizationSladeCode"`
-	BranchSladeCode       string `json:"branchSladeCode"       firestore:"branchSladeCode"`
-	// this won' be saved in the repository. it will be computed when fetching the supplier's allowed locations
-	Default bool `json:"default"`
-}
-
-// KYCRequest represent payload required to stage kyc processing request
-type KYCRequest struct {
-	ID                  string                   `json:"id"                  firestore:"id"`
-	ReqPartnerType      profileutils.PartnerType `json:"reqPartnerType"      firestore:"reqPartnerType"`
-	ReqOrganizationType OrganizationType         `json:"reqOrganizationType" firestore:"reqOrganizationType"`
-	ReqRaw              map[string]interface{}   `json:"reqRaw"              firestore:"reqRaw"`
-	Processed           bool                     `json:"processed"           firestore:"processed"`
-	SupplierRecord      *profileutils.Supplier   `json:"supplierRecord"      firestore:"supplierRecord"`
-	Status              KYCProcessStatus         `json:"status"              firestore:"status"`
-	RejectionReason     *string                  `json:"rejectionRejection"  firestore:"rejectionRejection"`
-	FiledTimestamp      time.Time                `json:"filedTimeStamp"      firestore:"filedTimeStamp"`
-	ProcessedTimestamp  time.Time                `json:"processedTimeStamp"  firestore:"processedTimeStamp"`
-
-	// points to the userProfile id of the addmin that has processed the KYC
-	ProcessedBy string `json:"processedBy" firestore:"processedBy"`
-}
-
-// BusinessPartner represents a Slade 360 Charge Master business partner
-type BusinessPartner struct {
-	ID        string  `json:"id"         firestore:"id"`
-	Name      string  `json:"name"       firestore:"name"`
-	SladeCode string  `json:"slade_code" firestore:"sladeCode"`
-	Parent    *string `json:"parent"     firestore:"parent"`
-}
 
 // PIN represents a user's PIN information
 type PIN struct {
@@ -87,44 +50,6 @@ type UserAddresses struct {
 type ThinAddress struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
-}
-
-// NHIFDetails represents a user's thin NHIF details
-type NHIFDetails struct {
-	ID                        string                          `json:"id"                        firestore:"id"`
-	ProfileID                 string                          `json:"profileID"                 firestore:"profileID"`
-	MembershipNumber          string                          `json:"membershipNumber"          firestore:"membershipNumber"`
-	Employment                EmploymentType                  `json:"employmentType"`
-	IDDocType                 enumutils.IdentificationDocType `json:"IDDocType"`
-	IDNumber                  string                          `json:"IDNumber"                  firestore:"IDNumber"`
-	IdentificationCardPhotoID string                          `json:"identificationCardPhotoID" firestore:"identificationCardPhotoID"`
-	NHIFCardPhotoID           string                          `json:"nhifCardPhotoID"           firestore:"nhifCardPhotoID"`
-}
-
-//USSDLeadDetails represents ussd user session details
-type USSDLeadDetails struct {
-	ID             string           `json:"id"             firestore:"id"`
-	Level          int              `json:"level"          firestore:"level"`
-	PhoneNumber    string           `json:"phoneNumber"    firestore:"phoneNumber"`
-	SessionID      string           `json:"sessionID"      firestore:"sessionID"`
-	FirstName      string           `json:"firstName"      firestore:"firstName"`
-	LastName       string           `json:"lastName"       firestore:"lastName"`
-	DateOfBirth    scalarutils.Date `json:"dob"            firestore:"dob"`
-	IsRegistered   bool             `json:"isRegistered"   firestore:"isRegistered"`
-	ContactChannel string           `json:"contactChannel" firestore:"contactChannel"`
-	WantCover      bool             `json:"wantCover"      firestore:"wantCover"`
-	PIN            string           `json:"pin"            firestore:"pin"`
-}
-
-// CRMContact represents a stored CRM contact
-type CRMContact struct {
-	FirstName   string `json:"first_name,omitempty"`
-	LastName    string `json:"last_name,omitempty"`
-	DOB         string `json:"dob,omitempty"`
-	PhoneNumber string `json:"phone_number,omitempty"`
-	OptOut      string `json:"opt_out,omitempty"`
-	TimeStamp   string `json:"time_stamp,omitempty"`
-	IsSynced    string `json:"is_synced,omitempty"`
 }
 
 // Microservice identifies a micro-service that conforms to the Apollo Graphqql
@@ -200,18 +125,4 @@ type RoleRevocationLog struct {
 
 	// Created is the timestamp indicating when the role was created
 	Created time.Time `json:"created" firestore:"created"`
-}
-
-//AdminProfile is the profile of all users who permform admin tasks
-type AdminProfile struct {
-	ID             string `json:"id,omitempty"`
-	ProfileID      string `json:"profileID,omitempty"`
-	OrganizationID string `json:"organizationID,omitempty"`
-}
-
-//AgentProfile is the profile of all users who permform agent tasks
-type AgentProfile struct {
-	ID        string    `json:"id,omitempty"`
-	ProfileID string    `json:"profileID,omitempty"`
-	AgentType AgentType `json:"agentType,omitempty"`
 }

@@ -258,82 +258,6 @@ func InvalidFlavourDefinedError() error {
 	}
 }
 
-// AddPartnerTypeError is an error message displayed when there is a
-// failure to create a partner type
-func AddPartnerTypeError(err error) error {
-	return &errorcodeutil.CustomError{
-		Err:     err,
-		Message: AddPartnerTypeErrMsg,
-		Code:    int(errorcodeutil.InvalidEnum),
-	}
-
-}
-
-// InvalidPartnerTypeError is an error message displayed when an
-// invalid partner type is provided
-func InvalidPartnerTypeError() error {
-	return &errorcodeutil.CustomError{
-		Err:     fmt.Errorf("invalid `partnerType` provided"),
-		Message: InvalidPartnerTypeErrMsg,
-		Code:    int(errorcodeutil.InvalidEnum),
-	}
-}
-
-// FetchDefaultCurrencyError is an error message displayed when
-// the default currency is not found
-func FetchDefaultCurrencyError(err error) error {
-	return &errorcodeutil.CustomError{
-		Err:     err,
-		Message: FetchDefaultCurrencyErrMsg,
-		Code:    int(errorcodeutil.RecordNotFound),
-	}
-}
-
-// SupplierNotFoundError returns an error message when a supplier is not found
-func SupplierNotFoundError() error {
-	return &errorcodeutil.CustomError{
-		Message: SupplierNotFoundErrMsg,
-		Code:    int(errorcodeutil.ProfileNotFound),
-	}
-
-}
-
-// CustomerNotFoundError returns an error message when a customer is not found
-func CustomerNotFoundError() error {
-	return &errorcodeutil.CustomError{
-		Message: CustomerNotFoundErrMsg,
-		Code:    int(errorcodeutil.ProfileNotFound),
-	}
-}
-
-// SupplierKYCAlreadySubmittedNotFoundError is returned when the user trys to
-// submit another KCY when then is one already submitted
-func SupplierKYCAlreadySubmittedNotFoundError() error {
-	return &errorcodeutil.CustomError{
-		Message: SupplierKYCAlreadySubmittedErrMsg,
-		Code:    int(errorcodeutil.KYCAlreadySubmitted),
-	}
-}
-
-// FindProviderError returns an error message when a provider is not found
-func FindProviderError(err error) error {
-	return &errorcodeutil.CustomError{
-		Err:     err,
-		Message: FindProviderErrMsg,
-		Code:    int(errorcodeutil.UnableToFindProvider),
-	}
-}
-
-// PublishKYCNudgeError returns an error message when there's a failure in
-// creating a KYC nudge
-func PublishKYCNudgeError(err error) error {
-	return &errorcodeutil.CustomError{
-		Err:     err,
-		Message: PublishKYCNudgeErrMsg,
-		Code:    int(errorcodeutil.PublishNudgeFailure),
-	}
-}
-
 // InvalidCredentialsError returns an error message when wrong credentials are provided
 func InvalidCredentialsError() error {
 	return &errorcodeutil.CustomError{
@@ -389,14 +313,6 @@ func SecondaryResourceHardResetError() error {
 	}
 }
 
-// InvalidSladeCodeError when the slade code the edi user profile doesn't match with selected provider
-func InvalidSladeCodeError() error {
-	return &errorcodeutil.CustomError{
-		Message: InvalidSladeCodeErrMsg,
-		Code:    int(errorcodeutil.InvalidSladeCode),
-	}
-}
-
 // ResolveNudgeErr is the error that represents the failure of not
 // being able to resolve a given nudge
 func ResolveNudgeErr(
@@ -449,15 +365,6 @@ func RecordDoesNotExistError(err error) error {
 	}
 }
 
-// SessionIDError return an error when a ussd sessionId is not provided
-func SessionIDError(err error) error {
-	return &errorcodeutil.CustomError{
-		Err:     err,
-		Message: SessionIDErrMsg,
-		Code:    int(errorcodeutil.Internal),
-	}
-}
-
 // RoleNotValid return an error when a user does not have the required role
 func RoleNotValid(err error) error {
 	return &errorcodeutil.CustomError{
@@ -474,14 +381,4 @@ func NavigationActionsError(err error) error {
 		Message: NavActionsError,
 		Code:    int(errorcodeutil.NavigationActionsError),
 	}
-}
-
-// AgentNotFoundError returns an error message when an agent is not found
-func AgentNotFoundError(err error) error {
-	return &errorcodeutil.CustomError{
-		Err:     err,
-		Message: AgentNotFoundErrMsg,
-		Code:    int(errorcodeutil.ProfileNotFound),
-	}
-
 }

@@ -4,42 +4,34 @@ import (
 	"github.com/savannahghi/profileutils"
 )
 
-// On Tap Routes
-const (
-	HomeRoute                   = "/home"
-	PatientRegistrationRoute    = "/addPatient"
-	PatientIdentificationRoute  = "/patients"
-	GetHelpRouteRoute           = "/helpCenter"
-	RequestsRoute               = "/admin"
-	RoleViewRoute               = "/viewCreatedRolesPage"
-	RoleCreationRoute           = "/createRoleStepOne"
-	RoleAssignmentRoute         = "/bewellUserIdentification"
-	AgentRegistrationRoute      = "/agentRegistration"
-	AgentIdentificationRoute    = "/agentIdentification"
-	EmployeeRegistrationRoute   = "/employeeRegistration"
-	EmployeeIdentificationRoute = "/employeeIdentification"
-	ConsumerRegistrationRoute   = "/bewellUserRegistration"
-)
-
 // Icon links for navactions
 const (
 	// StaticBase is the default path at which static assets are hosted
 	StaticBase = "https://assets.healthcloud.co.ke"
 
 	RoleNavActionIcon     = StaticBase + "/actions/roles_navaction.png"
-	AgentNavActionIcon    = StaticBase + "/actions/agent_navaction.png"
-	EmployeeNavActionIcon = StaticBase + "/actions/employee_navaction.png"
 	ConsumerNavActionIcon = StaticBase + "/actions/consumer_navaction.png"
 	HelpNavActionIcon     = StaticBase + "/actions/help_navaction.png"
 	HomeNavActionIcon     = StaticBase + "/actions/home_navaction.png"
-	KYCNavActionIcon      = StaticBase + "/actions/kyc_navaction.png"
 	PartnerNavActionIcon  = StaticBase + "/actions/partner_navaction.png"
 	PatientNavActionIcon  = StaticBase + "/actions/patient_navaction.png"
 	RequestNavActionIcon  = StaticBase + "/actions/request_navaction.png"
 )
 
+// On Tap Routes
+const (
+	HomeRoute                  = "/home"
+	PatientRegistrationRoute   = "/addPatient"
+	PatientIdentificationRoute = "/patients"
+	GetHelpRouteRoute          = "/helpCenter"
+	RequestsRoute              = "/admin"
+	RoleViewRoute              = "/viewCreatedRolesPage"
+	RoleCreationRoute          = "/createRoleStepOne"
+	RoleAssignmentRoute        = "/bewellUserIdentification"
+)
+
 // Navigation actions
-var (
+const (
 	HomeNavActionTitle       = "Home"
 	HomeNavActionDescription = "Home Navigation action"
 
@@ -59,16 +51,6 @@ var (
 	RequestsNavActionTitle       = "Requests"
 	RequestsNavActionDescription = "Requests Navigation action"
 
-	AgentNavActionTitle            = "Agents"
-	AgentNavActionDescription      = "Agent Navigation action"
-	AgentRegistrationActionTitle   = "Register Agent"
-	AgentIdentificationActionTitle = "View Agents"
-
-	EmployeeNavActionTitle            = "Employees"
-	EmployeeNavActionDescription      = "Employee Navigation action"
-	EmployeeRegistrationActionTitle   = "Register Employee"
-	EmployeeIdentificationActionTitle = "View Employees"
-
 	ConsumerNavActionTitle       = "Consumers"
 	ConsumerNavActionDescription = "Consumer Navigation action"
 
@@ -86,17 +68,8 @@ const (
 	//HelpGroup groups all actions under the help resource
 	HelpGroup NavigationGroup = "help"
 
-	//AgentGroup groups all actions under the agent resource
-	AgentGroup NavigationGroup = "agents"
-
 	//KYCGroup groups all actions under the kyc resource
 	KYCGroup NavigationGroup = "kyc"
-
-	//EmployeeGroup groups all actions under the employees resource
-	EmployeeGroup NavigationGroup = "employees"
-
-	//CoversGroup groups all actions under the covers resource
-	CoversGroup NavigationGroup = "covers"
 
 	//PatientGroup groups all actions under the patient resource
 	PatientGroup NavigationGroup = "patient"
@@ -126,14 +99,6 @@ const (
 	PartnerNavactionSequence
 
 	ConsumerNavactionSequence
-
-	EmployeeNavActionSequence
-	EmployeeSearchNavActionSequence
-	EmployeeRegistrationActionSequence
-
-	AgentNavActionSequence
-	AgentSearchNavActionSequence
-	AgentRegistrationActionSequence
 
 	PatientNavActionSequence
 	PatientSearchNavActionSequence
@@ -184,7 +149,7 @@ var (
 		Group:              PartnerGroup,
 		Title:              PartnerNavActionTitle,
 		Icon:               PartnerNavActionIcon,
-		RequiredPermission: nil,
+		RequiredPermission: &profileutils.CanViewPartner,
 		SequenceNumber:     PartnerNavactionSequence,
 	}
 )
@@ -195,8 +160,7 @@ var (
 		Group:              ConsumerGroup,
 		Title:              ConsumerNavActionTitle,
 		Icon:               ConsumerNavActionIcon,
-		OnTapRoute:         ConsumerRegistrationRoute,
-		RequiredPermission: &profileutils.CanCreateConsumer,
+		RequiredPermission: &profileutils.CanViewConsumers,
 		SequenceNumber:     ConsumerNavactionSequence,
 	}
 )
@@ -208,7 +172,7 @@ var (
 		Group:              RoleGroup,
 		Title:              RoleNavActionTitle,
 		Icon:               RoleNavActionIcon,
-		RequiredPermission: nil,
+		RequiredPermission: &profileutils.CanViewRole,
 		SequenceNumber:     RoleNavActionSequence,
 	}
 
@@ -231,6 +195,7 @@ var (
 		HasParent:          true,
 		SequenceNumber:     RoleViewingNavActionSequence,
 	}
+
 	//RoleAssignNavAction a child of the RoleNavActions
 	RoleAssignNavAction = NavigationAction{
 		Group:              RoleGroup,
@@ -243,77 +208,13 @@ var (
 )
 
 var (
-	//AgentNavActions this is the parent navigation action for agent resource
-	// it has nested navigation actions below
-	AgentNavActions = NavigationAction{
-		Group:              AgentGroup,
-		Title:              AgentNavActionTitle,
-		Icon:               AgentNavActionIcon,
-		RequiredPermission: nil,
-		SequenceNumber:     AgentNavActionSequence,
-	}
-
-	//AgentRegistrationNavAction a child of the AgentNavActions
-	AgentRegistrationNavAction = NavigationAction{
-		Group:              AgentGroup,
-		Title:              AgentRegistrationActionTitle,
-		OnTapRoute:         AgentRegistrationRoute,
-		RequiredPermission: &profileutils.CanRegisterAgent,
-		HasParent:          true,
-		SequenceNumber:     AgentRegistrationActionSequence,
-	}
-
-	//AgentidentificationNavAction a child of the AgentNavActions
-	AgentidentificationNavAction = NavigationAction{
-		Group:              AgentGroup,
-		Title:              AgentIdentificationActionTitle,
-		OnTapRoute:         AgentIdentificationRoute,
-		RequiredPermission: &profileutils.CanIdentifyAgent,
-		HasParent:          true,
-		SequenceNumber:     AgentSearchNavActionSequence,
-	}
-)
-
-var (
-	//EmployeeNavActions this is the parent navigation action for agent resource
-	// it has nested navigation actions below
-	EmployeeNavActions = NavigationAction{
-		Group:              EmployeeGroup,
-		Title:              EmployeeNavActionTitle,
-		Icon:               EmployeeNavActionIcon,
-		RequiredPermission: nil,
-		SequenceNumber:     EmployeeNavActionSequence,
-	}
-
-	//EmployeeRegistrationNavAction a child of the EmployeeNavActions
-	EmployeeRegistrationNavAction = NavigationAction{
-		Group:              EmployeeGroup,
-		Title:              EmployeeRegistrationActionTitle,
-		OnTapRoute:         EmployeeRegistrationRoute,
-		RequiredPermission: &profileutils.CanCreateEmployee,
-		HasParent:          true,
-		SequenceNumber:     EmployeeRegistrationActionSequence,
-	}
-
-	//EmployeeidentificationNavAction a child of the EmployeeNavActions
-	EmployeeidentificationNavAction = NavigationAction{
-		Group:              EmployeeGroup,
-		Title:              EmployeeIdentificationActionTitle,
-		OnTapRoute:         EmployeeIdentificationRoute,
-		RequiredPermission: &profileutils.CanViewEmployee,
-		HasParent:          true,
-		SequenceNumber:     EmployeeSearchNavActionSequence,
-	}
-)
-
-var (
 	//PatientNavActions this is the parent navigation action for patient resource
 	// it has nested navigation actions below
 	PatientNavActions = NavigationAction{
 		Group:              PatientGroup,
 		Title:              PatientNavActionTitle,
 		Icon:               PatientNavActionIcon,
-		RequiredPermission: nil,
+		RequiredPermission: &profileutils.CanViewPatient,
 		SequenceNumber:     PatientNavActionSequence,
 	}
 
@@ -343,10 +244,6 @@ var AllNavigationActions = []NavigationAction{
 	HomeNavAction, HelpNavAction,
 
 	KYCNavActions, PartnerNavActions, ConsumerNavActions,
-
-	AgentNavActions, AgentRegistrationNavAction, AgentidentificationNavAction,
-
-	EmployeeNavActions, EmployeeRegistrationNavAction, EmployeeidentificationNavAction,
 
 	PatientNavActions, PatientRegistrationNavAction, PatientIdentificationNavAction,
 
