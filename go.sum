@@ -474,8 +474,8 @@ github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 gitlab.slade360emr.com/go/apiclient v0.0.8/go.mod h1:il6dRia5Er8nGEwYCAYmXqqtT7vExTBgou1hu4UsDK8=
-gitlab.slade360emr.com/go/apiclient v0.0.14 h1:ynzNeTIgEH28yhd1KzL1CeDoqiNX9W7/GmbywHRKDiE=
-gitlab.slade360emr.com/go/apiclient v0.0.14/go.mod h1:Mf8poMYJMkJVOiR1LFR9JJJbm9oeB564NA8CzkjdGCI=
+gitlab.slade360emr.com/go/apiclient v0.0.18 h1:w7NbG24Qt/nmzB/VAEM7vWt5q73bQj9OwAUO6aZcEZs=
+gitlab.slade360emr.com/go/apiclient v0.0.18/go.mod h1:Mf8poMYJMkJVOiR1LFR9JJJbm9oeB564NA8CzkjdGCI=
 gitlab.slade360emr.com/go/base v0.0.157/go.mod h1:2I0e87cNOQj2hT42jHER4MzXyW+kgGsKFoCFDvG99ro=
 gitlab.slade360emr.com/go/commontools/accounting v0.0.0-20210726041609-f5e1334c2640 h1:9RlBjoncH+KV7yH7P3wjb6ZMuTe8yU5lN7v/eoEZRxM=
 gitlab.slade360emr.com/go/commontools/accounting v0.0.0-20210726041609-f5e1334c2640/go.mod h1:JSX56SefYIg9rUZe97JxK7tiBoe1v6QfPOEcvfqw/Oo=
