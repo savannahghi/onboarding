@@ -1564,6 +1564,7 @@ enum AddressType {
 
 enum ChannelOfContact {
   APP
+  USSD
   SHORTCODE
 }
 
@@ -1604,6 +1605,7 @@ enum PermissionGroup {
   Employees
   Agents
   Partners
+  KYC
   Consumers
   Patients
 }
