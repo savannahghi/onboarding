@@ -382,3 +382,30 @@ func NavigationActionsError(err error) error {
 		Code:    int(errorcodeutil.NavigationActionsError),
 	}
 }
+
+// GetInviteLinkError return an error when an incorrect flavour is provided
+func GetInviteLinkError(err error) error {
+	return &errorcodeutil.CustomError{
+		Err:     err,
+		Message: GetInviteLinkErrorMsg,
+		Code:    int(errorcodeutil.GetInviteLinkError),
+	}
+}
+
+// SendInviteSMSError return an error when the messagging service fails to send an invite SMS
+func SendInviteSMSError(err error) error {
+	return &errorcodeutil.CustomError{
+		Err:     err,
+		Message: SendInviteSMSErrorMsg,
+		Code:    int(errorcodeutil.SendInviteSMSError),
+	}
+}
+
+// GenerateTempPINError return an error when the system fails to generate a temporary PIN
+func GenerateTempPINError(err error) error {
+	return &errorcodeutil.CustomError{
+		Err:     err,
+		Message: GenerateTempPINErrorMsg,
+		Code:    int(errorcodeutil.GenerateTempPINError),
+	}
+}

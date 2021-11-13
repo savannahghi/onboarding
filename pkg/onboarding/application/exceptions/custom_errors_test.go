@@ -83,4 +83,13 @@ func TestCustomErrors(t *testing.T) {
 	assert.NotNil(t, err)
 	err = exceptions.NavigationActionsError(fmt.Errorf("error"))
 	assert.NotNil(t, err)
+
+	err = exceptions.GetInviteLinkError(fmt.Errorf("error"))
+	assert.NotNil(t, err)
+
+	err = exceptions.SendInviteSMSError(fmt.Errorf("error"))
+	assert.NotNil(t, err)
+
+	err = exceptions.GenerateTempPINError(fmt.Errorf("error"))
+	assert.NotNil(t, err)
 }
