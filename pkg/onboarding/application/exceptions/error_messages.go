@@ -139,4 +139,13 @@ const (
 
 	//NavActionsError is an error message displayed when the system cannot update navigation actions
 	NavActionsError = "navigation actions not updated"
+
+	// GetInviteLinkErrorMsg is an error message displayed when the system cannot get invite link
+	GetInviteLinkErrorMsg = "failed to get an invite link"
+
+	// SendInviteSMSErrorMsg is an error message displayed when the system cannot send invite sms
+	SendInviteSMSErrorMsg = "failed to send an invite SMS"
+
+	// GenerateTempPINErrorMsg is an error message displayed when the system cannot generate temp pin
+	GenerateTempPINErrorMsg = "failed to generate a temporary PIN"
 )

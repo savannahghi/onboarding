@@ -25,7 +25,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/savannahghi/converterandformatter v0.0.9
 	github.com/savannahghi/enumutils v0.0.3
-	github.com/savannahghi/errorcodeutil v0.0.1
+	github.com/savannahghi/errorcodeutil v0.0.5
 	github.com/savannahghi/feedlib v0.0.4
 	github.com/savannahghi/firebasetools v0.0.15
 	github.com/savannahghi/interserviceclient v0.0.13
@@ -46,5 +46,4 @@ require (
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/genproto v0.0.0-20210708141623-e76da96a951f // indirect
-	moul.io/http2curl v1.0.0 // indirect
 )
