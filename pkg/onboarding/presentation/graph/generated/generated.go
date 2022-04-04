@@ -1622,8 +1622,7 @@ enum Language {
   sw
 }
 
-
-extend type PageInfo
+type PageInfo
   @key(fields: "hasNextPage")
   @key(fields: "hasPreviousPage")
   @key(fields: "startCursor")
