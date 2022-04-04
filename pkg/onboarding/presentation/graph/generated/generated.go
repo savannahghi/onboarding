@@ -45,7 +45,6 @@ type Config struct {
 type ResolverRoot interface {
 	Entity() EntityResolver
 	Mutation() MutationResolver
-	Permission() PermissionResolver
 	Query() QueryResolver
 	UserProfile() UserProfileResolver
 	VerifiedIdentifier() VerifiedIdentifierResolver
@@ -79,7 +78,8 @@ type ComplexityRoot struct {
 	}
 
 	Entity struct {
-		FindUserProfileByID func(childComplexity int, id string) int
+		FindPageInfoByHasNextPage func(childComplexity int, hasNextPage bool) int
+		FindUserProfileByID       func(childComplexity int, id string) int
 	}
 
 	GroupedNavigationActions struct {
@@ -256,6 +256,7 @@ type ComplexityRoot struct {
 }
 
 type EntityResolver interface {
+	FindPageInfoByHasNextPage(ctx context.Context, hasNextPage bool) (*firebasetools.PageInfo, error)
 	FindUserProfileByID(ctx context.Context, id string) (*profileutils.UserProfile, error)
 }
 type MutationResolver interface {
@@ -289,9 +290,6 @@ type MutationResolver interface {
 	RevokeRole(ctx context.Context, userID string, roleID string, reason string) (bool, error)
 	ActivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error)
 	DeactivateRole(ctx context.Context, roleID string) (*dto.RoleOutput, error)
-}
-type PermissionResolver interface {
-	Group(ctx context.Context, obj *profileutils.Permission) (profileutils.PermissionGroup, error)
 }
 type QueryResolver interface {
 	DummyQuery(ctx context.Context) (*bool, error)
@@ -427,6 +425,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Cover.PayerSladeCode(childComplexity), true
+
+	case "Entity.findPageInfoByHasNextPage":
+		if e.complexity.Entity.FindPageInfoByHasNextPage == nil {
+			break
+		}
+
+		args, err := ec.field_Entity_findPageInfoByHasNextPage_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Entity.FindPageInfoByHasNextPage(childComplexity, args["hasNextPage"].(bool)), true
 
 	case "Entity.findUserProfileByID":
 		if e.complexity.Entity.FindUserProfileByID == nil {
@@ -1612,15 +1622,16 @@ enum Language {
   sw
 }
 
+
 extend type PageInfo
   @key(fields: "hasNextPage")
   @key(fields: "hasPreviousPage")
   @key(fields: "startCursor")
   @key(fields: "endCursor") {
-  hasNextPage: Boolean! @external
-  hasPreviousPage: Boolean! @external
-  startCursor: String @external
-  endCursor: String @external
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
 }
 
 input PaginationInput {
@@ -1845,8 +1856,8 @@ type BioData {
   gender: Gender
 }
 
-extend type UserProfile @key(fields: "id") {
-  id: String! @external
+type UserProfile @key(fields: "id") {
+  id: String!
   userName: String!
   verifiedIdentifiers: [VerifiedIdentifier]
   primaryPhone: String!
@@ -1869,6 +1880,7 @@ extend type UserProfile @key(fields: "id") {
   """
   roleDetails: [RoleOutput]
 }
+
 
 type Address {
   latitude: String!
@@ -1925,7 +1937,7 @@ type NavigationActions {
   secondary: [NavAction]
 }
 
-extend type Microservice {
+type Microservice {
   id: String!
   name: String!
   url: String!
@@ -1945,7 +1957,7 @@ type RoleOutput {
 type Permission {
   scope: String!
   description: String!
-  group: PermissionGroup!
+  group: String!
   allowed: Boolean!
 }
 
@@ -1978,7 +1990,8 @@ union _Entity = PageInfo | UserProfile
 
 # fake type to build resolver interfaces for users to implement
 type Entity {
-		findUserProfileByID(id: String!,): UserProfile!
+		findPageInfoByHasNextPage(hasNextPage: Boolean!,): PageInfo!
+	findUserProfileByID(id: String!,): UserProfile!
 
 }
 
@@ -1997,6 +2010,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Entity_findPageInfoByHasNextPage_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 bool
+	if tmp, ok := rawArgs["hasNextPage"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hasNextPage"))
+		arg0, err = ec.unmarshalNBoolean2bool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["hasNextPage"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Entity_findUserProfileByID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -3139,6 +3167,48 @@ func (ec *executionContext) _Cover_memberName(ctx context.Context, field graphql
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Entity_findPageInfoByHasNextPage(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Entity",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Entity_findPageInfoByHasNextPage_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Entity().FindPageInfoByHasNextPage(rctx, args["hasNextPage"].(bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*firebasetools.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋsavannahghiᚋfirebasetoolsᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Entity_findUserProfileByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5501,14 +5571,14 @@ func (ec *executionContext) _Permission_group(ctx context.Context, field graphql
 		Object:     "Permission",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Permission().Group(rctx, obj)
+		return obj.Group, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5520,9 +5590,9 @@ func (ec *executionContext) _Permission_group(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(profileutils.PermissionGroup)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNPermissionGroup2githubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionGroup(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Permission_allowed(ctx context.Context, field graphql.CollectedField, obj *profileutils.Permission) (ret graphql.Marshaler) {
@@ -9174,6 +9244,20 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet) g
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Entity")
+		case "findPageInfoByHasNextPage":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Entity_findPageInfoByHasNextPage(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "findUserProfileByID":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -9649,31 +9733,22 @@ func (ec *executionContext) _Permission(ctx context.Context, sel ast.SelectionSe
 		case "scope":
 			out.Values[i] = ec._Permission_scope(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "description":
 			out.Values[i] = ec._Permission_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "group":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Permission_group(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Permission_group(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "allowed":
 			out.Values[i] = ec._Permission_allowed(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -10726,6 +10801,20 @@ func (ec *executionContext) marshalNOperation2githubᚗcomᚋsavannahghiᚋenumu
 	return v
 }
 
+func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋsavannahghiᚋfirebasetoolsᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v firebasetools.PageInfo) graphql.Marshaler {
+	return ec._PageInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋsavannahghiᚋfirebasetoolsᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *firebasetools.PageInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PageInfo(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPermission2ᚕᚖgithubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionᚄ(ctx context.Context, sel ast.SelectionSet, v []*profileutils.Permission) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -10771,16 +10860,6 @@ func (ec *executionContext) marshalNPermission2ᚖgithubᚗcomᚋsavannahghiᚋp
 		return graphql.Null
 	}
 	return ec._Permission(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNPermissionGroup2githubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionGroup(ctx context.Context, v interface{}) (profileutils.PermissionGroup, error) {
-	var res profileutils.PermissionGroup
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNPermissionGroup2githubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionGroup(ctx context.Context, sel ast.SelectionSet, v profileutils.PermissionGroup) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) unmarshalNPermissionType2githubᚗcomᚋsavannahghiᚋprofileutilsᚐPermissionType(ctx context.Context, v interface{}) (profileutils.PermissionType, error) {

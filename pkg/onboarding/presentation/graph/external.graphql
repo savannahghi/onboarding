@@ -10,15 +10,16 @@ enum Language {
   sw
 }
 
+
 extend type PageInfo
   @key(fields: "hasNextPage")
   @key(fields: "hasPreviousPage")
   @key(fields: "startCursor")
   @key(fields: "endCursor") {
-  hasNextPage: Boolean! @external
-  hasPreviousPage: Boolean! @external
-  startCursor: String @external
-  endCursor: String @external
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
 }
 
 input PaginationInput {
