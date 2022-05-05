@@ -2000,6 +2000,34 @@ func (fr *Repository) FetchAdminUsers(ctx context.Context) ([]*profileutils.User
 	return admins, nil
 }
 
+// FetchAllUsers fetches all registered users
+func (fr *Repository) FetchAllUsers(ctx context.Context) ([]*profileutils.UserProfile, error) {
+	ctx, span := tracer.Start(ctx, "FetchAllUsers")
+	defer span.End()
+
+	query := &GetAllQuery{
+		CollectionName: fr.GetUserProfileCollectionName(),
+	}
+	docs, err := fr.FirestoreClient.GetAll(ctx, query)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, fmt.Errorf("unable to read user profile: %w", err)
+	}
+	var users []*profileutils.UserProfile
+	for _, doc := range docs {
+		u := &profileutils.UserProfile{}
+		err = doc.DataTo(u)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			return nil, exceptions.InternalServerError(
+				fmt.Errorf("unable to read user profile: %w", err),
+			)
+		}
+		users = append(users, u)
+	}
+	return users, nil
+}
+
 // PurgeUserByPhoneNumber removes the record of a user given a phone number.
 func (fr *Repository) PurgeUserByPhoneNumber(ctx context.Context, phone string) error {
 	ctx, span := tracer.Start(ctx, "PurgeUserByPhoneNumber")

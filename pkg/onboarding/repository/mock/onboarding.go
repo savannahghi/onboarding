@@ -50,6 +50,8 @@ type FakeOnboardingRepository struct {
 	FetchAdminUsersFn func(ctx context.Context) ([]*profileutils.UserProfile, error)
 	CheckIfAdminFn    func(profile *profileutils.UserProfile) bool
 
+	FetchAllUsersFn func(ctx context.Context) ([]*profileutils.UserProfile, error)
+
 	// removes user completely. This should be used only under testing environment
 	PurgeUserByPhoneNumberFn func(ctx context.Context, phone string) error
 
@@ -622,4 +624,9 @@ func (f *FakeOnboardingRepository) GetUserProfilesByRoleID(ctx context.Context, 
 // SaveRoleRevocation ...
 func (f *FakeOnboardingRepository) SaveRoleRevocation(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error {
 	return f.SaveRoleRevocationFn(ctx, userID, revocation)
+}
+
+// FetchAllUsers ...
+func (f *FakeOnboardingRepository) FetchAllUsers(ctx context.Context) ([]*profileutils.UserProfile, error) {
+	return f.FetchAllUsersFn(ctx)
 }

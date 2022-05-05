@@ -98,6 +98,8 @@ type OnboardingRepository interface {
 
 	FetchAdminUsers(ctx context.Context) ([]*profileutils.UserProfile, error)
 
+	FetchAllUsers(ctx context.Context) ([]*profileutils.UserProfile, error)
+
 	// removes user completely. This should be used only under testing environment
 	PurgeUserByPhoneNumber(ctx context.Context, phone string) error
 
