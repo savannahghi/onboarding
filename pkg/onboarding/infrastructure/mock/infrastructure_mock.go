@@ -299,6 +299,8 @@ type FakeInfrastructure struct {
 
 	// SubscriptionIDs returns a map of topic IDs to subscription IDs
 	SubscriptionIDsFn func() map[string]string
+
+	FetchAllUsersFn func(ctx context.Context) ([]*profileutils.UserProfile, error)
 }
 
 // StageProfileNudge stages nudges published from this service.
@@ -762,4 +764,9 @@ func (f FakeInfrastructure) EnsureSubscriptionsExist(
 // SubscriptionIDs returns a map of topic IDs to subscription IDs
 func (f FakeInfrastructure) SubscriptionIDs() map[string]string {
 	return f.SubscriptionIDsFn()
+}
+
+// FetchAllUsers ...
+func (f FakeInfrastructure) FetchAllUsers(ctx context.Context) ([]*profileutils.UserProfile, error) {
+	return f.FetchAllUsersFn(ctx)
 }
