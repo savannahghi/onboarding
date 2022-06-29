@@ -26,9 +26,7 @@ func (ps ServicePubSubMessaging) ReceivePubSubPushMessages(
 		return
 	}
 
-	span.AddEvent("published message", trace.WithAttributes(
-		attribute.Any("message", message),
-	))
+	span.AddEvent("published message")
 
 	topicID, err := ps.baseExt.GetPubSubTopic(message)
 	if err != nil {

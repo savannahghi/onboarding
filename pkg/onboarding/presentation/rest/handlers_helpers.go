@@ -9,7 +9,6 @@ import (
 	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/serverutils"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -21,9 +20,7 @@ func decodePhoneNumberPayload(
 	payload := &dto.PhoneNumberPayload{}
 	serverutils.DecodeJSONToTargetStruct(w, r, payload)
 
-	span.AddEvent("decode json payload to struct", trace.WithAttributes(
-		attribute.Any("payload", payload),
-	))
+	span.AddEvent("decode json payload to struct")
 
 	if payload.PhoneNumber == nil {
 		return nil, fmt.Errorf(
@@ -42,9 +39,7 @@ func decodeOTPPayload(
 	payload := &dto.OtpPayload{}
 	serverutils.DecodeJSONToTargetStruct(w, r, payload)
 
-	span.AddEvent("decode json payload to struct", trace.WithAttributes(
-		attribute.Any("payload", payload),
-	))
+	span.AddEvent("decode json payload to struct")
 
 	if payload.PhoneNumber == nil {
 		return nil, fmt.Errorf(

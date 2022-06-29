@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	"firebase.google.com/go/auth"
@@ -95,9 +94,7 @@ func (h *HandlersInterfacesImpl) VerifySignUpPhoneNumber() http.HandlerFunc {
 			return
 		}
 
-		span.AddEvent("verify phone number OTP response", trace.WithAttributes(
-			attribute.Any("response", otpResp),
-		))
+		span.AddEvent("verify phone number OTP response")
 
 		serverutils.WriteJSONResponse(w, otpResp, http.StatusOK)
 	}
@@ -113,9 +110,7 @@ func (h *HandlersInterfacesImpl) CreateUserWithPhoneNumber() http.HandlerFunc {
 		p := &dto.SignUpInput{}
 		serverutils.DecodeJSONToTargetStruct(w, r, p)
 
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", p),
-		))
+		span.AddEvent("decode json payload to struct")
 
 		response, err := h.usecases.CreateUserByPhone(ctx, p)
 		if err != nil {
@@ -123,9 +118,7 @@ func (h *HandlersInterfacesImpl) CreateUserWithPhoneNumber() http.HandlerFunc {
 			return
 		}
 
-		span.AddEvent("create user by phone", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
+		span.AddEvent("create user by phone")
 
 		serverutils.WriteJSONResponse(w, response, http.StatusCreated)
 	}
@@ -160,9 +153,6 @@ func (h *HandlersInterfacesImpl) UserRecoveryPhoneNumbers() http.HandlerFunc {
 
 		span.AddEvent(
 			"retrieve user recovery phone numbers",
-			trace.WithAttributes(
-				attribute.Any("response", response),
-			),
 		)
 
 		serverutils.WriteJSONResponse(w, response, http.StatusOK)
@@ -179,9 +169,7 @@ func (h *HandlersInterfacesImpl) SetPrimaryPhoneNumber() http.HandlerFunc {
 		p := &dto.SetPrimaryPhoneNumberPayload{}
 		serverutils.DecodeJSONToTargetStruct(w, r, p)
 
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", p),
-		))
+		span.AddEvent("decode json payload to struct")
 
 		if p.PhoneNumber == nil || p.OTP == nil {
 			err := fmt.Errorf("expected `phoneNumber` and `otp` to be defined")
@@ -203,9 +191,7 @@ func (h *HandlersInterfacesImpl) SetPrimaryPhoneNumber() http.HandlerFunc {
 			return
 		}
 
-		span.AddEvent("setting primary phone number", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
+		span.AddEvent("setting primary phone number")
 
 		serverutils.WriteJSONResponse(
 			w,
@@ -228,9 +214,7 @@ func (h *HandlersInterfacesImpl) LoginByPhone() http.HandlerFunc {
 		p := &dto.LoginPayload{}
 		serverutils.DecodeJSONToTargetStruct(w, r, p)
 
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", p),
-		))
+		span.AddEvent("decode json payload to struct")
 
 		if p.PhoneNumber == nil || p.PIN == nil {
 			err := fmt.Errorf("expected `phoneNumber`, `pin` to be defined")
@@ -261,9 +245,7 @@ func (h *HandlersInterfacesImpl) LoginByPhone() http.HandlerFunc {
 			serverutils.WriteJSONResponse(w, err, http.StatusBadRequest)
 			return
 		}
-		span.AddEvent("login by phone response", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
+		span.AddEvent("login by phone response")
 
 		serverutils.WriteJSONResponse(w, response, http.StatusOK)
 	}
@@ -279,9 +261,7 @@ func (h *HandlersInterfacesImpl) LoginAnonymous() http.HandlerFunc {
 		p := &dto.LoginPayload{}
 		serverutils.DecodeJSONToTargetStruct(w, r, p)
 
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", p),
-		))
+		span.AddEvent("decode json payload to struct")
 
 		if p.Flavour.String() == "" {
 			err := fmt.Errorf("expected `flavour` to be defined")
@@ -307,9 +287,7 @@ func (h *HandlersInterfacesImpl) LoginAnonymous() http.HandlerFunc {
 			return
 		}
 
-		span.AddEvent("log in as anonymous", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
+		span.AddEvent("log in as anonymous")
 
 		serverutils.WriteJSONResponse(w, response, http.StatusOK)
 	}
@@ -342,9 +320,7 @@ func (h *HandlersInterfacesImpl) RequestPINReset() http.HandlerFunc {
 			return
 		}
 
-		span.AddEvent("request pin reset otp response", trace.WithAttributes(
-			attribute.Any("response", otpResp),
-		))
+		span.AddEvent("request pin reset otp response")
 
 		serverutils.WriteJSONResponse(w, otpResp, http.StatusOK)
 	}
@@ -360,9 +336,7 @@ func (h *HandlersInterfacesImpl) ResetPin() http.HandlerFunc {
 		pin := &dto.ChangePINRequest{}
 		serverutils.DecodeJSONToTargetStruct(w, r, pin)
 
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", pin),
-		))
+		span.AddEvent("decode json payload to struct")
 
 		if pin.PhoneNumber == "" || pin.PIN == "" || pin.OTP == "" {
 			err := fmt.Errorf(
@@ -390,9 +364,7 @@ func (h *HandlersInterfacesImpl) ResetPin() http.HandlerFunc {
 			return
 		}
 
-		span.AddEvent("reset user pin success", trace.WithAttributes(
-			attribute.Bool("response", response),
-		))
+		span.AddEvent("reset user pin success")
 
 		serverutils.WriteJSONResponse(w, response, http.StatusCreated)
 	}
@@ -426,9 +398,7 @@ func (h *HandlersInterfacesImpl) SendOTP() http.HandlerFunc {
 			return
 		}
 
-		span.AddEvent("generate and send otp response", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
+		span.AddEvent("generate and send otp response")
 
 		serverutils.WriteJSONResponse(w, response, http.StatusOK)
 	}
@@ -446,9 +416,7 @@ func (h *HandlersInterfacesImpl) SendRetryOTP() http.HandlerFunc {
 		retryPayload := &dto.SendRetryOTPPayload{}
 		serverutils.DecodeJSONToTargetStruct(w, r, retryPayload)
 
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", retryPayload),
-		))
+		span.AddEvent("decode json payload to struct")
 
 		if retryPayload.Phone == nil || retryPayload.RetryStep == nil {
 			err := fmt.Errorf(
@@ -472,9 +440,7 @@ func (h *HandlersInterfacesImpl) SendRetryOTP() http.HandlerFunc {
 			return
 		}
 
-		span.AddEvent("send retry OTP", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
+		span.AddEvent("send retry OTP")
 
 		serverutils.WriteJSONResponse(w, response, http.StatusOK)
 	}
@@ -493,9 +459,7 @@ func (h *HandlersInterfacesImpl) RefreshToken() http.HandlerFunc {
 		p := &dto.RefreshTokenPayload{}
 		serverutils.DecodeJSONToTargetStruct(w, r, p)
 
-		span.AddEvent("decode json payload to struct", trace.WithAttributes(
-			attribute.Any("payload", p),
-		))
+		span.AddEvent("decode json payload to struct")
 
 		if p.RefreshToken == nil {
 			err := fmt.Errorf("expected `refreshToken` to be defined")
@@ -512,9 +476,7 @@ func (h *HandlersInterfacesImpl) RefreshToken() http.HandlerFunc {
 			return
 		}
 
-		span.AddEvent("new token", trace.WithAttributes(
-			attribute.Any("response", response),
-		))
+		span.AddEvent("new token")
 
 		serverutils.WriteJSONResponse(w, response, http.StatusOK)
 	}
