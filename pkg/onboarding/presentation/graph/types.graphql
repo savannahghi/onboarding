@@ -47,7 +47,7 @@ type UserProfile @key(fields: "id") {
   """
   Details of the user's roles
   """
-  roleDetails: [RoleOutput]
+  # roleDetails: [RoleOutput]
 }
 
 
