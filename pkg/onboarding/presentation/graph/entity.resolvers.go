@@ -6,14 +6,9 @@ package graph
 import (
 	"context"
 
-	"github.com/savannahghi/firebasetools"
 	"github.com/savannahghi/onboarding/pkg/onboarding/presentation/graph/generated"
 	"github.com/savannahghi/profileutils"
 )
-
-func (r *entityResolver) FindPageInfoByHasNextPage(ctx context.Context, hasNextPage bool) (*firebasetools.PageInfo, error) {
-	return nil, nil
-}
 
 func (r *entityResolver) FindUserProfileByID(ctx context.Context, id string) (*profileutils.UserProfile, error) {
 	r.checkPreconditions()
