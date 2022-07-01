@@ -452,8 +452,6 @@ github.com/savannahghi/firebasetools v0.0.6/go.mod h1:obAxyBfPaGTx/g86LF19gSmmEh
 github.com/savannahghi/firebasetools v0.0.15/go.mod h1:2Qhj483I+CiKzObf+T3cKhf1YYsEQWz8e+KPE+6LyBk=
 github.com/savannahghi/firebasetools v0.0.17 h1:c8uI7FBCBwAv6pAihD6LRqOO0g3Mbc980ok0FdSSR9U=
 github.com/savannahghi/firebasetools v0.0.17/go.mod h1:JRNuyOtladH+KUmWItErLkwOTRGRlXZgA+gorLBn6j0=
-github.com/savannahghi/firebasetools v0.0.18 h1:VZpyoZuLBcugcz9pTmbDPS3pB8WgZO1K1KvpNxOze2Q=
-github.com/savannahghi/firebasetools v0.0.18/go.mod h1:QZfM+Ts0Ub2UhCS5L9IszvtGIyKQTstWpzBvCwMihAo=
 github.com/savannahghi/interserviceclient v0.0.18 h1:jv27OMYBU7OD7r7hVlnfFbVvBeCAOtJ9zM7UbtscIDA=
 github.com/savannahghi/interserviceclient v0.0.18/go.mod h1:QXr6xZ+sV/xDB2CxS7fzHKPOqdDWj0/HmFdav1cUCKs=
 github.com/savannahghi/profileutils v0.0.16/go.mod h1:Ct0sjzOW9zjDN58ynT5GTV6M2hHMY3nsFDV08I6gpO4=
