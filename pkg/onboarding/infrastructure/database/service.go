@@ -85,7 +85,7 @@ type Repository interface {
 
 	FetchAdminUsers(ctx context.Context) ([]*profileutils.UserProfile, error)
 
-	FetchAllUsers(ctx context.Context) ([]*profileutils.UserProfile, error)
+	FetchAllUsers(ctx context.Context, callbackURL string)
 
 	// removes user completely. This should be used only under testing environment
 	PurgeUserByPhoneNumber(ctx context.Context, phone string) error
@@ -530,8 +530,8 @@ func (d DbService) FetchAdminUsers(ctx context.Context) ([]*profileutils.UserPro
 	return d.firestore.FetchAdminUsers(ctx)
 }
 
-func (d DbService) FetchAllUsers(ctx context.Context) ([]*profileutils.UserProfile, error) {
-	return d.firestore.FetchAllUsers(ctx)
+func (d DbService) FetchAllUsers(ctx context.Context, callbackURL string) {
+	d.firestore.FetchAllUsers(ctx)
 }
 
 // PurgeUserByPhoneNumber removes user completely. This should be used only under testing environment

@@ -82,7 +82,8 @@ type ProfileUseCase interface {
 
 	GetAllUserProfiles(
 		ctx context.Context,
-	) ([]*profileutils.UserProfile, error)
+		callbackURL string,
+	)
 
 	// masks phone number.
 	MaskPhoneNumbers(phones []string) []string
@@ -808,10 +809,10 @@ func (p *ProfileUseCaseImpl) GetUserProfileByPhoneOrEmail(ctx context.Context, p
 }
 
 // GetAllUserProfiles retrieves all profile for all users
-func (p *ProfileUseCaseImpl) GetAllUserProfiles(ctx context.Context) ([]*profileutils.UserProfile, error) {
+func (p *ProfileUseCaseImpl) GetAllUserProfiles(ctx context.Context, callbackURL string) {
 	ctx, span := tracer.Start(ctx, "GetAllUserProfiles")
 	defer span.End()
-	return p.infrastructure.Database.FetchAllUsers(ctx)
+	p.infrastructure.Database.FetchAllUsers(ctx, callbackURL)
 }
 
 // SetPrimaryPhoneNumber set the primary phone number of the user after verifying the otp code
