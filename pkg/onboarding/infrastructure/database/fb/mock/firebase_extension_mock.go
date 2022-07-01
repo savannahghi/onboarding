@@ -18,6 +18,7 @@ type FirestoreClientExtension struct {
 	UpdateFn     func(ctx context.Context, command *fb.UpdateCommand) error
 	DeleteFn     func(ctx context.Context, command *fb.DeleteCommand) error
 	GetFn        func(ctx context.Context, query *fb.GetSingleQuery) (*firestore.DocumentSnapshot, error)
+	RawClientFn  func(ctx context.Context) *firestore.Client
 }
 
 // Collection ...
@@ -48,6 +49,11 @@ func (f *FirestoreClientExtension) Delete(ctx context.Context, command *fb.Delet
 // Get retrieves data to a firestore collection
 func (f *FirestoreClientExtension) Get(ctx context.Context, query *fb.GetSingleQuery) (*firestore.DocumentSnapshot, error) {
 	return f.GetFn(ctx, query)
+}
+
+// RawClient ...
+func (f *FirestoreClientExtension) RawClient(ctx context.Context) *firestore.Client {
+	return f.RawClientFn(ctx)
 }
 
 // FirebaseClientExtension represents `auth.Client` fake
