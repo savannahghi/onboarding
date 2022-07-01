@@ -17,6 +17,7 @@ type FirestoreClientExtension interface {
 	Update(ctx context.Context, command *UpdateCommand) error
 	Delete(ctx context.Context, command *DeleteCommand) error
 	Get(ctx context.Context, query *GetSingleQuery) (*firestore.DocumentSnapshot, error)
+	RawClient(ctx context.Context) *firestore.Client
 }
 
 // FirestoreClientExtensionImpl ...
@@ -123,6 +124,11 @@ func (f *FirestoreClientExtensionImpl) Get(ctx context.Context, query *GetSingle
 		return nil, exceptions.InternalServerError(fmt.Errorf("unable to retrieve newly created user profile: %w", err))
 	}
 	return dsnap, nil
+}
+
+// RawClient returns the actual FirestoreClient
+func (f *FirestoreClientExtensionImpl) RawClient(ctx context.Context) *firestore.Client {
+	return f.client
 }
 
 // FirebaseClientExtension represents the methods we need from firebase `auth.Client`

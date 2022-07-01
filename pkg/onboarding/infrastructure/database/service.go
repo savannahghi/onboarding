@@ -531,7 +531,7 @@ func (d DbService) FetchAdminUsers(ctx context.Context) ([]*profileutils.UserPro
 }
 
 func (d DbService) FetchAllUsers(ctx context.Context, callbackURL string) {
-	d.firestore.FetchAllUsers(ctx)
+	d.firestore.FetchAllUsers(ctx, callbackURL)
 }
 
 // PurgeUserByPhoneNumber removes user completely. This should be used only under testing environment

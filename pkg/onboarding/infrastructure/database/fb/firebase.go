@@ -24,7 +24,9 @@ import (
 	"github.com/savannahghi/pubsubtools"
 	"github.com/savannahghi/scalarutils"
 	"github.com/savannahghi/serverutils"
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
+	"google.golang.org/api/iterator"
 )
 
 // Package that generates trace information
@@ -2001,31 +2003,54 @@ func (fr *Repository) FetchAdminUsers(ctx context.Context) ([]*profileutils.User
 }
 
 // FetchAllUsers fetches all registered users
-func (fr *Repository) FetchAllUsers(ctx context.Context) ([]*profileutils.UserProfile, error) {
+func (fr *Repository) FetchAllUsers(ctx context.Context, callbackURL string) {
 	ctx, span := tracer.Start(ctx, "FetchAllUsers")
 	defer span.End()
 
-	query := &GetAllQuery{
-		CollectionName: fr.GetUserProfileCollectionName(),
-	}
-	docs, err := fr.FirestoreClient.GetAll(ctx, query)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return nil, fmt.Errorf("unable to read user profile: %w", err)
-	}
-	var users []*profileutils.UserProfile
-	for _, doc := range docs {
-		u := &profileutils.UserProfile{}
-		err = doc.DataTo(u)
+	iter := fr.FirestoreClient.RawClient(ctx).
+		Collection(fr.GetUserProfileCollectionName()).Documents(ctx)
+
+	defer iter.Stop()
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+
 		if err != nil {
 			utils.RecordSpanError(span, err)
-			return nil, exceptions.InternalServerError(
-				fmt.Errorf("unable to read user profile: %w", err),
-			)
+			continue
 		}
-		users = append(users, u)
+
+		u := &profileutils.UserProfile{}
+		err = doc.DataTo(u)
+
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			logrus.Error(err)
+			continue
+		}
+
+		var buf bytes.Buffer
+		if err := json.NewEncoder(&buf).Encode(u); err != nil {
+			utils.RecordSpanError(span, err)
+			logrus.Error(err)
+			continue
+		}
+
+		resp, err := http.Post(callbackURL, "application/json", &buf)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			logrus.Error(err)
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			utils.RecordSpanError(span, err)
+			logrus.Error(err)
+		}
 	}
-	return users, nil
+
 }
 
 // PurgeUserByPhoneNumber removes the record of a user given a phone number.
