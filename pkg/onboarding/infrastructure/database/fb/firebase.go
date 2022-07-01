@@ -2031,6 +2031,11 @@ func (fr *Repository) FetchAllUsers(ctx context.Context, callbackURL string) {
 			continue
 		}
 
+		if len(u.Covers) == 0 {
+			// don't send profile with no cover
+			continue
+		}
+
 		var buf bytes.Buffer
 		if err := json.NewEncoder(&buf).Encode(u); err != nil {
 			utils.RecordSpanError(span, err)
