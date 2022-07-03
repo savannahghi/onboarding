@@ -4,14 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"time"
 
 	"firebase.google.com/go/auth"
 	"github.com/google/uuid"
+
 	"github.com/savannahghi/converterandformatter"
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
@@ -26,6 +29,7 @@ import (
 	"github.com/savannahghi/serverutils"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
+	"golang.org/x/time/rate"
 	"google.golang.org/api/iterator"
 )
 
@@ -2007,6 +2011,9 @@ func (fr *Repository) FetchAllUsers(ctx context.Context, callbackURL string) {
 	ctx, span := tracer.Start(ctx, "FetchAllUsers")
 	defer span.End()
 
+	rl := rate.NewLimiter(rate.Every(2*time.Second), 50) // 50 request every 2 seconds
+	client := utils.NewClient(rl)
+
 	iter := fr.FirestoreClient.RawClient(ctx).
 		Collection(fr.GetUserProfileCollectionName()).Documents(ctx)
 
@@ -2043,10 +2050,37 @@ func (fr *Repository) FetchAllUsers(ctx context.Context, callbackURL string) {
 			continue
 		}
 
-		resp, err := http.Post(callbackURL, "application/json", &buf)
+		req, err := http.NewRequest("POST", callbackURL, &buf)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			logrus.Error(err)
+			continue
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			logrus.Error(err)
+			continue
+		}
+
+		// this will never happen. But because we are defensive engineers, in the event it happens,
+		// we handle it appropriately
+		if resp.StatusCode == 429 {
+			r, err := httputil.DumpResponse(resp, false)
+			if err != nil {
+				logrus.Error(err)
+			}
+
+			logrus.Debugf("Response %v", r)
+
+			err = errors.New("rate limit exceeded")
+			utils.RecordSpanError(span, err)
+			logrus.Error(err)
+
+			// place a timeout. This is intentional because we don't want encounter another 429 again
+			time.Sleep(2 * time.Second)
 			continue
 		}
 
