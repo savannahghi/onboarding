@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"time"
 
 	"firebase.google.com/go/auth"
@@ -30,7 +29,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
 	"golang.org/x/time/rate"
-	"google.golang.org/api/iterator"
 )
 
 // Package that generates trace information
@@ -2011,19 +2009,23 @@ func (fr *Repository) FetchAllUsers(ctx context.Context, callbackURL string) {
 	ctx, span := tracer.Start(ctx, "FetchAllUsers")
 	defer span.End()
 
-	rl := rate.NewLimiter(rate.Every(2*time.Second), 50) // 50 request every 2 seconds
+	rl := rate.NewLimiter(rate.Every(1*time.Second), 200) // 200 request every 1 seconds
 	client := utils.NewClient(rl)
 
-	iter := fr.FirestoreClient.RawClient(ctx).
-		Collection(fr.GetUserProfileCollectionName()).Documents(ctx)
+	query := &GetAllQuery{
+		CollectionName: fr.GetUserProfileCollectionName(),
+	}
 
-	defer iter.Stop()
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
+	docs, err := fr.FirestoreClient.GetAll(ctx, query)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		logrus.Error(err)
+		return
+	}
 
+	var records []*profileutils.UserProfile
+
+	for _, doc := range docs {
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			continue
@@ -2031,65 +2033,64 @@ func (fr *Repository) FetchAllUsers(ctx context.Context, callbackURL string) {
 
 		u := &profileutils.UserProfile{}
 		err = doc.DataTo(u)
-
 		if err != nil {
 			utils.RecordSpanError(span, err)
-			logrus.Error(err)
 			continue
 		}
 
-		if len(u.Covers) == 0 {
-			// don't send profile with no cover
-			continue
-		}
-
-		var buf bytes.Buffer
-		if err := json.NewEncoder(&buf).Encode(u); err != nil {
-			utils.RecordSpanError(span, err)
-			logrus.Error(err)
-			continue
-		}
-
-		req, err := http.NewRequest("POST", callbackURL, &buf)
-		if err != nil {
-			utils.RecordSpanError(span, err)
-			logrus.Error(err)
-			continue
-		}
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := client.Do(req)
-		if err != nil {
-			utils.RecordSpanError(span, err)
-			logrus.Error(err)
-			continue
-		}
-
-		// this will never happen. But because we are defensive engineers, in the event it happens,
-		// we handle it appropriately
-		if resp.StatusCode == 429 {
-			r, err := httputil.DumpResponse(resp, false)
-			if err != nil {
-				logrus.Error(err)
-			}
-
-			logrus.Debugf("Response %v", r)
-
-			err = errors.New("rate limit exceeded")
-			utils.RecordSpanError(span, err)
-			logrus.Error(err)
-
-			// place a timeout. This is intentional because we don't want encounter another 429 again
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			utils.RecordSpanError(span, err)
-			logrus.Error(err)
+		if len(u.Covers) > 0 {
+			records = append(records, u)
 		}
 	}
 
+	for _, record := range records {
+		record := record
+
+		go func(rcd *profileutils.UserProfile) {
+			var buf bytes.Buffer
+			if err := json.NewEncoder(&buf).Encode(rcd); err != nil {
+				utils.RecordSpanError(span, err)
+				logrus.Error(err)
+				return
+			}
+
+			req, err := http.NewRequest("POST", callbackURL, &buf)
+			if err != nil {
+				utils.RecordSpanError(span, err)
+				logrus.Error(err)
+				return
+			}
+
+			req.Header.Set("Content-Type", "application/json")
+
+			resp, err := client.Do(req)
+
+			if err != nil {
+				utils.RecordSpanError(span, err)
+				time.Sleep(2 * time.Second)
+				return
+			}
+
+			// this will never happen. But because we are defensive engineers, in the event it happens,
+			// we handle it appropriately
+			if resp.StatusCode == 429 {
+				err = errors.New("rate limit exceeded")
+				utils.RecordSpanError(span, err)
+				logrus.Error(err)
+
+				// place a timeout. This is intentional because we don't want encounter another 429 again
+				time.Sleep(2 * time.Second)
+				return
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				utils.RecordSpanError(span, err)
+				logrus.Error(err)
+			}
+
+		}(record)
+
+	}
 }
 
 // PurgeUserByPhoneNumber removes the record of a user given a phone number.
