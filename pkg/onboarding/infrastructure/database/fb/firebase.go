@@ -1949,6 +1949,7 @@ func (fr Repository) ExchangeRefreshTokenForIDToken(
 		ExpiresIn:     tokenResponse.ExpiresIn,
 		RefreshToken:  tokenResponse.RefreshToken,
 		UID:           tokenResponse.UserID,
+		IsAdmin:       fr.CheckIfAdmin(profile),
 		CanExperiment: canExperiment,
 	}, nil
 }
