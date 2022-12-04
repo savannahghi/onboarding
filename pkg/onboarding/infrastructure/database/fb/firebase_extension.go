@@ -136,6 +136,7 @@ type FirebaseClientExtension interface {
 	GetUserByPhoneNumber(ctx context.Context, phone string) (*auth.UserRecord, error)
 	CreateUser(ctx context.Context, user *auth.UserToCreate) (*auth.UserRecord, error)
 	DeleteUser(ctx context.Context, uid string) error
+	VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error)
 }
 
 // FirebaseClientExtensionImpl ...
@@ -162,4 +163,14 @@ func (f *FirebaseClientExtensionImpl) CreateUser(ctx context.Context, user *auth
 func (f *FirebaseClientExtensionImpl) DeleteUser(ctx context.Context, uid string) error {
 	var client *auth.Client
 	return client.DeleteUser(ctx, uid)
+}
+
+// VerifyIDToken checks the validity of the provided id token and returns the uid
+func (f *FirebaseClientExtensionImpl) VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error) {
+	var client *auth.Client
+	authToken, err := client.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		return nil, exceptions.InternalServerError(fmt.Errorf("unable to verify the provided idToken: %w", err))
+	}
+	return authToken, nil
 }

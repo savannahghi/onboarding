@@ -28,13 +28,13 @@ jobs:
   lint_and_test:
     strategy:
       matrix:
-        go-version: [1.16.x]
+        go-version: [1.17.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 80
     steps:
       - uses: actions/checkout@v2
-      - uses: google-github-actions/setup-gcloud@master
+      - uses: google-github-actions/setup-gcloud@main
         with:
           project_id: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
           service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
@@ -47,19 +47,20 @@ jobs:
       - name: Install Go dependencies
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.37.1
-          go get -u github.com/kisielk/errcheck
-          go get -u golang.org/x/lint/golint
-          go get -u honnef.co/go/tools/cmd/staticcheck
-          go get -u github.com/axw/gocov/gocov
-          go get -u github.com/securego/gosec/cmd/gosec
-          go get -u github.com/ory/go-acc
-          go get -u github.com/client9/misspell/cmd/misspell
-          go get -u github.com/gordonklaus/ineffassign
+          go get -d github.com/kisielk/errcheck
+          go get -d golang.org/x/lint/golint
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go get -d github.com/axw/gocov/gocov
+          go get -d github.com/securego/gosec/cmd/gosec
+          go get -d github.com/ory/go-acc
+          go get -d github.com/client9/misspell/cmd/misspell
+          go get -d github.com/gordonklaus/ineffassign
           go get github.com/fzipp/gocyclo
           go get github.com/stretchr/testify/assert@v1.7.0
           go get github.com/ory/go-acc
           go get golang.org/x/oauth2/internal
           go install github.com/savannahghi/bewellcli@$CLI_VERSION
+          go get go.opentelemetry.io/otel/metric/global@v0.27.0
          
 
       - name: Run lint and test
