@@ -62,6 +62,7 @@ type FirebaseClientExtension struct {
 	CreateUserFn           func(ctx context.Context, user *auth.UserToCreate) (*auth.UserRecord, error)
 	DeleteUserFn           func(ctx context.Context, uid string) error
 	GetUserProfileByIDFn   func(ctx context.Context, id string, suspended bool) (*profileutils.UserProfile, error)
+	VerifyIDTokenFn        func(ctx context.Context, idToken string) (*auth.Token, error)
 }
 
 // GetUserByPhoneNumber ...
@@ -82,4 +83,9 @@ func (f *FirebaseClientExtension) DeleteUser(ctx context.Context, uid string) er
 // GetUserProfileByID ...
 func (f *FirebaseClientExtension) GetUserProfileByID(ctx context.Context, id string, suspended bool) (*profileutils.UserProfile, error) {
 	return f.GetUserProfileByIDFn(ctx, id, suspended)
+}
+
+// VerifyIDToken ...
+func (f *FirebaseClientExtension) VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error) {
+	return f.VerifyIDTokenFn(ctx, idToken)
 }
