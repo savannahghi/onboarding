@@ -878,6 +878,19 @@ func (fr *Repository) GenerateAuthCredentials(
 		return nil, err
 	}
 
+	var scopes []string
+	roles, err := fr.GetRolesByIDs(ctx, profile.Roles)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	for _, role := range *roles {
+		for _, scope := range role.Scopes {
+			scopes = append(scopes, scope)
+		}
+	}
+
 	return &profileutils.AuthCredentialResponse{
 		CustomToken:   &customToken,
 		IDToken:       &userTokens.IDToken,
@@ -887,6 +900,7 @@ func (fr *Repository) GenerateAuthCredentials(
 		IsAnonymous:   false,
 		IsAdmin:       fr.CheckIfAdmin(profile),
 		CanExperiment: canExperiment,
+		Scopes:        scopes,
 	}, nil
 }
 
