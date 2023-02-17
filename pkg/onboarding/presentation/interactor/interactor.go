@@ -18,6 +18,7 @@ type Usecases interface {
 	usecases.UserPINUseCases
 	admin.Usecase
 	usecases.RoleUseCase
+	usecases.PermissionUseCase
 }
 
 // Interactor is an implementation of the usecases interface
@@ -29,6 +30,7 @@ type Interactor struct {
 	usecases.SurveyUseCases
 	usecases.UserPINUseCases
 	admin.Usecase
+	usecases.PermissionUseCase
 }
 
 // NewUsecasesInteractor initializes a new usecases interactor
@@ -44,6 +46,7 @@ func NewUsecasesInteractor(
 	signup := usecases.NewSignUpUseCases(infrastructure, profile, pins, baseExtension)
 	surveys := usecases.NewSurveyUseCases(infrastructure, baseExtension)
 	services := admin.NewService(baseExtension)
+	permissions := usecases.NewPermissionUseCases(infrastructure, baseExtension)
 
 	impl := &Interactor{
 		login,
@@ -53,6 +56,7 @@ func NewUsecasesInteractor(
 		surveys,
 		pins,
 		services,
+		permissions,
 	}
 
 	return impl

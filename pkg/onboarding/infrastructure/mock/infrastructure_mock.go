@@ -301,6 +301,25 @@ type FakeInfrastructure struct {
 	SubscriptionIDsFn func() map[string]string
 
 	FetchAllUsersFn func(ctx context.Context, callbackURL string)
+	// CreatePermissionFn mocks CreatePermission
+	CreatePermissionFn func(
+		ctx context.Context,
+		profileID string,
+		input dto.PermissionInput,
+	) (*domain.RolePermission, error)
+
+	// GetAllPermissionFn mocks GetAllPermissions
+	GetAllPermissionsFn func(ctx context.Context) (*[]domain.RolePermission, error)
+	// DeletePermissionFn mocks DeletePermission
+	DeletePermissionFn func(
+		ctx context.Context,
+		permissionScope string,
+		profileID string,
+	) (bool, error)
+	// GetPermissionByScopeFn mocks GetPermissionByScope
+	GetPermissionByScopeFn func(ctx context.Context, scope string) (*domain.RolePermission, error)
+	// GetRolePermissionsFn mocks GetRolePermissions
+	GetRolePermissionsFn func(ctx context.Context, role profileutils.Role) (*[]domain.RolePermission, error)
 }
 
 // StageProfileNudge stages nudges published from this service.
@@ -353,7 +372,7 @@ func (f FakeInfrastructure) DeleteRole(ctx context.Context, roleID string) (bool
 	return f.DeleteRoleFn(ctx, roleID)
 }
 
-//CheckIfUserHasPermission checks if a user has the required permission
+// CheckIfUserHasPermission checks if a user has the required permission
 func (f FakeInfrastructure) CheckIfUserHasPermission(
 	ctx context.Context,
 	UID string,
@@ -769,4 +788,37 @@ func (f FakeInfrastructure) SubscriptionIDs() map[string]string {
 // FetchAllUsers ...
 func (f FakeInfrastructure) FetchAllUsers(ctx context.Context, callbackURL string) {
 	f.FetchAllUsersFn(ctx, callbackURL)
+}
+
+// CreatePermission mocks CreatePermission
+func (f FakeInfrastructure) CreatePermission(
+	ctx context.Context,
+	profileID string,
+	input dto.PermissionInput,
+) (*domain.RolePermission, error) {
+	return f.CreatePermissionFn(ctx, profileID, dto.PermissionInput{})
+}
+
+// GetAllPermission mocks GetAllPermissions
+func (f FakeInfrastructure) GetAllPermissions(ctx context.Context) (*[]domain.RolePermission, error) {
+	return f.GetAllPermissionsFn(ctx)
+}
+
+// DeletePermission mocks DeletePermission
+func (f FakeInfrastructure) DeletePermission(
+	ctx context.Context,
+	permissionScope string,
+	profileID string,
+) (bool, error) {
+	return f.DeletePermissionFn(ctx, permissionScope, profileID)
+}
+
+// GetPermissionByScope mocks GetPermissionByScope
+func (f FakeInfrastructure) GetPermissionByScope(ctx context.Context, scope string) (*domain.RolePermission, error) {
+	return f.GetPermissionByScopeFn(ctx, scope)
+}
+
+// GetRolePermissions mocks GetRolePermissions
+func (f FakeInfrastructure) GetRolePermissions(ctx context.Context, role profileutils.Role) (*[]domain.RolePermission, error) {
+	return f.GetRolePermissionsFn(ctx, role)
 }

@@ -118,8 +118,10 @@ type UserProfilePayload struct {
 
 // PermissionInput input required to create a permission
 type PermissionInput struct {
-	Action   string
-	Resource string
+	Group       string `json:"group"`
+	Scope       string `json:"scope"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 // RolePayload used when adding roles to a user
@@ -166,7 +168,7 @@ type RetrieveUserProfileInput struct {
 	PhoneNumber *string `json:"phone" firestore:"phoneNumber"`
 }
 
-//ProfileSuspensionInput is the input required to suspend/unsuspend a PRO account
+// ProfileSuspensionInput is the input required to suspend/unsuspend a PRO account
 type ProfileSuspensionInput struct {
 	ID      string   `json:"id"`
 	RoleIDs []string `json:"roleIDs"`
