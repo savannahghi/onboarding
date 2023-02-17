@@ -121,7 +121,7 @@ type RoleOutput {
   description: String!
   active: Boolean!
   scopes: [String]
-  permissions: [Permission]
+  permissions: [RolePermission]
   users: [UserProfile]
 }
 
@@ -143,4 +143,16 @@ type NavigationAction {
 type GroupedNavigationActions {
   primary: [NavigationAction]
   secondary: [NavigationAction]
+}
+
+type RolePermission {
+	id: String
+	group: String
+	scope: String
+	name: String
+	description: String
+	createdBy: String
+	created: Time
+	active: Boolean
+  allowed: Boolean
 }

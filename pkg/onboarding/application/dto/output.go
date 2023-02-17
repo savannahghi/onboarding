@@ -55,7 +55,7 @@ type RoleOutput struct {
 	Description string                      `json:"description"`
 	Active      bool                        `json:"active"`
 	Scopes      []string                    `json:"scopes"`
-	Permissions []profileutils.Permission   `json:"permissions"`
+	Permissions []domain.RolePermission     `json:"permissions"`
 	Users       []*profileutils.UserProfile `json:"users"`
 }
 

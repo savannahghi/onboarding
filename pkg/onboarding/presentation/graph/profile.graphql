@@ -25,6 +25,7 @@ extend type Query {
   findUsersByPhone(phoneNumber: String!): [UserProfile]
 
   getNavigationActions: GroupedNavigationActions
+  fetchUserPermissions: [RolePermission!]!
 }
 
 extend type Mutation {
@@ -92,4 +93,12 @@ extend type Mutation {
   activateRole(roleID: ID!): RoleOutput!
 
   deactivateRole(roleID: ID!): RoleOutput!
+
+  createPermission(
+    input: PermissionInput!
+  ): RolePermission
+
+  deletePermission(
+    permissionScope: String!
+  ): Boolean!
 }

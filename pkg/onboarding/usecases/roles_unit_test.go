@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
+	"github.com/savannahghi/onboarding/pkg/onboarding/domain"
 	"github.com/savannahghi/profileutils"
 )
 
@@ -32,12 +33,17 @@ func TestRoleUseCaseImpl_CreateRole(t *testing.T) {
 		return
 	}
 
-	perms := []profileutils.Permission{}
+	perms := []domain.RolePermission{}
 	for _, perm := range allPerms {
 		if perm.Scope == "role.edit" {
 			perm.Allowed = true
 		}
-		perms = append(perms, perm)
+		perms = append(perms, domain.RolePermission{
+			Scope:       perm.Scope,
+			Allowed:     true,
+			Description: perm.Description,
+			Group:       perm.Group,
+		})
 	}
 	expectedOutput := &dto.RoleOutput{
 		Scopes:      []string{"role.edit"},
@@ -212,12 +218,17 @@ func TestRoleUseCaseImpl_GetAllRoles(t *testing.T) {
 		t.Errorf("failed to get all permissions")
 		return
 	}
-	rolePerms := []profileutils.Permission{}
+	rolePerms := []domain.RolePermission{}
 	for _, perm := range allPerms {
 		if perm.Scope == "role.create" {
 			perm.Allowed = true
 		}
-		rolePerms = append(rolePerms, perm)
+		rolePerms = append(rolePerms, domain.RolePermission{
+			Scope:       perm.Scope,
+			Allowed:     true,
+			Description: perm.Description,
+			Group:       perm.Group,
+		})
 	}
 
 	expectedOutput := []*dto.RoleOutput{
@@ -356,12 +367,17 @@ func TestRoleUseCaseImpl_FindRoleByName(t *testing.T) {
 		t.Errorf("failed to get all permissions")
 		return
 	}
-	rolePerms := []profileutils.Permission{}
+	rolePerms := []domain.RolePermission{}
 	for _, perm := range allPerms {
 		if perm.Scope == "role.create" {
 			perm.Allowed = true
 		}
-		rolePerms = append(rolePerms, perm)
+		rolePerms = append(rolePerms, domain.RolePermission{
+			Scope:       perm.Scope,
+			Allowed:     true,
+			Description: perm.Description,
+			Group:       perm.Group,
+		})
 	}
 
 	expectedOutput := []*dto.RoleOutput{
@@ -770,12 +786,17 @@ func TestRoleUseCaseImpl_AddPermissionsToRole(t *testing.T) {
 		return
 	}
 
-	perms := []profileutils.Permission{}
+	perms := []domain.RolePermission{}
 	for _, perm := range allPerms {
 		if perm.Scope == "role.create" {
 			perm.Allowed = true
 		}
-		perms = append(perms, perm)
+		perms = append(perms, domain.RolePermission{
+			Scope:       perm.Scope,
+			Allowed:     true,
+			Description: perm.Description,
+			Group:       perm.Group,
+		})
 	}
 
 	expectedOutput := dto.RoleOutput{
@@ -985,12 +1006,17 @@ func TestRoleUseCaseImpl_RevokeRolePermissions(t *testing.T) {
 		return
 	}
 
-	perms := []profileutils.Permission{}
+	perms := []domain.RolePermission{}
 	for _, perm := range allPerms {
 		if perm.Scope == "role.create" {
 			perm.Allowed = true
 		}
-		perms = append(perms, perm)
+		perms = append(perms, domain.RolePermission{
+			Scope:       perm.Scope,
+			Allowed:     true,
+			Description: perm.Description,
+			Group:       perm.Group,
+		})
 	}
 
 	expectedOutput := dto.RoleOutput{
@@ -2061,12 +2087,17 @@ func TestRoleUseCaseImpl_UpdateRolePermissions(t *testing.T) {
 		return
 	}
 
-	perms := []profileutils.Permission{}
+	perms := []domain.RolePermission{}
 	for _, perm := range allPerms {
 		if perm.Scope == "role.create" {
 			perm.Allowed = true
 		}
-		perms = append(perms, perm)
+		perms = append(perms, domain.RolePermission{
+			Scope:       perm.Scope,
+			Allowed:     true,
+			Description: perm.Description,
+			Group:       perm.Group,
+		})
 	}
 
 	expectedOutput := dto.RoleOutput{
@@ -2280,12 +2311,17 @@ func TestRoleUseCaseImpl_CreateUnauthorizedRole(t *testing.T) {
 		return
 	}
 
-	perms := []profileutils.Permission{}
+	perms := []domain.RolePermission{}
 	for _, perm := range allPerms {
 		if perm.Scope == "role.edit" {
 			perm.Allowed = true
 		}
-		perms = append(perms, perm)
+		perms = append(perms, domain.RolePermission{
+			Scope:       perm.Scope,
+			Allowed:     true,
+			Description: perm.Description,
+			Group:       perm.Group,
+		})
 	}
 	expectedOutput := &dto.RoleOutput{
 		Scopes:      []string{"role.edit"},
