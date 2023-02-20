@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/firestore v1.6.1
 	cloud.google.com/go/pubsub v1.23.0
 	firebase.google.com/go v3.13.0+incompatible
-	github.com/99designs/gqlgen v0.17.21
+	github.com/99designs/gqlgen v0.17.24
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/brianvoe/gofakeit v3.18.0+incompatible
 	github.com/brianvoe/gofakeit/v5 v5.11.2
