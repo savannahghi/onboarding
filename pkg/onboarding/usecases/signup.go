@@ -286,7 +286,8 @@ func (s *SignUpUseCasesImpl) RegisterPushToken(ctx context.Context, token string
 }
 
 // CompleteSignup is not implemented but maintains backward compatibility
-//  This API is only valid for `BEWELL CONSUMER`
+//
+//	This API is only valid for `BEWELL CONSUMER`
 func (s *SignUpUseCasesImpl) CompleteSignup(
 	ctx context.Context,
 	flavour feedlib.Flavour,

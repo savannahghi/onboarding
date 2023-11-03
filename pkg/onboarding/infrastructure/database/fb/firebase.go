@@ -166,7 +166,7 @@ func (fr *Repository) GetUserProfileByUID(
 	return userProfile, nil
 }
 
-//GetUserProfileByPhoneOrEmail retrieves user profile by email adddress
+// GetUserProfileByPhoneOrEmail retrieves user profile by email adddress
 func (fr *Repository) GetUserProfileByPhoneOrEmail(ctx context.Context, payload *dto.RetrieveUserProfileInput) (*profileutils.UserProfile, error) {
 	ctx, span := tracer.Start(ctx, "GetUserProfileByPhoneOrEmail")
 	defer span.End()
@@ -531,7 +531,7 @@ func (fr *Repository) CreateDetailedUserProfile(
 	return &profile, nil
 }
 
-//GetUserProfileByPrimaryPhoneNumber fetches a user profile by primary phone number
+// GetUserProfileByPrimaryPhoneNumber fetches a user profile by primary phone number
 func (fr *Repository) GetUserProfileByPrimaryPhoneNumber(
 	ctx context.Context,
 	phoneNumber string,
@@ -2965,7 +2965,7 @@ func (fr *Repository) SaveRoleRevocation(ctx context.Context, userID string, rev
 	return nil
 }
 
-//CheckIfUserHasPermission checks if a user has the required permission
+// CheckIfUserHasPermission checks if a user has the required permission
 func (fr *Repository) CheckIfUserHasPermission(
 	ctx context.Context,
 	UID string,

@@ -128,7 +128,7 @@ func (s *Service) RegisterMicroservice(
 	return node, nil
 }
 
-//CheckHealthEndpoint Check if service is reachable
+// CheckHealthEndpoint Check if service is reachable
 func (s Service) CheckHealthEndpoint(ctx context.Context, healthEndpoint string) bool {
 	ctx, span := tracer.Start(ctx, "CheckHealthEndpoint")
 	defer span.End()
@@ -155,7 +155,11 @@ func (s Service) CheckHealthEndpoint(ctx context.Context, healthEndpoint string)
 	var b bool
 
 	/* #nosec*/
-	json.NewDecoder(resp.Body).Decode(&b)
+	err = json.NewDecoder(resp.Body).Decode(&b)
+	if err != nil {
+		log.Print(err)
+		return false
+	}
 
 	if resp.StatusCode == http.StatusOK && b {
 		return true
