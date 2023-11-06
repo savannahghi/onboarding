@@ -12,7 +12,6 @@ type Interactor struct {
 	ProfileUseCase
 	RoleUseCase
 	SignUpUseCases
-	SurveyUseCases
 	UserPINUseCases
 	admin.Usecase
 }
@@ -25,7 +24,6 @@ func NewUsecasesInteractor(infrastructure infrastructure.Infrastructure, baseExt
 	roles := NewRoleUseCases(infrastructure, baseExtension)
 	pins := NewUserPinUseCase(infrastructure, profile, baseExtension, pinsExtension)
 	signup := NewSignUpUseCases(infrastructure, profile, pins, baseExtension)
-	surveys := NewSurveyUseCases(infrastructure, baseExtension)
 	services := admin.NewService(baseExtension)
 
 	impl := Interactor{
@@ -33,7 +31,6 @@ func NewUsecasesInteractor(infrastructure infrastructure.Infrastructure, baseExt
 		profile,
 		roles,
 		signup,
-		surveys,
 		pins,
 		services,
 	}

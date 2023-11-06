@@ -72,7 +72,6 @@ func TestMain(m *testing.M) {
 			collections := []string{
 				r.GetPINsCollectionName(),
 				r.GetUserProfileCollectionName(),
-				r.GetSurveyCollectionName(),
 				r.GetCommunicationsSettingsCollectionName(),
 				r.GetExperimentParticipantCollectionName(),
 				r.GetProfileNudgesCollectionName(),
