@@ -16,14 +16,6 @@ type UserProfileInput struct {
 	LastName      *string           `json:"firstName"`
 }
 
-// PostVisitSurveyInput is used to send the results of post-visit surveys to the
-// server.
-type PostVisitSurveyInput struct {
-	LikelyToRecommend int    `json:"likelyToRecommend" firestore:"likelyToRecommend"`
-	Criticism         string `json:"criticism"         firestore:"criticism"`
-	Suggestions       string `json:"suggestions"       firestore:"suggestions"`
-}
-
 // SignUpInput represents the user information required to create a new account
 type SignUpInput struct {
 	PhoneNumber *string         `json:"phoneNumber"`
@@ -166,7 +158,7 @@ type RetrieveUserProfileInput struct {
 	PhoneNumber *string `json:"phone" firestore:"phoneNumber"`
 }
 
-//ProfileSuspensionInput is the input required to suspend/unsuspend a PRO account
+// ProfileSuspensionInput is the input required to suspend/unsuspend a PRO account
 type ProfileSuspensionInput struct {
 	ID      string   `json:"id"`
 	RoleIDs []string `json:"roleIDs"`

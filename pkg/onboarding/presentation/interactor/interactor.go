@@ -14,7 +14,6 @@ type Usecases interface {
 	usecases.ProfileUseCase
 	usecases.SignUpUseCases
 	usecases.LoginUseCases
-	usecases.SurveyUseCases
 	usecases.UserPINUseCases
 	admin.Usecase
 	usecases.RoleUseCase
@@ -26,7 +25,6 @@ type Interactor struct {
 	usecases.ProfileUseCase
 	usecases.RoleUseCase
 	usecases.SignUpUseCases
-	usecases.SurveyUseCases
 	usecases.UserPINUseCases
 	admin.Usecase
 }
@@ -42,7 +40,6 @@ func NewUsecasesInteractor(
 	roles := usecases.NewRoleUseCases(infrastructure, baseExtension)
 	pins := usecases.NewUserPinUseCase(infrastructure, profile, baseExtension, pinsExtension)
 	signup := usecases.NewSignUpUseCases(infrastructure, profile, pins, baseExtension)
-	surveys := usecases.NewSurveyUseCases(infrastructure, baseExtension)
 	services := admin.NewService(baseExtension)
 
 	impl := &Interactor{
@@ -50,7 +47,6 @@ func NewUsecasesInteractor(
 		profile,
 		roles,
 		signup,
-		surveys,
 		pins,
 		services,
 	}

@@ -43,7 +43,7 @@ const (
 	testPIN           = "2030"
 )
 
-/// these are set up once in TestMain and used by all the acceptance tests in
+// / these are set up once in TestMain and used by all the acceptance tests in
 // this package
 var (
 	srv            *http.Server
@@ -506,7 +506,6 @@ func TestMain(m *testing.M) {
 			collections := []string{
 				r.GetPINsCollectionName(),
 				r.GetUserProfileCollectionName(),
-				r.GetSurveyCollectionName(),
 				r.GetCommunicationsSettingsCollectionName(),
 				r.GetExperimentParticipantCollectionName(),
 				r.GetProfileNudgesCollectionName(),

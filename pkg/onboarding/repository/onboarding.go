@@ -121,13 +121,6 @@ type OnboardingRepository interface {
 		ProfileID string,
 	) (*domain.PIN, error)
 
-	// Record post visit survey
-	RecordPostVisitSurvey(
-		ctx context.Context,
-		input dto.PostVisitSurveyInput,
-		UID string,
-	) error
-
 	// User Pin methods
 	SavePIN(ctx context.Context, pin *domain.PIN) (bool, error)
 	UpdatePIN(ctx context.Context, id string, pin *domain.PIN) (bool, error)
@@ -193,7 +186,7 @@ type UserProfileRepository interface {
 	) ([]*profileutils.UserProfile, error)
 }
 
-//RolesRepository interface that provide access to all persistent storage operations for roles
+// RolesRepository interface that provide access to all persistent storage operations for roles
 type RolesRepository interface {
 	CreateRole(
 		ctx context.Context,
