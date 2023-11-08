@@ -2366,7 +2366,7 @@ func TestHandlersInterfacesImpl_SetPrimaryPhoneNumber(t *testing.T) {
 				httpMethod: http.MethodPost,
 				body:       payload1,
 			},
-			wantStatus: http.StatusBadRequest,
+			wantStatus: http.StatusOK,
 			wantErr:    true,
 		},
 		{

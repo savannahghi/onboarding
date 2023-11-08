@@ -42,7 +42,11 @@ func main() {
 		if err != nil {
 			serverutils.LogStartupError(ctx, err)
 		}
-		defer tp.Shutdown(ctx)
+		defer func() {
+			if err := tp.Shutdown(ctx); err != nil {
+				log.Printf("error %s", err)
+			}
+		}()
 	}
 
 	port, err := strconv.Atoi(serverutils.MustGetEnvVar(serverutils.PortEnvVarName))

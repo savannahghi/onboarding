@@ -63,7 +63,7 @@ func TestGraphQLRecordPostVisitSurvey(t *testing.T) {
 	graphQLURL := fmt.Sprintf("%s/%s", baseURL, "graphql")
 	headers, err := GetGraphQLHeaders(ctx)
 	if err != nil {
-		t.Errorf("error in getting headers: %w", err)
+		t.Errorf("error in getting headers: %v", err)
 		return
 	}
 

@@ -698,7 +698,7 @@ func TestResumeWithPin(t *testing.T) {
 			if !tt.wantErr {
 				_, ok := data["errors"]
 				if ok {
-					t.Errorf("error not expected got error: %w", data["errors"])
+					t.Errorf("error not expected got error: %v", data["errors"])
 					return
 				}
 			}
