@@ -45,3 +45,9 @@ input ProfileSuspensionInput {
   roleIDs: [ID]
   reason: String!
 }
+ input PermissionInput  {
+	group: String!
+	scope: String!
+	name: String!
+	description: String!
+}

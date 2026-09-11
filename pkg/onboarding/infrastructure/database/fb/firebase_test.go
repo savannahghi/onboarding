@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"firebase.google.com/go/auth"
+	"github.com/brianvoe/gofakeit"
 	"github.com/google/uuid"
 	"github.com/savannahghi/enumutils"
 	"github.com/savannahghi/feedlib"
@@ -1844,6 +1845,423 @@ func TestRepository_SaveRoleRevocation(t *testing.T) {
 
 			if err := repo.SaveRoleRevocation(tt.args.ctx, tt.args.userID, tt.args.revocation); (err != nil) != tt.wantErr {
 				t.Errorf("Repository.SaveRoleRevocation() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRepository_CreatePermission(t *testing.T) {
+	ctx := context.Background()
+	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt
+	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
+
+	type args struct {
+		ctx   context.Context
+		input dto.PermissionInput
+	}
+
+	tests := map[string]struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		"happy case": {
+			args: args{
+				ctx: ctx,
+				input: dto.PermissionInput{
+					Name:        "REGISTER_AGENT",
+					Scope:       "agent.register",
+					Group:       "AGENTS",
+					Description: "Can register agent",
+				},
+			},
+			wantErr: false,
+		},
+		"sad case(permission already exist)": {
+			args: args{
+				ctx: ctx,
+				input: dto.PermissionInput{
+					Name:        "REGISTER_AGENT",
+					Scope:       "agent.register",
+					Group:       "AGENTS",
+					Description: "Can register agent",
+				},
+			},
+			wantErr: true,
+		},
+		"sad case(failed to get permissions)": {
+			args: args{
+				ctx: ctx,
+				input: dto.PermissionInput{
+					Name:        "REGISTER_AGENT",
+					Scope:       "agent.register",
+					Group:       "AGENTS",
+					Description: "Can register agent",
+				},
+			},
+			wantErr: true,
+		},
+		"sad case(failed to get make create query request)": {
+			args: args{
+				ctx: ctx,
+				input: dto.PermissionInput{
+					Name:        "REGISTER_AGENT",
+					Scope:       "agent.register",
+					Group:       "AGENTS",
+					Description: "Can register agent",
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+
+			if testName == "happy case" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return []*firestore.DocumentSnapshot{}, nil
+				}
+
+				fakeFireStoreClientExt.CreateFn = func(ctx context.Context, command *fb.CreateCommand) (*firestore.DocumentRef, error) {
+					return &firestore.DocumentRef{}, nil
+				}
+			}
+
+			if testName == "sad case(permission already exist)" {
+				docRef := &firestore.DocumentRef{ID: gofakeit.UUID()}
+				docSnapshot := &firestore.DocumentSnapshot{Ref: docRef}
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return []*firestore.DocumentSnapshot{
+						docSnapshot,
+					}, nil
+				}
+			}
+
+			if testName == "sad case(failed to get permissions)" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return nil, fmt.Errorf("failed to get permissions")
+				}
+			}
+
+			if testName == "ssad case(failed to get make create query request)" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return []*firestore.DocumentSnapshot{}, nil
+				}
+
+				fakeFireStoreClientExt.CreateFn = func(ctx context.Context, command *fb.CreateCommand) (*firestore.DocumentRef, error) {
+					return nil, fmt.Errorf("failed to create permission")
+				}
+			}
+
+			got, err := repo.CreatePermission(
+				test.args.ctx,
+				gofakeit.UUID(),
+				test.args.input,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.CreatePermission() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == nil {
+				t.Errorf("Repository.CreatePermission() = %v", got)
+			}
+		})
+	}
+}
+
+func TestRepository_GetAllPermissions(t *testing.T) {
+	ctx := context.Background()
+	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt
+	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
+
+	tests := map[string]struct {
+		name    string
+		wantErr bool
+	}{
+		"happy case": {
+			wantErr: false,
+		},
+		"sad case": {
+			wantErr: true,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+
+			if testName == "happy case" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return []*firestore.DocumentSnapshot{}, nil
+				}
+			}
+
+			if testName == "sad case" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return nil, fmt.Errorf("failed to get permissions")
+				}
+			}
+
+			got, err := repo.GetAllPermissions(
+				ctx,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.GetAllPermissions() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == nil {
+				t.Errorf("Repository.GetAllPermissions() = %v", got)
+			}
+		})
+	}
+}
+
+func TestRepository_GetPermissionByScope(t *testing.T) {
+	ctx := context.Background()
+	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt
+	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
+
+	type args struct {
+		ctx   context.Context
+		scope string
+	}
+
+	tests := map[string]struct {
+		args    args
+		wantErr bool
+	}{
+		"happy case": {
+			args: args{
+				ctx:   ctx,
+				scope: "agent.create",
+			},
+			wantErr: false,
+		},
+		"sad case": {
+			args: args{
+				ctx:   ctx,
+				scope: "agent.create",
+			},
+			wantErr: true,
+		},
+		"sad case(permission does not exist)": {
+			args: args{
+				ctx:   ctx,
+				scope: "agent.create",
+			},
+			wantErr: true,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+
+			if testName == "happy case" {
+				docRef := &firestore.DocumentRef{ID: gofakeit.UUID()}
+				docSnapshot := &firestore.DocumentSnapshot{Ref: docRef}
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return []*firestore.DocumentSnapshot{
+						docSnapshot,
+					}, nil
+				}
+			}
+
+			if testName == "sad case" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return nil, fmt.Errorf("failed to get permissions by scope")
+				}
+			}
+
+			if testName == "sad case(permission does not exist)" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return []*firestore.DocumentSnapshot{}, nil
+				}
+			}
+
+			got, err := repo.GetPermissionByScope(
+				test.args.ctx,
+				test.args.scope,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.GetPermissionByScope() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == nil {
+				t.Errorf("Repository.GetPermissionByScope() = %v", got)
+			}
+		})
+	}
+
+}
+
+func TestRepository_GetRolePermissions(t *testing.T) {
+	ctx := context.Background()
+	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt
+	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
+
+	type args struct {
+		ctx  context.Context
+		role profileutils.Role
+	}
+
+	tests := map[string]struct {
+		args    args
+		wantErr bool
+	}{
+		"happy case": {
+			args: args{
+				ctx: ctx,
+				role: profileutils.Role{
+					Scopes: []string{"agent.create"},
+				},
+			},
+			wantErr: false,
+		},
+		"sad case": {
+			args: args{
+				ctx: ctx,
+				role: profileutils.Role{
+					Scopes: []string{"agent.create"},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+
+			if testName == "happy case" {
+				docRef := &firestore.DocumentRef{ID: gofakeit.UUID()}
+				docSnapshot := &firestore.DocumentSnapshot{Ref: docRef}
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return []*firestore.DocumentSnapshot{
+						docSnapshot,
+					}, nil
+				}
+			}
+
+			if testName == "sad case" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return nil, fmt.Errorf("failed to get role permissions")
+				}
+			}
+
+			got, err := repo.GetRolePermissions(
+				test.args.ctx,
+				test.args.role,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.GetRolePermissions() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == nil {
+				t.Errorf("Repository.GetRolePermissions() = %v", got)
+			}
+		})
+	}
+}
+
+func TestRepository_DeletePermission(t *testing.T) {
+	ctx := context.Background()
+	var fireStoreClientExt fb.FirestoreClientExtension = &fakeFireStoreClientExt
+	repo := fb.NewFirebaseRepository(fireStoreClientExt, fireBaseClientExt)
+
+	type args struct {
+		ctx       context.Context
+		scope     string
+		profileID string
+	}
+
+	tests := map[string]struct {
+		args    args
+		wantErr bool
+	}{
+		"happy case": {
+			args: args{
+				ctx:       ctx,
+				scope:     "agent.create",
+				profileID: gofakeit.UUID(),
+			},
+			wantErr: false,
+		},
+		"sad case(permission with provided scope does not exist)": {
+			args: args{
+				ctx:       ctx,
+				scope:     "agent.create",
+				profileID: gofakeit.UUID(),
+			},
+			wantErr: true,
+		},
+		"sad case(failed to get permission)": {
+			args: args{
+				ctx:       ctx,
+				scope:     "agent.create",
+				profileID: gofakeit.UUID(),
+			},
+			wantErr: true,
+		},
+		"sad case(failed to update role details)": {
+			args: args{
+				ctx:       ctx,
+				scope:     "agent.create",
+				profileID: gofakeit.UUID(),
+			},
+			wantErr: true,
+		},
+		"sad case(failed to delete permission)": {
+			args: args{
+				ctx:       ctx,
+				scope:     "agent.create",
+				profileID: gofakeit.UUID(),
+			},
+			wantErr: true,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+
+			if testName == "happy case" {
+				docRef := &firestore.DocumentRef{ID: gofakeit.UUID()}
+				docSnapshot := &firestore.DocumentSnapshot{Ref: docRef}
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return []*firestore.DocumentSnapshot{
+						docSnapshot,
+					}, nil
+				}
+			}
+
+			if testName == "sad case(permission with provided scope does not exist)" {
+				fakeFireStoreClientExt.GetAllFn = func(ctx context.Context, query *fb.GetAllQuery) ([]*firestore.DocumentSnapshot, error) {
+					return []*firestore.DocumentSnapshot{}, nil
+				}
+
+			}
+
+			if testName == "sad case(failed to update role details)" {
+				fakeFireStoreClientExt.UpdateFn = func(ctx context.Context, command *fb.UpdateCommand) error {
+					return fmt.Errorf("failed to update role details")
+				}
+			}
+
+			if testName == "sad case(failed to delete permission)" {
+				fakeFireStoreClientExt.DeleteFn = func(ctx context.Context, command *fb.DeleteCommand) error {
+					return nil
+				}
+			}
+
+			got, err := repo.DeletePermission(
+				test.args.ctx,
+				test.args.scope,
+				test.args.profileID,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.DeletePermission() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == false {
+				t.Errorf("Repository.DeletePermission() = %v", got)
 			}
 		})
 	}

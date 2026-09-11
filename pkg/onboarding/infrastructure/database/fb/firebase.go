@@ -46,6 +46,7 @@ const (
 	firebaseExchangeRefreshTokenURL      = "https://securetoken.googleapis.com/v1/token?key="
 	rolesRevocationCollectionName        = "role_revocations"
 	rolesCollectionName                  = "user_roles"
+	permissionsCollectionName            = "user_permissions"
 )
 
 // Repository accesses and updates an item that is stored on Firebase
@@ -113,6 +114,13 @@ func (fr Repository) GetRolesRevocationCollectionName() string {
 	return suffixed
 }
 
+// GetPermissionsCollectionName returns collection which houses permissions
+// utilised within the plarform
+func (fr Repository) GetPermissionsCollectionName() string {
+	suffixed := firebasetools.SuffixCollection(permissionsCollectionName)
+	return suffixed
+}
+
 // GetUserProfileByUID retrieves the user profile by UID
 func (fr *Repository) GetUserProfileByUID(
 	ctx context.Context,
@@ -166,7 +174,7 @@ func (fr *Repository) GetUserProfileByUID(
 	return userProfile, nil
 }
 
-//GetUserProfileByPhoneOrEmail retrieves user profile by email adddress
+// GetUserProfileByPhoneOrEmail retrieves user profile by email adddress
 func (fr *Repository) GetUserProfileByPhoneOrEmail(ctx context.Context, payload *dto.RetrieveUserProfileInput) (*profileutils.UserProfile, error) {
 	ctx, span := tracer.Start(ctx, "GetUserProfileByPhoneOrEmail")
 	defer span.End()
@@ -531,7 +539,7 @@ func (fr *Repository) CreateDetailedUserProfile(
 	return &profile, nil
 }
 
-//GetUserProfileByPrimaryPhoneNumber fetches a user profile by primary phone number
+// GetUserProfileByPrimaryPhoneNumber fetches a user profile by primary phone number
 func (fr *Repository) GetUserProfileByPrimaryPhoneNumber(
 	ctx context.Context,
 	phoneNumber string,
@@ -2965,7 +2973,7 @@ func (fr *Repository) SaveRoleRevocation(ctx context.Context, userID string, rev
 	return nil
 }
 
-//CheckIfUserHasPermission checks if a user has the required permission
+// CheckIfUserHasPermission checks if a user has the required permission
 func (fr *Repository) CheckIfUserHasPermission(
 	ctx context.Context,
 	UID string,
@@ -2993,4 +3001,265 @@ func (fr *Repository) CheckIfUserHasPermission(
 	}
 
 	return false, nil
+}
+
+// / CheckIfPermissionExists checks if a permission with a similar name exists
+// Ensures unique name for each permission during creation
+func (fr *Repository) CheckIfPermissionExists(ctx context.Context, scope string) (bool, error) {
+	ctx, span := tracer.Start(ctx, "CheckIfPermissionExists")
+	defer span.End()
+
+	query := &GetAllQuery{
+		CollectionName: fr.GetPermissionsCollectionName(),
+		FieldName:      "scope",
+		Operator:       "==",
+		Value:          scope,
+	}
+
+	docs, err := fr.FirestoreClient.GetAll(ctx, query)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return false, exceptions.InternalServerError(err)
+	}
+
+	if len(docs) > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// CreatePermission creates a new permission and persists it to the database
+func (fr *Repository) CreatePermission(
+	ctx context.Context,
+	profileID string,
+	input dto.PermissionInput,
+) (*domain.RolePermission, error) {
+	ctx, span := tracer.Start(ctx, "CreatePermission")
+	defer span.End()
+
+	exists, err := fr.CheckIfPermissionExists(ctx, input.Scope)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	if exists {
+		err := fmt.Errorf("permission with similar scope exists:%v", input.Scope)
+		utils.RecordSpanError(span, err)
+		return nil, err
+	}
+
+	timestamp := time.Now().In(pubsubtools.TimeLocation)
+
+	permission := domain.RolePermission{
+		ID:          uuid.New().String(),
+		Name:        input.Name,
+		Description: input.Description,
+		CreatedBy:   profileID,
+		Created:     timestamp,
+		Active:      true,
+		Scope:       input.Scope,
+		Group:       input.Group,
+		Allowed:     true,
+	}
+
+	createCommad := &CreateCommand{
+		CollectionName: fr.GetPermissionsCollectionName(),
+		Data:           permission,
+	}
+
+	_, err = fr.FirestoreClient.Create(ctx, createCommad)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(err)
+	}
+
+	return &permission, nil
+}
+
+// GetAllPermissions returns a list of all created permissions
+func (fr *Repository) GetAllPermissions(ctx context.Context) (*[]domain.RolePermission, error) {
+	ctx, span := tracer.Start(ctx, "GetAllPermissions")
+	defer span.End()
+
+	query := &GetAllQuery{
+		CollectionName: fr.GetPermissionsCollectionName(),
+	}
+
+	docs, err := fr.FirestoreClient.GetAll(ctx, query)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		err = fmt.Errorf("unable to read permissions")
+		return nil, exceptions.InternalServerError(err)
+	}
+
+	permissions := []domain.RolePermission{}
+	for _, doc := range docs {
+		permission := &domain.RolePermission{}
+
+		err := doc.DataTo(permission)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			err = fmt.Errorf("unable to read permission")
+			return nil, exceptions.InternalServerError(err)
+		}
+		permissions = append(permissions, *permission)
+	}
+
+	return &permissions, nil
+}
+
+// DeletePermission removes a permission permanently from the database
+func (fr *Repository) DeletePermission(
+	ctx context.Context,
+	permissionScope string,
+	profileID string,
+) (bool, error) {
+	ctx, span := tracer.Start(ctx, "DeletePermission")
+	defer span.End()
+
+	exists, err := fr.CheckIfPermissionExists(ctx, permissionScope)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return false, exceptions.InternalServerError(err)
+	}
+
+	if !exists {
+		return false, fmt.Errorf(
+			"permission with scope %v does not exist",
+			permissionScope,
+		)
+	}
+
+	query1 := &GetAllQuery{
+		CollectionName: fr.GetRolesCollectionName(),
+		FieldName:      "scopes",
+		Operator:       "array-contains",
+		Value:          permissionScope,
+	}
+
+	rolesDocs, err := fr.FirestoreClient.GetAll(ctx, query1)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return false, exceptions.InternalServerError(err)
+	}
+
+	for _, roleDoc := range rolesDocs {
+		role := &profileutils.Role{}
+		err = roleDoc.DataTo(role)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			err = fmt.Errorf("unable to read role")
+			return false, exceptions.InternalServerError(err)
+		}
+
+		role, err := fr.GetRoleByID(ctx, role.ID)
+		if err != nil {
+			utils.RecordSpanError(span, err)
+			return false, err
+		}
+
+		newScopes := []string{}
+
+		for _, roleScope := range role.Scopes {
+			if roleScope != permissionScope {
+				newScopes = append(newScopes, roleScope)
+			}
+		}
+
+		role.Scopes = newScopes
+
+		_, errno := fr.UpdateRoleDetails(ctx, profileID, *role)
+		if errno != nil {
+			utils.RecordSpanError(span, err)
+			return false, err
+		}
+
+	}
+
+	query := &GetAllQuery{
+		CollectionName: fr.GetPermissionsCollectionName(),
+		FieldName:      "scope",
+		Value:          permissionScope,
+		Operator:       "==",
+	}
+
+	docs, err := fr.FirestoreClient.GetAll(ctx, query)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return false, exceptions.InternalServerError(err)
+	}
+
+	if len(docs) == 0 {
+		return false, fmt.Errorf("permission does not exist")
+	}
+
+	deleteCommand := &DeleteCommand{
+		CollectionName: fr.GetPermissionsCollectionName(),
+		ID:             docs[0].Ref.ID,
+	}
+	err = fr.FirestoreClient.Delete(ctx, deleteCommand)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return false, fmt.Errorf(
+			"unable to remove permission of scope %v, error: %v",
+			permissionScope,
+			err,
+		)
+	}
+	return true, nil
+}
+
+// GetPermissionByScope filters a permission from the database by scope
+func (fr *Repository) GetPermissionByScope(ctx context.Context, scope string) (*domain.RolePermission, error) {
+	ctx, span := tracer.Start(ctx, "GetPermissionByScope")
+	defer span.End()
+
+	query := &GetAllQuery{
+		CollectionName: fr.GetPermissionsCollectionName(),
+		FieldName:      "scope",
+		Value:          scope,
+		Operator:       "==",
+	}
+
+	permissionDocs, err := fr.FirestoreClient.GetAll(ctx, query)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		return nil, exceptions.InternalServerError(err)
+	}
+
+	if len(permissionDocs) == 0 {
+		return nil, fmt.Errorf("permission does not exist")
+	}
+
+	permission := &domain.RolePermission{}
+	err = permissionDocs[0].DataTo(permission)
+	if err != nil {
+		utils.RecordSpanError(span, err)
+		err = fmt.Errorf("unable to read permission")
+		return nil, exceptions.InternalServerError(err)
+	}
+
+	return permission, nil
+}
+
+// GetRolePermissions returns all permissions attached to a role
+func (fr *Repository) GetRolePermissions(ctx context.Context, role profileutils.Role) (*[]domain.RolePermission, error) {
+	perms := []domain.RolePermission{}
+
+	allPermissions, err := fr.GetAllPermissions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, perm := range *allPermissions {
+		for _, scope := range role.Scopes {
+			if perm.Scope == scope {
+				perms = append(perms, perm)
+			}
+		}
+	}
+
+	return &perms, nil
 }

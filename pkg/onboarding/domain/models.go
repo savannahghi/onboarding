@@ -126,3 +126,17 @@ type RoleRevocationLog struct {
 	// Created is the timestamp indicating when the role was created
 	Created time.Time `json:"created" firestore:"created"`
 }
+
+// RolePermission represents a permission a user or entity has over
+// a resource
+type RolePermission struct {
+	ID          string    `json:"id" firestore:"id"`
+	Group       string    `json:"group" firestore:"group"`
+	Scope       string    `json:"scope" firestore:"scope"`
+	Name        string    `json:"name" firestore:"name"`
+	Description string    `json:"description" firestore:"description"`
+	CreatedBy   string    `json:"createdBy" firestore:"createdBy"`
+	Created     time.Time `json:"created" firestore:"created"`
+	Active      bool      `json:"active" firestore:"active"`
+	Allowed     bool      `json:"alowed" firestore:"allowed"`
+}

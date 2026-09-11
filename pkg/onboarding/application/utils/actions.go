@@ -9,8 +9,8 @@ import (
 	"github.com/savannahghi/profileutils"
 )
 
-//CheckUserHasPermission takes in the user roles and a permission and verifies that the user
-//has required permissions
+// CheckUserHasPermission takes in the user roles and a permission and verifies that the user
+// has required permissions
 func CheckUserHasPermission(roles []profileutils.Role, permission profileutils.Permission) bool {
 	scopes := []string{}
 	for _, role := range roles {
@@ -28,7 +28,7 @@ func CheckUserHasPermission(roles []profileutils.Role, permission profileutils.P
 	return false
 }
 
-//RemoveDuplicateStrings removes duplicate strings from a list of strings
+// RemoveDuplicateStrings removes duplicate strings from a list of strings
 func RemoveDuplicateStrings(strings []string) []string {
 	mapped := make(map[string]string)
 	cleaned := []string{}
@@ -44,7 +44,7 @@ func RemoveDuplicateStrings(strings []string) []string {
 	return cleaned
 }
 
-//GetUserPermissions  returns all the scopes of user permissions
+// GetUserPermissions  returns all the scopes of user permissions
 func GetUserPermissions(roles []profileutils.Role) []string {
 	scopes := []string{}
 	for _, role := range roles {

@@ -403,6 +403,32 @@ func (r *mutationResolver) DeactivateRole(ctx context.Context, roleID string) (*
 	return role, err
 }
 
+// CreatePermission is the resolver for the createPermission field.
+func (r *mutationResolver) CreatePermission(ctx context.Context, input dto.PermissionInput) (*domain.RolePermission, error) {
+	startTime := time.Now()
+
+	permission, err := r.usecases.CreatePermission(ctx, input)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "CreatePermission", err)
+	if err != nil {
+		return nil, err
+	}
+
+	return permission, nil
+}
+
+// DeletePermission is the resolver for the deletePermission field.
+func (r *mutationResolver) DeletePermission(ctx context.Context, permissionScope string) (bool, error) {
+	startTime := time.Now()
+
+	success, err := r.usecases.DeletePermission(ctx, permissionScope)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "DeletePermission", err)
+	if err != nil {
+		return false, err
+	}
+
+	return success, nil
+}
+
 // DummyQuery is the resolver for the dummyQuery field.
 func (r *queryResolver) DummyQuery(ctx context.Context) (*bool, error) {
 	dummy := true
@@ -547,6 +573,36 @@ func (r *queryResolver) GetNavigationActions(ctx context.Context) (*dto.GroupedN
 	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "getNavigationActions", err)
 
 	return navActions, err
+}
+
+// FetchUserPermissions is the resolver for the fetchUserPermissions field.
+func (r *queryResolver) FetchUserPermissions(ctx context.Context) ([]*domain.RolePermission, error) {
+	startTime := time.Now()
+
+	permissions, err := r.usecases.GetPermissions(ctx)
+	defer serverutils.RecordGraphqlResolverMetrics(ctx, startTime, "FetchUserPermissions", err)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var userPermissions = []*domain.RolePermission{}
+	for _, perm := range *permissions {
+		userPermissions = append(
+			userPermissions,
+			&domain.RolePermission{
+				Scope:       perm.Scope,
+				Description: perm.Description,
+				Group:       perm.Group,
+				ID:          perm.ID,
+				CreatedBy:   perm.CreatedBy,
+				Created:     perm.Created,
+				Active:      perm.Active,
+				Name:        perm.Name,
+			},
+		)
+	}
+	return userPermissions, err
 }
 
 // Mutation returns generated.MutationResolver implementation.

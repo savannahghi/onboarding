@@ -15,6 +15,7 @@ type Interactor struct {
 	SurveyUseCases
 	UserPINUseCases
 	admin.Usecase
+	PermissionUseCase
 }
 
 // NewUsecasesInteractor initializes a new usecases interactor
@@ -27,6 +28,7 @@ func NewUsecasesInteractor(infrastructure infrastructure.Infrastructure, baseExt
 	signup := NewSignUpUseCases(infrastructure, profile, pins, baseExtension)
 	surveys := NewSurveyUseCases(infrastructure, baseExtension)
 	services := admin.NewService(baseExtension)
+	permissions := NewPermissionUseCases(infrastructure, baseExtension)
 
 	impl := Interactor{
 		login,
@@ -36,6 +38,7 @@ func NewUsecasesInteractor(infrastructure infrastructure.Infrastructure, baseExt
 		surveys,
 		pins,
 		services,
+		permissions,
 	}
 
 	return impl

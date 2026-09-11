@@ -5,6 +5,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/brianvoe/gofakeit"
 	"github.com/savannahghi/onboarding/pkg/onboarding/application/dto"
 	"github.com/savannahghi/onboarding/pkg/onboarding/infrastructure"
 
@@ -117,6 +118,23 @@ func generateTestOTP(t *testing.T, phone string) (*profileutils.OtpResponse, err
 	s := infrastructure.NewInfrastructureInteractor()
 	testAppID := uuid.New().String()
 	return s.Engagement.GenerateAndSendOTP(ctx, phone, &testAppID)
+}
+
+func initialiseFirebaseClient() *fb.Repository {
+	fsc, fbc := InitializeTestFirebaseClient(context.Background())
+	if fsc == nil {
+		log.Panic("failed to initialize test FireStore client")
+		return nil
+	}
+
+	if fbc == nil {
+		log.Panic("failed to initialize test FireBase client")
+		return nil
+	}
+
+	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
+	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
+	return fr
 }
 
 // CreateTestUserByPhone creates a user that is to be used in
@@ -387,7 +405,7 @@ func TestRepository_ExchangeRefreshTokenForIDToken(t *testing.T) {
 				// obtain auth token details from the id token string
 				auth, err := firebasetools.ValidateBearerToken(ctx, *got.IDToken)
 				if err != nil {
-					t.Errorf("invalid token: %w", err)
+					t.Errorf("invalid token: %v", err)
 					return
 				}
 				if auth.UID != tt.want.UID {
@@ -2780,3 +2798,285 @@ func TestRepository_GetRoleByID_Integration(t *testing.T) {
 // 		})
 // 	}
 // }
+
+func TestRepository_CreatePermission_Intergration(t *testing.T) {
+	ctx := context.Background()
+	fr := initialiseFirebaseClient()
+
+	permission, err := fr.CreatePermission(
+		ctx,
+		gofakeit.UUID(),
+		dto.PermissionInput{
+			Scope:       "agent.register",
+			Group:       "agents",
+			Name:        "REGISTER_AGENT",
+			Description: "Can register agent",
+		},
+	)
+	if err != nil {
+		t.Errorf("failed to create test permission")
+		return
+	}
+
+	type args struct {
+		ctx   context.Context
+		input dto.PermissionInput
+	}
+
+	tests := map[string]struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		"happy case": {
+			args: args{
+				ctx: ctx,
+				input: dto.PermissionInput{
+					Name:        "REGISTER_AGENT",
+					Scope:       gofakeit.Name(),
+					Group:       "AGENTS",
+					Description: "Can register agent",
+				},
+			},
+			wantErr: false,
+		},
+		"sad case(permission already exist)": {
+			args: args{
+				ctx: ctx,
+				input: dto.PermissionInput{
+					Name:        "REGISTER_AGENT",
+					Scope:       permission.Scope,
+					Group:       "AGENTS",
+					Description: "Can register agent",
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+
+			got, err := fr.CreatePermission(
+				test.args.ctx,
+				gofakeit.UUID(),
+				test.args.input,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.CreatePermission() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == nil {
+				t.Errorf("Repository.CreatePermission() = %v", got)
+			}
+		})
+	}
+}
+
+func TestRepository_GetAllPermissions_Intergration(t *testing.T) {
+	ctx := context.Background()
+	fr := initialiseFirebaseClient()
+
+	tests := map[string]struct {
+		name    string
+		wantErr bool
+	}{
+		"happy case": {
+			wantErr: false,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+
+			got, err := fr.GetAllPermissions(
+				ctx,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.GetAllPermissions() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == nil {
+				t.Errorf("Repository.GetAllPermissions() = %v", got)
+			}
+		})
+	}
+}
+
+func TestRepository_GetPermissionByScope_Intergration(t *testing.T) {
+	ctx := context.Background()
+	fr := initialiseFirebaseClient()
+
+	type args struct {
+		ctx   context.Context
+		scope string
+	}
+
+	permission, err := fr.CreatePermission(
+		ctx,
+		gofakeit.UUID(),
+		dto.PermissionInput{
+			Scope:       "agent.create",
+			Group:       "agents",
+			Name:        "REGISTER_AGENT",
+			Description: "Can register agent",
+		},
+	)
+	if err != nil {
+		t.Errorf("failed to create test permission")
+		return
+	}
+
+	tests := map[string]struct {
+		args    args
+		wantErr bool
+	}{
+		"happy case": {
+			args: args{
+				ctx:   ctx,
+				scope: permission.Scope,
+			},
+			wantErr: false,
+		},
+		"sad case(does not exist)": {
+			args: args{
+				ctx:   ctx,
+				scope: gofakeit.Name(),
+			},
+			wantErr: true,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+
+			got, err := fr.GetPermissionByScope(
+				test.args.ctx,
+				test.args.scope,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.GetPermissionByScope() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == nil {
+				t.Errorf("Repository.GetPermissionByScope() = %v", got)
+			}
+		})
+	}
+
+}
+
+func TestRepository_GetRolePermissions_Intergration(t *testing.T) {
+	ctx := context.Background()
+	fr := initialiseFirebaseClient()
+
+	type args struct {
+		ctx  context.Context
+		role profileutils.Role
+	}
+
+	tests := map[string]struct {
+		args    args
+		wantErr bool
+	}{
+		"happy case": {
+			args: args{
+				ctx: ctx,
+				role: profileutils.Role{
+					Scopes: []string{"agent.create"},
+				},
+			},
+			wantErr: false,
+		},
+		"sad case": {
+			args: args{
+				ctx: ctx,
+				role: profileutils.Role{
+					Scopes: []string{},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+			got, err := fr.GetRolePermissions(
+				test.args.ctx,
+				test.args.role,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.GetRolePermissions() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == nil {
+				t.Errorf("Repository.GetRolePermissions() = %v", got)
+			}
+		})
+	}
+}
+
+func TestRepository_DeletePermission_Intergration(t *testing.T) {
+	ctx := context.Background()
+	fr := initialiseFirebaseClient()
+
+	permission, err := fr.CreatePermission(
+		ctx,
+		gofakeit.UUID(),
+		dto.PermissionInput{
+			Scope:       "agent.register",
+			Group:       "agents",
+			Name:        "REGISTER_AGENT",
+			Description: "Can register agent",
+		},
+	)
+	if err != nil {
+		t.Errorf("failed to create test permission")
+		return
+	}
+
+	type args struct {
+		ctx       context.Context
+		scope     string
+		profileID string
+	}
+
+	tests := map[string]struct {
+		args    args
+		wantErr bool
+	}{
+		"happy case": {
+			args: args{
+				ctx:       ctx,
+				scope:     permission.Scope,
+				profileID: gofakeit.UUID(),
+			},
+			wantErr: false,
+		},
+		"sad case": {
+			args: args{
+				ctx:       ctx,
+				scope:     gofakeit.UUID(),
+				profileID: gofakeit.UUID(),
+			},
+			wantErr: true,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+			got, err := fr.DeletePermission(
+				test.args.ctx,
+				test.args.scope,
+				test.args.profileID,
+			)
+			if (err != nil) != test.wantErr {
+				t.Errorf("Repository.DeletePermission() error = %v, wantErr %v", err, test.wantErr)
+				return
+			}
+			if !test.wantErr && got == false {
+				t.Errorf("Repository.DeletePermission() = %v", got)
+			}
+		})
+	}
+}

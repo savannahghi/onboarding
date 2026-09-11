@@ -23,6 +23,8 @@ type Repository interface {
 
 	RolesRepository
 
+	PermissionRepository
+
 	// creates a user profile of using the provided phone number and uid
 	CreateUserProfile(
 		ctx context.Context,
@@ -195,7 +197,7 @@ type UserProfileRepository interface {
 	) ([]*profileutils.UserProfile, error)
 }
 
-//RolesRepository interface that provide access to all persistent storage operations for roles
+// RolesRepository interface that provide access to all persistent storage operations for roles
 type RolesRepository interface {
 	CreateRole(
 		ctx context.Context,
@@ -227,6 +229,24 @@ type RolesRepository interface {
 	GetUserProfilesByRoleID(ctx context.Context, role string) ([]*profileutils.UserProfile, error)
 
 	SaveRoleRevocation(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error
+}
+
+// PermissionRepository provides access to all persistent operations for permissions
+type PermissionRepository interface {
+	CreatePermission(
+		ctx context.Context,
+		profileID string,
+		input dto.PermissionInput,
+	) (*domain.RolePermission, error)
+
+	GetAllPermissions(ctx context.Context) (*[]domain.RolePermission, error)
+	DeletePermission(
+		ctx context.Context,
+		permissionScope string,
+		profileID string,
+	) (bool, error)
+	GetPermissionByScope(ctx context.Context, scope string) (*domain.RolePermission, error)
+	GetRolePermissions(ctx context.Context, role profileutils.Role) (*[]domain.RolePermission, error)
 }
 
 // DbService is an implementation of the database repository
@@ -425,7 +445,7 @@ func (d DbService) DeleteRole(ctx context.Context, roleID string) (bool, error) 
 	return d.firestore.DeleteRole(ctx, roleID)
 }
 
-//CheckIfUserHasPermission checks if a user has the required permission
+// CheckIfUserHasPermission checks if a user has the required permission
 func (d DbService) CheckIfUserHasPermission(
 	ctx context.Context,
 	UID string,
@@ -647,4 +667,37 @@ func (d DbService) GetUserProfileByPhoneOrEmail(ctx context.Context, payload *dt
 // UpdateUserProfileEmail updates user profile's email
 func (d DbService) UpdateUserProfileEmail(ctx context.Context, phone string, email string) error {
 	return d.firestore.UpdateUserProfileEmail(ctx, phone, email)
+}
+
+// CreatePermission creates a new permission and save in the cloudb firstore.
+func (d DbService) CreatePermission(
+	ctx context.Context,
+	profileID string,
+	input dto.PermissionInput,
+) (*domain.RolePermission, error) {
+	return d.firestore.CreatePermission(ctx, profileID, input)
+}
+
+// GetAllPermissions retrievs all the scenario
+func (d DbService) GetAllPermissions(ctx context.Context) (*[]domain.RolePermission, error) {
+	return d.firestore.GetAllPermissions(ctx)
+}
+
+// DeletePermission removes a permission permanently from the database
+func (d DbService) DeletePermission(
+	ctx context.Context,
+	permissionScope string,
+	profileID string,
+) (bool, error) {
+	return d.firestore.DeletePermission(ctx, permissionScope, profileID)
+}
+
+// GetPermissionByScope filters a permission from the database by scope
+func (d DbService) GetPermissionByScope(ctx context.Context, scope string) (*domain.RolePermission, error) {
+	return d.firestore.GetPermissionByScope(ctx, scope)
+}
+
+// GetRolePermissions returns all permissions attached to a role
+func (d DbService) GetRolePermissions(ctx context.Context, role profileutils.Role) (*[]domain.RolePermission, error) {
+	return d.firestore.GetRolePermissions(ctx, role)
 }

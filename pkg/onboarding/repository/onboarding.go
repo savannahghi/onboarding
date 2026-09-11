@@ -36,6 +36,8 @@ type OnboardingRepository interface {
 
 	RolesRepository
 
+	PermissionRepository
+
 	// creates a user profile of using the provided phone number and uid
 	CreateUserProfile(
 		ctx context.Context,
@@ -193,7 +195,7 @@ type UserProfileRepository interface {
 	) ([]*profileutils.UserProfile, error)
 }
 
-//RolesRepository interface that provide access to all persistent storage operations for roles
+// RolesRepository interface that provide access to all persistent storage operations for roles
 type RolesRepository interface {
 	CreateRole(
 		ctx context.Context,
@@ -225,4 +227,22 @@ type RolesRepository interface {
 	GetUserProfilesByRoleID(ctx context.Context, role string) ([]*profileutils.UserProfile, error)
 
 	SaveRoleRevocation(ctx context.Context, userID string, revocation dto.RoleRevocationInput) error
+}
+
+// PermissionRepository provides access to all persistent operations for permissions
+type PermissionRepository interface {
+	CreatePermission(
+		ctx context.Context,
+		profileID string,
+		input dto.PermissionInput,
+	) (*domain.RolePermission, error)
+
+	GetAllPermissions(ctx context.Context) (*[]domain.RolePermission, error)
+	DeletePermission(
+		ctx context.Context,
+		permissionScope string,
+		profileID string,
+	) (bool, error)
+	GetPermissionByScope(ctx context.Context, scope string) (*domain.RolePermission, error)
+	GetRolePermissions(ctx context.Context, role profileutils.Role) (*[]domain.RolePermission, error)
 }

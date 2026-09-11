@@ -135,7 +135,7 @@ func (r *RoleUseCaseImpl) CreateRole(
 		return nil, err
 	}
 
-	perms, err := role.Permissions(ctx)
+	perms, err := r.infrastructure.Database.GetRolePermissions(ctx, *role)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -147,7 +147,7 @@ func (r *RoleUseCaseImpl) CreateRole(
 		Description: role.Description,
 		Active:      role.Active,
 		Scopes:      role.Scopes,
-		Permissions: perms,
+		Permissions: *perms,
 	}
 
 	return output, nil
@@ -204,7 +204,7 @@ func (r *RoleUseCaseImpl) CreateUnauthorizedRole(
 		}
 	}
 
-	perms, err := role.Permissions(ctx)
+	perms, err := r.infrastructure.Database.GetRolePermissions(ctx, *role)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -216,13 +216,13 @@ func (r *RoleUseCaseImpl) CreateUnauthorizedRole(
 		Description: role.Description,
 		Active:      role.Active,
 		Scopes:      role.Scopes,
-		Permissions: perms,
+		Permissions: *perms,
 	}
 
 	return output, nil
 }
 
-//GetAllRoles returns a list of all created roles
+// GetAllRoles returns a list of all created roles
 func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, error) {
 	ctx, span := tracer.Start(ctx, "GetAllRoles")
 	defer span.End()
@@ -253,7 +253,7 @@ func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, e
 
 	roleOutput := []*dto.RoleOutput{}
 	for _, role := range *roles {
-		perms, err := role.Permissions(ctx)
+		perms, err := r.infrastructure.Database.GetRolePermissions(ctx, role)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			return nil, err
@@ -271,7 +271,7 @@ func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, e
 			Description: role.Description,
 			Active:      role.Active,
 			Scopes:      role.Scopes,
-			Permissions: perms,
+			Permissions: *perms,
 			Users:       users,
 		}
 		roleOutput = append(roleOutput, output)
@@ -316,7 +316,7 @@ func (r *RoleUseCaseImpl) FindRoleByName(
 
 	for _, role := range *roles {
 		if strings.Contains(strings.ToLower(role.Name), strings.ToLower(*roleName)) {
-			perms, err := role.Permissions(ctx)
+			perms, err := r.infrastructure.Database.GetRolePermissions(ctx, role)
 			if err != nil {
 				utils.RecordSpanError(span, err)
 				return nil, err
@@ -327,7 +327,7 @@ func (r *RoleUseCaseImpl) FindRoleByName(
 				Description: role.Description,
 				Active:      role.Active,
 				Scopes:      role.Scopes,
-				Permissions: perms,
+				Permissions: *perms,
 			}
 			roleOutput = append(roleOutput, output)
 		}
@@ -336,7 +336,7 @@ func (r *RoleUseCaseImpl) FindRoleByName(
 	return roleOutput, nil
 }
 
-//DeleteRole removes a role from the database permanently
+// DeleteRole removes a role from the database permanently
 func (r *RoleUseCaseImpl) DeleteRole(ctx context.Context, roleID string) (bool, error) {
 	ctx, span := tracer.Start(ctx, "DeleteRole")
 	defer span.End()
@@ -391,7 +391,7 @@ func (r *RoleUseCaseImpl) UnauthorizedDeleteRole(ctx context.Context, roleID str
 	return success, nil
 }
 
-//GetAllPermissions returns a list of all permissions declared in the system
+// GetAllPermissions returns a list of all permissions declared in the system
 func (r *RoleUseCaseImpl) GetAllPermissions(
 	ctx context.Context,
 ) ([]*profileutils.Permission, error) {
@@ -451,7 +451,7 @@ func (r *RoleUseCaseImpl) AddPermissionsToRole(
 	}
 
 	for _, scope := range input.Scopes {
-		permission, err := profileutils.GetPermissionByScope(ctx, scope)
+		permission, err := r.infrastructure.Database.GetPermissionByScope(ctx, scope)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			return nil, err
@@ -476,7 +476,7 @@ func (r *RoleUseCaseImpl) AddPermissionsToRole(
 	}
 
 	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	perms, err := r.infrastructure.Database.GetRolePermissions(ctx, *updatedRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -488,7 +488,7 @@ func (r *RoleUseCaseImpl) AddPermissionsToRole(
 		Description: updatedRole.Description,
 		Active:      updatedRole.Active,
 		Scopes:      updatedRole.Scopes,
-		Permissions: perms,
+		Permissions: *perms,
 	}
 
 	return output, nil
@@ -552,7 +552,7 @@ func (r *RoleUseCaseImpl) RevokeRolePermission(
 	}
 
 	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	perms, err := r.infrastructure.Database.GetRolePermissions(ctx, *updatedRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -564,7 +564,7 @@ func (r *RoleUseCaseImpl) RevokeRolePermission(
 		Description: updatedRole.Description,
 		Active:      updatedRole.Active,
 		Scopes:      updatedRole.Scopes,
-		Permissions: perms,
+		Permissions: *perms,
 	}
 
 	return output, nil
@@ -743,7 +743,7 @@ func (r *RoleUseCaseImpl) ActivateRole(
 	}
 
 	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	perms, err := r.infrastructure.Database.GetRolePermissions(ctx, *updatedRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -755,7 +755,7 @@ func (r *RoleUseCaseImpl) ActivateRole(
 		Description: updatedRole.Description,
 		Active:      updatedRole.Active,
 		Scopes:      updatedRole.Scopes,
-		Permissions: perms,
+		Permissions: *perms,
 	}
 
 	return output, nil
@@ -809,7 +809,7 @@ func (r *RoleUseCaseImpl) DeactivateRole(
 	}
 
 	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	perms, err := r.infrastructure.Database.GetRolePermissions(ctx, *updatedRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -821,7 +821,7 @@ func (r *RoleUseCaseImpl) DeactivateRole(
 		Description: updatedRole.Description,
 		Active:      updatedRole.Active,
 		Scopes:      updatedRole.Scopes,
-		Permissions: perms,
+		Permissions: *perms,
 	}
 
 	return output, nil
@@ -876,7 +876,7 @@ func (r *RoleUseCaseImpl) UpdateRolePermissions(
 	}
 
 	// get permissions
-	perms, err := updatedRole.Permissions(ctx)
+	perms, err := r.infrastructure.Database.GetRolePermissions(ctx, *updatedRole)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -888,7 +888,7 @@ func (r *RoleUseCaseImpl) UpdateRolePermissions(
 		Description: updatedRole.Description,
 		Active:      updatedRole.Active,
 		Scopes:      updatedRole.Scopes,
-		Permissions: perms,
+		Permissions: *perms,
 	}
 
 	return output, nil
@@ -937,7 +937,7 @@ func (r *RoleUseCaseImpl) GetRoleByName(ctx context.Context, name string) (*dto.
 	}
 
 	// get permissions
-	perms, err := role.Permissions(ctx)
+	perms, err := r.infrastructure.Database.GetRolePermissions(ctx, *role)
 	if err != nil {
 		utils.RecordSpanError(span, err)
 		return nil, err
@@ -949,7 +949,7 @@ func (r *RoleUseCaseImpl) GetRoleByName(ctx context.Context, name string) (*dto.
 		Description: role.Description,
 		Active:      role.Active,
 		Scopes:      role.Scopes,
-		Permissions: perms,
+		Permissions: *perms,
 	}
 
 	return output, nil
@@ -967,7 +967,7 @@ func (r RoleUseCaseImpl) GetRolesByIDs(ctx context.Context, roleIDs []string) ([
 
 	roleOutput := []*dto.RoleOutput{}
 	for _, role := range *roles {
-		perms, err := role.Permissions(ctx)
+		perms, err := r.infrastructure.Database.GetRolePermissions(ctx, role)
 		if err != nil {
 			utils.RecordSpanError(span, err)
 			return nil, err
@@ -979,7 +979,7 @@ func (r RoleUseCaseImpl) GetRolesByIDs(ctx context.Context, roleIDs []string) ([
 			Description: role.Description,
 			Active:      role.Active,
 			Scopes:      role.Scopes,
-			Permissions: perms,
+			Permissions: *perms,
 		}
 		roleOutput = append(roleOutput, output)
 	}
