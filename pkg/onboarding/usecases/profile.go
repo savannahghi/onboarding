@@ -1593,7 +1593,7 @@ func (p *ProfileUseCaseImpl) FindUsersByPhone(ctx context.Context, phoneNumber s
 	return users, nil
 }
 
-//GetNavigationActions is the new method to get navigation actions based on user roles and permissions
+// GetNavigationActions is the new method to get navigation actions based on user roles and permissions
 func (p *ProfileUseCaseImpl) GetNavigationActions(
 	ctx context.Context,
 ) (*dto.GroupedNavigationActions, error) {

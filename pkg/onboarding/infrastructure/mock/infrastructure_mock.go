@@ -353,7 +353,7 @@ func (f FakeInfrastructure) DeleteRole(ctx context.Context, roleID string) (bool
 	return f.DeleteRoleFn(ctx, roleID)
 }
 
-//CheckIfUserHasPermission checks if a user has the required permission
+// CheckIfUserHasPermission checks if a user has the required permission
 func (f FakeInfrastructure) CheckIfUserHasPermission(
 	ctx context.Context,
 	UID string,

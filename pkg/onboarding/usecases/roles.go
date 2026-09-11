@@ -222,7 +222,7 @@ func (r *RoleUseCaseImpl) CreateUnauthorizedRole(
 	return output, nil
 }
 
-//GetAllRoles returns a list of all created roles
+// GetAllRoles returns a list of all created roles
 func (r *RoleUseCaseImpl) GetAllRoles(ctx context.Context) ([]*dto.RoleOutput, error) {
 	ctx, span := tracer.Start(ctx, "GetAllRoles")
 	defer span.End()
@@ -336,7 +336,7 @@ func (r *RoleUseCaseImpl) FindRoleByName(
 	return roleOutput, nil
 }
 
-//DeleteRole removes a role from the database permanently
+// DeleteRole removes a role from the database permanently
 func (r *RoleUseCaseImpl) DeleteRole(ctx context.Context, roleID string) (bool, error) {
 	ctx, span := tracer.Start(ctx, "DeleteRole")
 	defer span.End()
@@ -391,7 +391,7 @@ func (r *RoleUseCaseImpl) UnauthorizedDeleteRole(ctx context.Context, roleID str
 	return success, nil
 }
 
-//GetAllPermissions returns a list of all permissions declared in the system
+// GetAllPermissions returns a list of all permissions declared in the system
 func (r *RoleUseCaseImpl) GetAllPermissions(
 	ctx context.Context,
 ) ([]*profileutils.Permission, error) {

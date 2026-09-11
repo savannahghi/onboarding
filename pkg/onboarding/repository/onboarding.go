@@ -193,7 +193,7 @@ type UserProfileRepository interface {
 	) ([]*profileutils.UserProfile, error)
 }
 
-//RolesRepository interface that provide access to all persistent storage operations for roles
+// RolesRepository interface that provide access to all persistent storage operations for roles
 type RolesRepository interface {
 	CreateRole(
 		ctx context.Context,

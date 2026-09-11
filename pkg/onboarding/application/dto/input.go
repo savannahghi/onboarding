@@ -166,7 +166,7 @@ type RetrieveUserProfileInput struct {
 	PhoneNumber *string `json:"phone" firestore:"phoneNumber"`
 }
 
-//ProfileSuspensionInput is the input required to suspend/unsuspend a PRO account
+// ProfileSuspensionInput is the input required to suspend/unsuspend a PRO account
 type ProfileSuspensionInput struct {
 	ID      string   `json:"id"`
 	RoleIDs []string `json:"roleIDs"`

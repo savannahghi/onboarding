@@ -195,7 +195,7 @@ type UserProfileRepository interface {
 	) ([]*profileutils.UserProfile, error)
 }
 
-//RolesRepository interface that provide access to all persistent storage operations for roles
+// RolesRepository interface that provide access to all persistent storage operations for roles
 type RolesRepository interface {
 	CreateRole(
 		ctx context.Context,
@@ -425,7 +425,7 @@ func (d DbService) DeleteRole(ctx context.Context, roleID string) (bool, error) 
 	return d.firestore.DeleteRole(ctx, roleID)
 }
 
-//CheckIfUserHasPermission checks if a user has the required permission
+// CheckIfUserHasPermission checks if a user has the required permission
 func (d DbService) CheckIfUserHasPermission(
 	ctx context.Context,
 	UID string,

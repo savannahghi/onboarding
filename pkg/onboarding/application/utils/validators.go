@@ -104,7 +104,7 @@ func IsLetter(s string) bool {
 	return true
 }
 
-//ValidateDateLength ensures that the dates are of only 8 numbers
+// ValidateDateLength ensures that the dates are of only 8 numbers
 func ValidateDateLength(date string) error {
 	// make sure date length is [8]
 	if len(date) < minDateLength || len(date) > maxDateLength {
@@ -123,14 +123,14 @@ func ValidateDateDigits(pin string) error {
 	return nil
 }
 
-//GetUserResponse gets the concatenated text from Africans Talking and splits it to get the current user input
+// GetUserResponse gets the concatenated text from Africans Talking and splits it to get the current user input
 func GetUserResponse(text string) string {
 	response := strings.Split(text, "*")
 	lastUserInput := response[len(response)-1]
 	return lastUserInput
 }
 
-//ValidateYearOfBirth validates that the year enter is 18 years and above
+// ValidateYearOfBirth validates that the year enter is 18 years and above
 func ValidateYearOfBirth(date string) string {
 	year, _, _ := time.Now().Date()
 	dayEntered, _ := strconv.Atoi(date[0:2])
@@ -151,7 +151,7 @@ func ValidateYearOfBirth(date string) string {
 
 }
 
-//ValidateRegisterUserInput validates the user registration input
+// ValidateRegisterUserInput validates the user registration input
 func ValidateRegisterUserInput(input dto.RegisterUserInput) (bool, error) {
 	var res error
 

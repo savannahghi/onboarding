@@ -12,13 +12,12 @@ import (
 // too many requests
 // The usecase of this client is simple: A concurrent process that produces streams to request that the
 // servicing server may not handle as quickly as the requests are been sent
-//
 type RatedHTTPClient struct {
 	client      *http.Client
 	Ratelimiter *rate.Limiter
 }
 
-//Do dispatches the HTTP request to the network
+// Do dispatches the HTTP request to the network
 func (c *RatedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	ctx := context.Background()
 	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
@@ -32,7 +31,7 @@ func (c *RatedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-//NewClient return http client with a ratelimiter
+// NewClient return http client with a ratelimiter
 func NewClient(rl *rate.Limiter) *RatedHTTPClient {
 	c := &RatedHTTPClient{
 		client:      http.DefaultClient,

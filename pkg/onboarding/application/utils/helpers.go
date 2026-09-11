@@ -84,7 +84,7 @@ func RecordSpanError(span trace.Span, err error) {
 	span.RecordError(err)
 }
 
-//ServiceHealthEndPoint creates a url to the service health endpoint
+// ServiceHealthEndPoint creates a url to the service health endpoint
 func ServiceHealthEndPoint(input string) (string, error) {
 	reg, err := regexp.CompilePOSIX("/graphql")
 	if err != nil {
