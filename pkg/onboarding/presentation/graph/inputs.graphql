@@ -7,13 +7,6 @@ input UserProfileInput {
   firstName: String
   lastName: String
 }
-
-input PostVisitSurveyInput {
-  likelyToRecommend: Int!
-  criticism: String!
-  suggestions: String!
-}
-
 input UserAddressInput {
   latitude: Float!
   longitude: Float!

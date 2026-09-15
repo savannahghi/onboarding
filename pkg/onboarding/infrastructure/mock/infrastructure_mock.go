@@ -222,9 +222,6 @@ type FakeInfrastructure struct {
 	// GetPINByProfileID ...
 	GetPINByProfileIDFn func(ctx context.Context, ProfileID string) (*domain.PIN, error)
 
-	// RecordPostVisitSurvey records the  post visit survey
-	RecordPostVisitSurveyFn func(ctx context.Context, input dto.PostVisitSurveyInput, UID string) error
-
 	// SavePIN  User Pin methods
 	SavePINFn func(ctx context.Context, pin *domain.PIN) (bool, error)
 
@@ -353,7 +350,7 @@ func (f FakeInfrastructure) DeleteRole(ctx context.Context, roleID string) (bool
 	return f.DeleteRoleFn(ctx, roleID)
 }
 
-//CheckIfUserHasPermission checks if a user has the required permission
+// CheckIfUserHasPermission checks if a user has the required permission
 func (f FakeInfrastructure) CheckIfUserHasPermission(
 	ctx context.Context,
 	UID string,
@@ -611,15 +608,6 @@ func (f FakeInfrastructure) GetPINByProfileID(
 	ProfileID string,
 ) (*domain.PIN, error) {
 	return f.GetPINByProfileIDFn(ctx, ProfileID)
-}
-
-// RecordPostVisitSurvey records the  post visit survey
-func (f FakeInfrastructure) RecordPostVisitSurvey(
-	ctx context.Context,
-	input dto.PostVisitSurveyInput,
-	UID string,
-) error {
-	return f.RecordPostVisitSurveyFn(ctx, input, UID)
 }
 
 // SavePIN  User Pin methods

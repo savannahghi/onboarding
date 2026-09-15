@@ -21,8 +21,6 @@ type Resolver struct {
 	usecases usecases.Interactor
 }
 
-//go:generate go run github.com/99designs/gqlgen
-
 // NewResolver sets up the dependencies needed for query and mutation resolvers to work
 func NewResolver(
 	ctx context.Context,

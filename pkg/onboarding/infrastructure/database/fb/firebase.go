@@ -39,7 +39,6 @@ var tracer = otel.Tracer(
 const (
 	userProfileCollectionName            = "user_profiles"
 	pinsCollectionName                   = "pins"
-	surveyCollectionName                 = "post_visit_survey"
 	profileNudgesCollectionName          = "profile_nudges"
 	experimentParticipantCollectionName  = "experiment_participants"
 	communicationsSettingsCollectionName = "communications_settings"
@@ -68,12 +67,6 @@ func NewFirebaseRepository(
 // GetUserProfileCollectionName ...
 func (fr Repository) GetUserProfileCollectionName() string {
 	suffixed := firebasetools.SuffixCollection(userProfileCollectionName)
-	return suffixed
-}
-
-// GetSurveyCollectionName returns a well suffixed PINs collection name
-func (fr Repository) GetSurveyCollectionName() string {
-	suffixed := firebasetools.SuffixCollection(surveyCollectionName)
 	return suffixed
 }
 
@@ -166,7 +159,7 @@ func (fr *Repository) GetUserProfileByUID(
 	return userProfile, nil
 }
 
-//GetUserProfileByPhoneOrEmail retrieves user profile by email adddress
+// GetUserProfileByPhoneOrEmail retrieves user profile by email adddress
 func (fr *Repository) GetUserProfileByPhoneOrEmail(ctx context.Context, payload *dto.RetrieveUserProfileInput) (*profileutils.UserProfile, error) {
 	ctx, span := tracer.Start(ctx, "GetUserProfileByPhoneOrEmail")
 	defer span.End()
@@ -531,7 +524,7 @@ func (fr *Repository) CreateDetailedUserProfile(
 	return &profile, nil
 }
 
-//GetUserProfileByPrimaryPhoneNumber fetches a user profile by primary phone number
+// GetUserProfileByPrimaryPhoneNumber fetches a user profile by primary phone number
 func (fr *Repository) GetUserProfileByPrimaryPhoneNumber(
 	ctx context.Context,
 	phoneNumber string,
@@ -1755,41 +1748,6 @@ func (fr *Repository) UpdateVerifiedUIDS(ctx context.Context, id string, uids []
 	return nil
 }
 
-// RecordPostVisitSurvey records an end of visit survey
-func (fr *Repository) RecordPostVisitSurvey(
-	ctx context.Context,
-	input dto.PostVisitSurveyInput,
-	UID string,
-) error {
-	ctx, span := tracer.Start(ctx, "RecordPostVisitSurvey")
-	defer span.End()
-
-	if input.LikelyToRecommend < 0 || input.LikelyToRecommend > 10 {
-		return exceptions.LikelyToRecommendError(
-			fmt.Errorf("the likelihood of recommending should be an int between 0 and 10"),
-		)
-
-	}
-	feedback := domain.PostVisitSurvey{
-		LikelyToRecommend: input.LikelyToRecommend,
-		Criticism:         input.Criticism,
-		Suggestions:       input.Suggestions,
-		UID:               UID,
-		Timestamp:         time.Now(),
-	}
-	command := &CreateCommand{
-		CollectionName: fr.GetSurveyCollectionName(),
-		Data:           feedback,
-	}
-	_, err := fr.FirestoreClient.Create(ctx, command)
-	if err != nil {
-		utils.RecordSpanError(span, err)
-		return exceptions.AddRecordError(err)
-
-	}
-	return nil
-}
-
 // SavePIN  persist the data of the newly created PIN to a datastore
 func (fr *Repository) SavePIN(ctx context.Context, pin *domain.PIN) (bool, error) {
 	ctx, span := tracer.Start(ctx, "SavePin")
@@ -2965,7 +2923,7 @@ func (fr *Repository) SaveRoleRevocation(ctx context.Context, userID string, rev
 	return nil
 }
 
-//CheckIfUserHasPermission checks if a user has the required permission
+// CheckIfUserHasPermission checks if a user has the required permission
 func (fr *Repository) CheckIfUserHasPermission(
 	ctx context.Context,
 	UID string,

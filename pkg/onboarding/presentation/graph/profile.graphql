@@ -50,8 +50,6 @@ extend type Mutation {
 
   registerPushToken(token: String!): Boolean!
 
-  recordPostVisitSurvey(input: PostVisitSurveyInput!): Boolean!
-
   setupAsExperimentParticipant(participate: Boolean): Boolean!
 
   addAddress(input: UserAddressInput!, addressType: AddressType!): Address!

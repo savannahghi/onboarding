@@ -62,9 +62,6 @@ type FakeOnboardingRepository struct {
 	// PINs
 	GetPINByProfileIDFn func(ctx context.Context, ProfileID string) (*domain.PIN, error)
 
-	// Record post visit survey
-	RecordPostVisitSurveyFn func(ctx context.Context, input dto.PostVisitSurveyInput, UID string) error
-
 	// User Pin methods
 	SavePINFn   func(ctx context.Context, pin *domain.PIN) (bool, error)
 	UpdatePINFn func(ctx context.Context, id string, pin *domain.PIN) (bool, error)
@@ -261,16 +258,7 @@ func (f *FakeOnboardingRepository) GetPINByProfileID(
 	return f.GetPINByProfileIDFn(ctx, ProfileID)
 }
 
-//RecordPostVisitSurvey Record post visit survey
-func (f *FakeOnboardingRepository) RecordPostVisitSurvey(
-	ctx context.Context,
-	input dto.PostVisitSurveyInput,
-	UID string,
-) error {
-	return f.RecordPostVisitSurveyFn(ctx, input, UID)
-}
-
-//SavePIN  User Pin methods
+// SavePIN  User Pin methods
 func (f *FakeOnboardingRepository) SavePIN(ctx context.Context, pin *domain.PIN) (bool, error) {
 	return f.SavePINFn(ctx, pin)
 }
@@ -534,7 +522,7 @@ func (f *FakeOnboardingRepository) UpdateFavNavActions(
 	return f.UpdateFavNavActionsFn(ctx, id, favActions)
 }
 
-//CreateRole ...
+// CreateRole ...
 func (f *FakeOnboardingRepository) CreateRole(
 	ctx context.Context,
 	profileID string,
@@ -543,7 +531,7 @@ func (f *FakeOnboardingRepository) CreateRole(
 	return f.CreateRoleFn(ctx, profileID, input)
 }
 
-//UpdateRoleDetails ...
+// UpdateRoleDetails ...
 func (f *FakeOnboardingRepository) UpdateRoleDetails(
 	ctx context.Context,
 	profileID string,
@@ -552,7 +540,7 @@ func (f *FakeOnboardingRepository) UpdateRoleDetails(
 	return f.UpdateRoleDetailsFn(ctx, profileID, role)
 }
 
-//GetRoleByID ...
+// GetRoleByID ...
 func (f *FakeOnboardingRepository) GetRoleByID(
 	ctx context.Context,
 	roleID string,
@@ -560,7 +548,7 @@ func (f *FakeOnboardingRepository) GetRoleByID(
 	return f.GetRoleByIDFn(ctx, roleID)
 }
 
-//GetAllRoles ...
+// GetAllRoles ...
 func (f *FakeOnboardingRepository) GetAllRoles(
 	ctx context.Context,
 ) (*[]profileutils.Role, error) {

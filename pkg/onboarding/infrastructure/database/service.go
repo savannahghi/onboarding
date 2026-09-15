@@ -108,13 +108,6 @@ type Repository interface {
 		ProfileID string,
 	) (*domain.PIN, error)
 
-	// Record post visit survey
-	RecordPostVisitSurvey(
-		ctx context.Context,
-		input dto.PostVisitSurveyInput,
-		UID string,
-	) error
-
 	// User Pin methods
 	SavePIN(ctx context.Context, pin *domain.PIN) (bool, error)
 	UpdatePIN(ctx context.Context, id string, pin *domain.PIN) (bool, error)
@@ -195,7 +188,7 @@ type UserProfileRepository interface {
 	) ([]*profileutils.UserProfile, error)
 }
 
-//RolesRepository interface that provide access to all persistent storage operations for roles
+// RolesRepository interface that provide access to all persistent storage operations for roles
 type RolesRepository interface {
 	CreateRole(
 		ctx context.Context,
@@ -425,7 +418,7 @@ func (d DbService) DeleteRole(ctx context.Context, roleID string) (bool, error) 
 	return d.firestore.DeleteRole(ctx, roleID)
 }
 
-//CheckIfUserHasPermission checks if a user has the required permission
+// CheckIfUserHasPermission checks if a user has the required permission
 func (d DbService) CheckIfUserHasPermission(
 	ctx context.Context,
 	UID string,
@@ -563,15 +556,6 @@ func (d DbService) GetPINByProfileID(
 	ProfileID string,
 ) (*domain.PIN, error) {
 	return d.firestore.GetPINByProfileID(ctx, ProfileID)
-}
-
-// RecordPostVisitSurvey records the  post visit survey
-func (d DbService) RecordPostVisitSurvey(
-	ctx context.Context,
-	input dto.PostVisitSurveyInput,
-	UID string,
-) error {
-	return d.firestore.RecordPostVisitSurvey(ctx, input, UID)
 }
 
 // SavePIN  User Pin methods

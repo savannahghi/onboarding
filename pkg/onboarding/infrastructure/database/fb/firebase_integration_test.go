@@ -69,7 +69,6 @@ func TestMain(m *testing.M) {
 		collections := []string{
 			r.GetPINsCollectionName(),
 			r.GetUserProfileCollectionName(),
-			r.GetSurveyCollectionName(),
 			r.GetCommunicationsSettingsCollectionName(),
 			r.GetExperimentParticipantCollectionName(),
 			r.GetProfileNudgesCollectionName(),
@@ -1113,75 +1112,6 @@ func TestRepository_UpdatePIN(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("Repository.UpdatePIN() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRepository_RecordPostVisitSurvey(t *testing.T) {
-	ctx, auth, err := GetTestAuthenticatedContext(t)
-	if err != nil {
-		t.Errorf("failed to get test authenticated context: %v", err)
-		return
-	}
-
-	fsc, fbc := firestoreClient, firebaseAuth
-	if fsc == nil {
-		t.Errorf("failed to initialize test FireStore client")
-		return
-	}
-	if fbc == nil {
-		t.Errorf("failed to initialize test FireBase client")
-		return
-	}
-	firestoreExtension := fb.NewFirestoreClientExtension(fsc)
-	fr := fb.NewFirebaseRepository(firestoreExtension, fbc)
-
-	type args struct {
-		ctx   context.Context
-		input dto.PostVisitSurveyInput
-		UID   string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Happy Case - Successfully record a post visit survey",
-			args: args{
-				ctx: ctx,
-				input: dto.PostVisitSurveyInput{
-					LikelyToRecommend: 10,
-					Criticism:         "Nothing at all. Good job.",
-					Suggestions:       "Can't think of anything.",
-				},
-				UID: auth.UID,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Sad Case - Invalid input",
-			args: args{
-				ctx: ctx,
-				input: dto.PostVisitSurveyInput{
-					LikelyToRecommend: 100,
-					Criticism:         "Nothing at all. Good job.",
-					Suggestions:       "Can't think of anything.",
-				},
-				UID: auth.UID,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := fr.RecordPostVisitSurvey(tt.args.ctx, tt.args.input, tt.args.UID); (err != nil) != tt.wantErr {
-				t.Errorf(
-					"Repository.RecordPostVisitSurvey() error = %v, wantErr %v",
-					err,
-					tt.wantErr,
-				)
 			}
 		})
 	}

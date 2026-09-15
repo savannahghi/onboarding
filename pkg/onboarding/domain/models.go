@@ -31,15 +31,6 @@ type ChangePINRequest struct {
 	OTP         string `json:"otp"`
 }
 
-// PostVisitSurvey is used to record and retrieve post visit surveys from Firebase
-type PostVisitSurvey struct {
-	LikelyToRecommend int       `json:"likelyToRecommend" firestore:"likelyToRecommend"`
-	Criticism         string    `json:"criticism"         firestore:"criticism"`
-	Suggestions       string    `json:"suggestions"       firestore:"suggestions"`
-	UID               string    `json:"uid"               firestore:"uid"`
-	Timestamp         time.Time `json:"timestamp"         firestore:"timestamp"`
-}
-
 // UserAddresses represents a user's home and work addresses
 type UserAddresses struct {
 	HomeAddress ThinAddress `json:"homeAddress"`
